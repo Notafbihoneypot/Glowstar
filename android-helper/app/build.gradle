@@ -10,8 +10,8 @@ android {
         applicationId 'org.glowstr.meshbridge'
         minSdk 29
         targetSdk 36
-        versionCode 7
-        versionName '0.2.2'
+        versionCode 8
+        versionName '0.2.3'
     }
 
     buildTypes {
@@ -88,8 +88,25 @@ def syncGlowstrAsset = tasks.register('syncGlowstrAsset', Copy) {
         if (!text.contains(oldConnect)) throw new GradleException('Could not locate NIP-46 connect block')
         text = text.replace(oldConnect, newConnect)
 
+        def oldNotificationTail = '''  if (state.notifications.length > 200) state.notifications.length = 200;
+  if (!state.profiles[actorPubkey]) requestProfile(actorPubkey);'''
+        def newNotificationTail = '''  if (state.notifications.length > 200) state.notifications.length = 200;
+  // Android-only native notification mirror. Keep lock-screen content generic,
+  // only alert for fresh activity, and avoid duplicating alerts while the app is visible.
+  try {
+    const ts = createdAt || Math.floor(Date.now() / 1000);
+    const fresh = ts >= Math.floor(Date.now() / 1000) - 120;
+    const backgrounded = document.visibilityState !== 'visible';
+    if (fresh && backgrounded && window.GlowstrAndroid?.notifyNostr) {
+      window.GlowstrAndroid.notifyNostr(type, dupeKey);
+    }
+  } catch(e) { console.warn('Native notification bridge failed', e); }
+  if (!state.profiles[actorPubkey]) requestProfile(actorPubkey);'''
+        if (!text.contains(oldNotificationTail)) throw new GradleException('Could not locate notification insertion point')
+        text = text.replace(oldNotificationTail, newNotificationTail)
+
         // The app's CSP pins the one inline client script by SHA-256. Because the
-        // Android build applies the two compatibility fixes above at packaging time,
+        // Android build applies compatibility/privacy fixes at packaging time,
         // recompute that hash rather than weakening CSP with unsafe-inline.
         def matcher = (text =~ /(?s)<script>(.*?)<\/script>/)
         if (!matcher.find()) throw new GradleException('Could not locate Glowstr inline script for CSP hash')

@@ -10,8 +10,8 @@ android {
         applicationId 'org.glowstr.meshbridge'
         minSdk 29
         targetSdk 36
-        versionCode 9
-        versionName '0.2.4'
+        versionCode 10
+        versionName '0.2.5'
     }
 
     buildTypes {
@@ -100,30 +100,189 @@ def syncGlowstrAsset = tasks.register('syncGlowstrAsset', Copy) {
         text = text.replace(oldNotificationTail, newNotificationTail)
 
         def nativeAmber = '''
-// === ANDROID NATIVE NIP-55 OVERRIDE ===
+// === ANDROID NATIVE NIP-55 + STORE-AND-FORWARD QUEUE ===
 if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 'function') {
   let __glowstrAmberPoll = null;
+  let __glowstrAmberBusy = false;
+  let __glowstrAmberMode = null;
+  let __glowstrQueueDrainActive = false;
+  let __glowstrQueuePendingId = null;
+  let __glowstrQueuePauseUntil = 0;
+  const __glowstrOriginalPublishQueued = glowstrPublishQueued;
 
-  function __glowstrStartAmberPoll() {
+  function __glowstrStopAmberPoll() {
     if (__glowstrAmberPoll) clearInterval(__glowstrAmberPoll);
+    __glowstrAmberPoll = null;
+  }
+
+  function __glowstrQueuePause(ms, message) {
+    __glowstrQueuePauseUntil = Date.now() + Math.max(0, Number(ms) || 0);
+    __glowstrQueueDrainActive = false;
+    __glowstrQueuePendingId = null;
+    __glowstrAmberBusy = false;
+    __glowstrAmberMode = null;
+    document.getElementById('signing-indicator')?.classList.remove('active');
+    if (message) showToast(message);
+  }
+
+  async function __glowstrFinishQueuedSignedEvent(signed, requested) {
+    const id = __glowstrQueuePendingId;
+    const all = await glowstrOfflineGetAll();
+    const rec = all.find(x => x.id === id && x.status === 'queued');
+    if (!rec) {
+      __glowstrQueuePause(0, 'Queued note was removed before publishing');
+      return;
+    }
+
+    // Signed Nostr events are public data. Keep the already-verified signed event
+    // until a relay ACK arrives so retries reuse the SAME event id instead of
+    // creating duplicate notes if an ACK is lost.
+    rec.signedEvent = signed;
+    rec.signedRequested = requested;
+    rec.updatedAt = Date.now();
+    await glowstrOfflinePut(rec);
+
+    const sent = broadcastEvent(signed);
+    if (sent < 1) {
+      __glowstrQueuePause(5000, 'Connection disappeared — signed note kept in queue');
+      return;
+    }
+
+    const acked = await glowstrWaitForPublishAck(signed.id, 5000);
+    if (!acked) {
+      __glowstrQueuePause(15000, 'No relay ACK yet — exact signed event kept for retry');
+      return;
+    }
+
+    await glowstrOfflineDelete(rec.id);
+    await glowstrUpdateOfflineBadge();
+    try { await glowstrRenderOfflineManager(); } catch(e) {}
+    __glowstrQueueDrainActive = false;
+    __glowstrQueuePendingId = null;
+    __glowstrAmberBusy = false;
+    __glowstrAmberMode = null;
+    document.getElementById('signing-indicator')?.classList.remove('active');
+    showToast('✓ Queued note published and acknowledged');
+    setTimeout(() => __glowstrMaybeDrainQueue(false), 650);
+  }
+
+  async function __glowstrRetryAlreadySigned(rec) {
+    if (!rec?.signedEvent || !rec?.signedRequested) return false;
+    let valid = false;
+    try { valid = await glowstrValidateSignerResult(rec.signedRequested, rec.signedEvent); }
+    catch(e) { valid = false; }
+    if (!valid) {
+      delete rec.signedEvent;
+      delete rec.signedRequested;
+      rec.updatedAt = Date.now();
+      await glowstrOfflinePut(rec);
+      return false;
+    }
+
+    __glowstrQueueDrainActive = true;
+    __glowstrQueuePendingId = rec.id;
+    const sent = broadcastEvent(rec.signedEvent);
+    if (sent < 1) {
+      __glowstrQueuePause(5000, null);
+      return true;
+    }
+    const acked = await glowstrWaitForPublishAck(rec.signedEvent.id, 5000);
+    if (acked) {
+      await glowstrOfflineDelete(rec.id);
+      await glowstrUpdateOfflineBadge();
+      try { await glowstrRenderOfflineManager(); } catch(e) {}
+      __glowstrQueueDrainActive = false;
+      __glowstrQueuePendingId = null;
+      showToast('✓ Queued note acknowledged');
+      setTimeout(() => __glowstrMaybeDrainQueue(false), 650);
+    } else {
+      __glowstrQueuePause(15000, null);
+    }
+    return true;
+  }
+
+  async function __glowstrMaybeDrainQueue(force = false) {
+    if (__glowstrQueueDrainActive || __glowstrAmberBusy) return;
+    if (!force && Date.now() < __glowstrQueuePauseUntil) return;
+    if (document.visibilityState !== 'visible') return;
+    if (navigator.onLine === false || !glowstrHasWritableConnection()) return;
+    if (!state.publicKey || state.signerMethod !== 'amber-nip55') return;
+    try {
+      if (!window.GlowstrAndroid.amberSignerAvailable()) return;
+      const all = (await glowstrOfflineGetAll())
+        .filter(x => x.status === 'queued')
+        .sort((a,b) => (a.createdAt || 0) - (b.createdAt || 0));
+      if (!all.length) return;
+      const rec = all[0];
+
+      if (await __glowstrRetryAlreadySigned(rec)) return;
+
+      const template = glowstrBuildQueuedTemplate(rec);
+      template.pubkey = state.publicKey;
+      glowstrSaveAmberPendingEvent(template);
+      __glowstrQueueDrainActive = true;
+      __glowstrQueuePendingId = rec.id;
+      __glowstrAmberBusy = true;
+      __glowstrAmberMode = 'queue';
+      document.getElementById('signing-indicator')?.classList.add('active');
+      if (!window.GlowstrAndroid.amberApproveEvent(JSON.stringify(template))) {
+        __glowstrQueuePause(15000, 'Could not open Amber — note remains queued');
+        return;
+      }
+      showToast('Queued note ready — approve it in Amber');
+      __glowstrStartAmberPoll('queue');
+    } catch(e) {
+      console.warn('Automatic queued publish failed', e);
+      __glowstrQueuePause(15000, 'Queued note kept locally');
+    }
+  }
+
+  function __glowstrStartAmberPoll(mode) {
+    __glowstrStopAmberPoll();
+    __glowstrAmberMode = mode;
     let attempts = 0;
     __glowstrAmberPoll = setInterval(async () => {
       attempts++;
       let raw = '';
       try { raw = window.GlowstrAndroid.pollAmberResult() || ''; } catch(e) {}
       if (!raw) {
-        if (attempts > 240) { clearInterval(__glowstrAmberPoll); __glowstrAmberPoll = null; }
+        if (attempts > 480) {
+          __glowstrStopAmberPoll();
+          if (mode === 'queue') __glowstrQueuePause(30000, 'Amber timed out — note remains queued');
+          else {
+            __glowstrAmberBusy = false;
+            __glowstrAmberMode = null;
+            document.getElementById('signing-indicator')?.classList.remove('active');
+            showToast('Amber request timed out');
+          }
+        }
         return;
       }
-      clearInterval(__glowstrAmberPoll); __glowstrAmberPoll = null;
+      __glowstrStopAmberPoll();
       let data;
-      try { data = JSON.parse(raw); } catch(e) { showToast('Amber returned invalid Android result'); return; }
+      try { data = JSON.parse(raw); }
+      catch(e) {
+        if (mode === 'queue') __glowstrQueuePause(30000, 'Amber returned invalid data — note remains queued');
+        else { __glowstrAmberBusy = false; showToast('Amber returned invalid Android result'); }
+        return;
+      }
+
       document.getElementById('signing-indicator')?.classList.remove('active');
-      if (data.rejected) { showToast('Amber request rejected'); return; }
-      if (!data.ok) { showToast(data.error || 'Amber request failed'); return; }
+      if (data.rejected) {
+        if (mode === 'queue') __glowstrQueuePause(5 * 60 * 1000, 'Amber rejected it — note remains queued');
+        else { __glowstrAmberBusy = false; __glowstrAmberMode = null; showToast('Amber request rejected'); }
+        return;
+      }
+      if (!data.ok) {
+        if (mode === 'queue') __glowstrQueuePause(30000, data.error || 'Amber failed — note remains queued');
+        else { __glowstrAmberBusy = false; __glowstrAmberMode = null; showToast(data.error || 'Amber request failed'); }
+        return;
+      }
 
       if (data.type === 'amber_get_public_key') {
         const pk = String(data.result || '').trim().toLowerCase();
+        __glowstrAmberBusy = false;
+        __glowstrAmberMode = null;
         if (!/^[0-9a-f]{64}$/.test(pk)) { showToast('Amber returned an invalid public key'); return; }
         state.publicKey = pk;
         state.signerMethod = 'amber-nip55';
@@ -131,55 +290,104 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
         saveState();
         subscribeUserSpecificEvents();
         showToast('✓ Connected to Amber with native NIP-55');
+        setTimeout(() => __glowstrMaybeDrainQueue(false), 700);
         return;
       }
 
       if (data.type === 'amber_sign_event') {
         const requested = glowstrTakeAmberPendingEvent();
-        if (!requested) { showToast('Amber signing request expired'); return; }
+        if (!requested) {
+          if (mode === 'queue') __glowstrQueuePause(30000, 'Amber signing request expired — note remains queued');
+          else { __glowstrAmberBusy = false; __glowstrAmberMode = null; showToast('Amber signing request expired'); }
+          return;
+        }
         try {
           const signed = JSON.parse(String(data.event || ''));
-          if (signed.sig && signed.id && await glowstrValidateSignerResult(requested, signed)) {
+          if (!(signed.sig && signed.id && await glowstrValidateSignerResult(requested, signed))) {
+            if (mode === 'queue') __glowstrQueuePause(5 * 60 * 1000, 'Amber returned a mismatched event — note remains queued');
+            else { __glowstrAmberBusy = false; __glowstrAmberMode = null; showToast('Amber returned a mismatched signed event'); }
+            return;
+          }
+          if (mode === 'queue') {
+            await __glowstrFinishQueuedSignedEvent(signed, requested);
+          } else {
+            __glowstrAmberBusy = false;
+            __glowstrAmberMode = null;
             broadcastEvent(signed);
             showToast('✓ Signed by Amber, verified, and broadcast');
-          } else {
-            showToast('Amber returned a mismatched signed event');
           }
         } catch(e) {
-          showToast('Could not parse Amber signed event');
+          if (mode === 'queue') __glowstrQueuePause(30000, 'Could not process Amber result — note remains queued');
+          else { __glowstrAmberBusy = false; __glowstrAmberMode = null; showToast('Could not parse Amber signed event'); }
         }
       }
     }, 250);
   }
 
   loginWithAmber = function() {
+    if (__glowstrAmberBusy || __glowstrQueueDrainActive) { showToast('Amber is already handling a request'); return; }
     try {
       if (!window.GlowstrAndroid.amberSignerAvailable()) { showAmberNotInstalledHelp(); return; }
       state.amberPendingAction = 'get_public_key';
       state.amberPendingTimestamp = Date.now();
-      if (!window.GlowstrAndroid.amberGetPublicKey()) { showToast('Could not open Amber'); return; }
+      __glowstrAmberBusy = true;
+      __glowstrAmberMode = 'login';
+      if (!window.GlowstrAndroid.amberGetPublicKey()) {
+        __glowstrAmberBusy = false;
+        __glowstrAmberMode = null;
+        showToast('Could not open Amber');
+        return;
+      }
       showToast('Opening Amber…');
-      __glowstrStartAmberPoll();
-    } catch(e) { showToast('Amber launch failed: ' + (e.message || e)); }
+      __glowstrStartAmberPoll('login');
+    } catch(e) {
+      __glowstrAmberBusy = false;
+      __glowstrAmberMode = null;
+      showToast('Amber launch failed: ' + (e.message || e));
+    }
   };
 
   signWithAmber = function(eventJson) {
+    if (__glowstrAmberBusy || __glowstrQueueDrainActive) { showToast('Amber is already handling a queued post'); return; }
     state.amberPendingAction = 'sign_event';
     try { glowstrSaveAmberPendingEvent(JSON.parse(eventJson)); }
     catch(e) { throw new Error('Invalid Amber event request'); }
     document.getElementById('signing-indicator')?.classList.add('active');
     try {
+      __glowstrAmberBusy = true;
+      __glowstrAmberMode = 'normal';
       if (!window.GlowstrAndroid.amberApproveEvent(eventJson)) {
+        __glowstrAmberBusy = false;
+        __glowstrAmberMode = null;
         document.getElementById('signing-indicator')?.classList.remove('active');
         showToast('Could not open Amber signer');
         return;
       }
-      __glowstrStartAmberPoll();
+      __glowstrStartAmberPoll('normal');
     } catch(e) {
+      __glowstrAmberBusy = false;
+      __glowstrAmberMode = null;
       document.getElementById('signing-indicator')?.classList.remove('active');
       showToast('Amber signing failed: ' + (e.message || e));
     }
   };
+
+  // Manual queue button becomes an explicit retry/resume control for Amber.
+  glowstrPublishQueued = async function() {
+    if (state.signerMethod !== 'amber-nip55') return __glowstrOriginalPublishQueued();
+    __glowstrQueuePauseUntil = 0;
+    await __glowstrMaybeDrainQueue(true);
+  };
+
+  // Reconnect detection: no Google push/service required. We only open Amber while
+  // Glowstr is visible; if connectivity returns in the background, the durable queue
+  // waits until the user returns to the app.
+  window.addEventListener('online', () => setTimeout(() => __glowstrMaybeDrainQueue(false), 500));
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') setTimeout(() => __glowstrMaybeDrainQueue(false), 500);
+  });
+  setInterval(() => __glowstrMaybeDrainQueue(false), 2500);
+  setTimeout(() => __glowstrMaybeDrainQueue(false), 1200);
 }
 '''
         if (!text.contains('</script>')) throw new GradleException('Could not locate closing Glowstr script tag')

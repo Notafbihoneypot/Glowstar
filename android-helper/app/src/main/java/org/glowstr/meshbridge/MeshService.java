@@ -8,13 +8,17 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
 
 public final class MeshService extends Service implements BluetoothMeshManager.Listener {
     static final String ACTION_START = "org.glowstr.meshbridge.START";
@@ -111,6 +115,61 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
         return token;
     }
 
+    JSONObject nativeRequest(String method, String target, String bodyText) {
+        try {
+            String m = method == null ? "GET" : method.toUpperCase(Locale.ROOT);
+            Uri uri = Uri.parse("https://app.glowstr.local" + (target == null ? "/" : target));
+            String path = uri.getPath();
+            if (path == null) path = "/";
+
+            if ("GET".equals(m) && "/v1/status".equals(path)) {
+                return envelope(200, snapshot());
+            }
+            if ("GET".equals(m) && "/v1/peers".equals(path)) {
+                JSONArray peers = new JSONArray();
+                if (mesh != null) for (JSONObject p : mesh.peerSnapshot()) peers.put(p);
+                return envelope(200, new JSONObject().put("ok", true).put("peers", peers));
+            }
+            if ("POST".equals(m) && "/v1/send".equals(path)) {
+                if (mesh == null || store == null || !mesh.isRunning()) {
+                    return envelope(503, new JSONObject().put("ok", false).put("error", "Bluetooth mesh is not running"));
+                }
+                JSONObject body = new JSONObject(bodyText == null || bodyText.isEmpty() ? "{}" : bodyText);
+                JSONObject event = body.optJSONObject("event");
+                int hops = Protocol.boundedHops(body.optInt("hops", Protocol.DEFAULT_HOPS));
+                Protocol.validatePublicEvent(event);
+                int peers = mesh.sendLocal(event, hops);
+                return envelope(200, new JSONObject()
+                        .put("ok", true)
+                        .put("event_id", event.getString("id"))
+                        .put("peers_sent", peers)
+                        .put("stored", true)
+                        .put("hops", hops));
+            }
+            if ("POST".equals(m) && "/v1/rescan".equals(path)) {
+                if (mesh == null) return envelope(503, new JSONObject().put("ok", false).put("error", "Bluetooth mesh is not running"));
+                mesh.restartScan();
+                return envelope(200, new JSONObject().put("ok", true));
+            }
+            if ("GET".equals(m) && "/v1/events".equals(path)) {
+                if (store == null) return envelope(503, new JSONObject().put("ok", false).put("error", "Event store is unavailable"));
+                long after = parseLong(uri.getQueryParameter("after"), 0);
+                int limit = (int)Math.max(1, Math.min(100, parseLong(uri.getQueryParameter("limit"), 50)));
+                List<EventStore.Row> rows = store.after(after, limit);
+                JSONArray events = new JSONArray();
+                long cursor = after;
+                for (EventStore.Row row : rows) {
+                    events.put(row.toJson());
+                    cursor = Math.max(cursor, row.seq);
+                }
+                return envelope(200, new JSONObject().put("ok", true).put("cursor", cursor).put("events", events));
+            }
+            return envelope(404, new JSONObject().put("ok", false).put("error", "not found"));
+        } catch (Exception e) {
+            return envelope(400, new JSONObject().put("ok", false).put("error", safeMessage(e)));
+        }
+    }
+
     JSONObject snapshot() {
         try {
             JSONObject j = http != null ? http.status() : new JSONObject()
@@ -119,10 +178,20 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
                     .put("node_id", mesh == null ? "" : mesh.getNodeId());
             j.put("http", http != null).put("port", LocalHttpServer.PORT).put("error", lastError);
             return j;
-        } catch (Exception e) { return new JSONObject(); }
+        } catch (Exception e) { return new JSONObject().put("ok", false).put("running", false).put("error", safeMessage(e)); }
     }
 
     static MeshService current() { return instance; }
+
+    private static JSONObject envelope(int status, JSONObject body) {
+        try { return new JSONObject().put("status", status).put("body", body); }
+        catch (Exception e) { return new JSONObject(); }
+    }
+
+    private static long parseLong(String v, long fallback) {
+        try { return Long.parseLong(v); }
+        catch (Exception e) { return fallback; }
+    }
 
     private void cleanupRuntime() {
         if (http != null) {
@@ -147,12 +216,12 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
         Intent stop = new Intent(this, MeshService.class).setAction(ACTION_STOP);
         PendingIntent stopPi = PendingIntent.getService(this, 2, stop, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
-        return b.setContentTitle("Glowstr Bluetooth Direct")
+        return b.setContentTitle("Glowstr")
                 .setContentText(text)
                 .setSmallIcon(R.drawable.ic_mesh)
                 .setContentIntent(pi)
                 .setOngoing(true)
-                .addAction(R.drawable.ic_mesh, "Stop", stopPi)
+                .addAction(R.drawable.ic_mesh, "Stop mesh", stopPi)
                 .build();
     }
 

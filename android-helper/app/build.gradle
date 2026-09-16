@@ -10,8 +10,8 @@ android {
         applicationId 'org.glowstr.meshbridge'
         minSdk 29
         targetSdk 36
-        versionCode 8
-        versionName '0.2.3'
+        versionCode 9
+        versionName '0.2.4'
     }
 
     buildTypes {
@@ -52,8 +52,6 @@ def syncGlowstrAsset = tasks.register('syncGlowstrAsset', Copy) {
             return;
           }'''
         def newAuth = '''          if (response.result === 'auth_url') {
-            // NIP-46 auth challenge: the approval URL is carried in `error`.
-            // Open it externally on Android and keep listening on THIS request id.
             const authUrl = typeof response.error === 'string' ? response.error.trim() : '';
             if (/^https?:\\/\\//i.test(authUrl)) {
               try {
@@ -70,8 +68,6 @@ def syncGlowstrAsset = tasks.register('syncGlowstrAsset', Copy) {
         def oldConnect = '''    const connectParams = [signerPubkey, secret || '', NIP46_REQUESTED_PERMS, nip46ClientMetadata()];
     const connectResult = await nip46Request('connect', connectParams, 60000); // user may need to approve in signer'''
         def newConnect = '''    const connectParams = [signerPubkey, secret || '', NIP46_REQUESTED_PERMS, nip46ClientMetadata()];
-    // Amber bunker URLs may advertise multiple relays. Try each instead of failing
-    // the entire login because the first relay is unreachable.
     let connectResult = null;
     let connectError = null;
     for (const relayUrl of relays) {
@@ -91,8 +87,6 @@ def syncGlowstrAsset = tasks.register('syncGlowstrAsset', Copy) {
         def oldNotificationTail = '''  if (state.notifications.length > 200) state.notifications.length = 200;
   if (!state.profiles[actorPubkey]) requestProfile(actorPubkey);'''
         def newNotificationTail = '''  if (state.notifications.length > 200) state.notifications.length = 200;
-  // Android-only native notification mirror. Keep lock-screen content generic,
-  // only alert for fresh activity, and avoid duplicating alerts while the app is visible.
   try {
     const ts = createdAt || Math.floor(Date.now() / 1000);
     const fresh = ts >= Math.floor(Date.now() / 1000) - 120;
@@ -105,9 +99,94 @@ def syncGlowstrAsset = tasks.register('syncGlowstrAsset', Copy) {
         if (!text.contains(oldNotificationTail)) throw new GradleException('Could not locate notification insertion point')
         text = text.replace(oldNotificationTail, newNotificationTail)
 
-        // The app's CSP pins the one inline client script by SHA-256. Because the
-        // Android build applies compatibility/privacy fixes at packaging time,
-        // recompute that hash rather than weakening CSP with unsafe-inline.
+        def nativeAmber = '''
+// === ANDROID NATIVE NIP-55 OVERRIDE ===
+// The bundled Android app is a native NIP-55 client. Do not use the web callback URL
+// path (app.glowstr.local is an internal WebView origin, not a public callback route).
+if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 'function') {
+  let __glowstrAmberPoll = null;
+
+  function __glowstrStartAmberPoll() {
+    if (__glowstrAmberPoll) clearInterval(__glowstrAmberPoll);
+    let attempts = 0;
+    __glowstrAmberPoll = setInterval(async () => {
+      attempts++;
+      let raw = '';
+      try { raw = window.GlowstrAndroid.pollAmberResult() || ''; } catch(e) {}
+      if (!raw) {
+        if (attempts > 240) { clearInterval(__glowstrAmberPoll); __glowstrAmberPoll = null; }
+        return;
+      }
+      clearInterval(__glowstrAmberPoll); __glowstrAmberPoll = null;
+      let data;
+      try { data = JSON.parse(raw); } catch(e) { showToast('Amber returned invalid Android result'); return; }
+      document.getElementById('signing-indicator')?.classList.remove('active');
+      if (data.rejected) { showToast('Amber request rejected'); return; }
+      if (!data.ok) { showToast(data.error || 'Amber request failed'); return; }
+
+      if (data.type === 'amber_get_public_key') {
+        const pk = String(data.result || '').trim().toLowerCase();
+        if (!/^[0-9a-f]{64}$/.test(pk)) { showToast('Amber returned an invalid public key'); return; }
+        state.publicKey = pk;
+        state.signerMethod = 'amber-nip55';
+        showLoggedIn();
+        saveState();
+        subscribeUserSpecificEvents();
+        showToast('✓ Connected to Amber with native NIP-55');
+        return;
+      }
+
+      if (data.type === 'amber_sign_event') {
+        const requested = glowstrTakeAmberPendingEvent();
+        if (!requested) { showToast('Amber signing request expired'); return; }
+        try {
+          const signed = JSON.parse(String(data.event || ''));
+          if (signed.sig && signed.id && await glowstrValidateSignerResult(requested, signed)) {
+            broadcastEvent(signed);
+            showToast('✓ Signed by Amber, verified, and broadcast');
+          } else {
+            showToast('Amber returned a mismatched signed event');
+          }
+        } catch(e) {
+          showToast('Could not parse Amber signed event');
+        }
+      }
+    }, 250);
+  }
+
+  loginWithAmber = function() {
+    try {
+      if (!window.GlowstrAndroid.amberSignerAvailable()) { showAmberNotInstalledHelp(); return; }
+      state.amberPendingAction = 'get_public_key';
+      state.amberPendingTimestamp = Date.now();
+      if (!window.GlowstrAndroid.amberGetPublicKey()) { showToast('Could not open Amber'); return; }
+      showToast('Opening Amber…');
+      __glowstrStartAmberPoll();
+    } catch(e) { showToast('Amber launch failed: ' + (e.message || e)); }
+  };
+
+  signWithAmber = function(eventJson) {
+    state.amberPendingAction = 'sign_event';
+    try { glowstrSaveAmberPendingEvent(JSON.parse(eventJson)); }
+    catch(e) { throw new Error('Invalid Amber event request'); }
+    document.getElementById('signing-indicator')?.classList.add('active');
+    try {
+      if (!window.GlowstrAndroid.amberSignEvent(eventJson)) {
+        document.getElementById('signing-indicator')?.classList.remove('active');
+        showToast('Could not open Amber signer');
+        return;
+      }
+      __glowstrStartAmberPoll();
+    } catch(e) {
+      document.getElementById('signing-indicator')?.classList.remove('active');
+      showToast('Amber signing failed: ' + (e.message || e));
+    }
+  };
+}
+'''
+        if (!text.contains('</script>')) throw new GradleException('Could not locate closing Glowstr script tag')
+        text = text.replace('</script>', nativeAmber + '\n</script>')
+
         def matcher = (text =~ /(?s)<script>(.*?)<\/script>/)
         if (!matcher.find()) throw new GradleException('Could not locate Glowstr inline script for CSP hash')
         def script = matcher.group(1)

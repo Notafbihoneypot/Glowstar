@@ -150,13 +150,22 @@ public final class MainActivity extends Activity {
     private void startBridge() {
         pendingStart = false;
         Intent i = new Intent(this, MeshService.class).setAction(MeshService.ACTION_START);
-        if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
-        toast("Starting Bluetooth Direct…");
+        try {
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
+            toast("Starting Bluetooth Direct…");
+        } catch (RuntimeException e) {
+            toast("Could not start Bluetooth Direct: " + safeMessage(e));
+            updateUi();
+        }
     }
 
     private void stopBridge() {
-        stopService(new Intent(this, MeshService.class));
-        toast("Bluetooth Direct stopped");
+        try {
+            stopService(new Intent(this, MeshService.class));
+            toast("Bluetooth Direct stopped");
+        } catch (RuntimeException e) {
+            toast("Could not stop Bluetooth Direct: " + safeMessage(e));
+        }
     }
 
     private boolean hasPermissions() {
@@ -268,5 +277,9 @@ public final class MainActivity extends Activity {
     private LinearLayout.LayoutParams weight() { return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT,1f); }
     private LinearLayout.LayoutParams weightLeft(int left) { LinearLayout.LayoutParams p=weight(); p.leftMargin=dp(left); return p; }
     private int dp(int x) { return Math.round(x * getResources().getDisplayMetrics().density); }
+    private static String safeMessage(Throwable t) {
+        String m = t == null ? null : t.getMessage();
+        return (m == null || m.trim().isEmpty()) ? "Android rejected the request" : m;
+    }
     private void toast(String s) { Toast.makeText(this,s,Toast.LENGTH_SHORT).show(); }
 }

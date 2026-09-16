@@ -132,7 +132,7 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
             }
             if ("POST".equals(m) && "/v1/send".equals(path)) {
                 if (mesh == null || store == null || !mesh.isRunning()) {
-                    return envelope(503, new JSONObject().put("ok", false).put("error", "Bluetooth mesh is not running"));
+                    return envelope(503, jsonError("Bluetooth mesh is not running"));
                 }
                 JSONObject body = new JSONObject(bodyText == null || bodyText.isEmpty() ? "{}" : bodyText);
                 JSONObject event = body.optJSONObject("event");
@@ -147,12 +147,12 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
                         .put("hops", hops));
             }
             if ("POST".equals(m) && "/v1/rescan".equals(path)) {
-                if (mesh == null) return envelope(503, new JSONObject().put("ok", false).put("error", "Bluetooth mesh is not running"));
+                if (mesh == null) return envelope(503, jsonError("Bluetooth mesh is not running"));
                 mesh.restartScan();
                 return envelope(200, new JSONObject().put("ok", true));
             }
             if ("GET".equals(m) && "/v1/events".equals(path)) {
-                if (store == null) return envelope(503, new JSONObject().put("ok", false).put("error", "Event store is unavailable"));
+                if (store == null) return envelope(503, jsonError("Event store is unavailable"));
                 long after = parseLong(uri.getQueryParameter("after"), 0);
                 int limit = (int)Math.max(1, Math.min(100, parseLong(uri.getQueryParameter("limit"), 50)));
                 List<EventStore.Row> rows = store.after(after, limit);
@@ -164,9 +164,9 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
                 }
                 return envelope(200, new JSONObject().put("ok", true).put("cursor", cursor).put("events", events));
             }
-            return envelope(404, new JSONObject().put("ok", false).put("error", "not found"));
+            return envelope(404, jsonError("not found"));
         } catch (Exception e) {
-            return envelope(400, new JSONObject().put("ok", false).put("error", safeMessage(e)));
+            return envelope(400, jsonError(safeMessage(e)));
         }
     }
 
@@ -178,7 +178,11 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
                     .put("node_id", mesh == null ? "" : mesh.getNodeId());
             j.put("http", http != null).put("port", LocalHttpServer.PORT).put("error", lastError);
             return j;
-        } catch (Exception e) { return new JSONObject().put("ok", false).put("running", false).put("error", safeMessage(e)); }
+        } catch (Exception e) {
+            JSONObject j = jsonError(safeMessage(e));
+            try { j.put("running", false); } catch (Exception ignored) {}
+            return j;
+        }
     }
 
     static MeshService current() { return instance; }
@@ -186,6 +190,15 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
     private static JSONObject envelope(int status, JSONObject body) {
         try { return new JSONObject().put("status", status).put("body", body); }
         catch (Exception e) { return new JSONObject(); }
+    }
+
+    private static JSONObject jsonError(String message) {
+        JSONObject j = new JSONObject();
+        try {
+            j.put("ok", false);
+            j.put("error", message == null || message.trim().isEmpty() ? "request failed" : message);
+        } catch (Exception ignored) {}
+        return j;
     }
 
     private static long parseLong(String v, long fallback) {

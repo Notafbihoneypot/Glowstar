@@ -34,40 +34,6 @@ public final class MainActivity extends Activity {
     private WebView webView;
     private boolean pendingStart;
 
-    private static final String NATIVE_BOOTSTRAP = """
-            <script>
-            (() => {
-              const helper = 'http://127.0.0.1:8788';
-              const originalFetch = window.fetch.bind(window);
-              window.__GLOWSTR_ANDROID_NATIVE__ = true;
-              window.__glowstrOriginalFetch = originalFetch;
-              window.fetch = function(input, init = {}) {
-                const url = typeof input === 'string' ? input : String(input?.url || '');
-                if (!url.startsWith(helper)) return originalFetch(input, init);
-                const method = String(init.method || input?.method || 'GET').toUpperCase();
-                const path = url.slice(helper.length) || '/';
-                const body = typeof init.body === 'string' ? init.body : '';
-                try {
-                  const raw = window.GlowstrAndroid.request(method, path, body);
-                  const envelope = JSON.parse(raw || '{}');
-                  const status = Number(envelope.status) || 500;
-                  const responseBody = envelope.body || {ok:false,error:'empty Android bridge response'};
-                  const buildResponse = () => new Response(JSON.stringify(responseBody), {
-                    status,
-                    headers: {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}
-                  });
-                  if (path.startsWith('/v1/events') && Array.isArray(responseBody.events) && responseBody.events.length === 0) {
-                    return new Promise(resolve => setTimeout(() => resolve(buildResponse()), 750));
-                  }
-                  return Promise.resolve(buildResponse());
-                } catch (error) {
-                  return Promise.reject(new TypeError('Glowstr Android bridge: ' + String(error?.message || error)));
-                }
-              };
-            })();
-            </script>
-            """;
-
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         webView = new WebView(this);
@@ -130,8 +96,11 @@ public final class MainActivity extends Activity {
 
             @Override public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                injectNativeUiState();
-                autoConnectNative();
+                if (url != null && url.startsWith(APP_ORIGIN)) {
+                    installNativeFetchBridge();
+                    injectNativeUiState();
+                    autoConnectNative();
+                }
             }
         });
     }
@@ -153,9 +122,6 @@ public final class MainActivity extends Activity {
     private void loadBundledGlowstr() {
         try (InputStream in = getAssets().open("glowstr.html")) {
             String html = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-            int head = html.toLowerCase().indexOf("<head>");
-            if (head >= 0) html = html.substring(0, head + 6) + NATIVE_BOOTSTRAP + html.substring(head + 6);
-            else html = NATIVE_BOOTSTRAP + html;
             webView.loadDataWithBaseURL(APP_ORIGIN, html, "text/html", "UTF-8", APP_ORIGIN);
         } catch (Exception e) {
             String message = safeMessage(e).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
@@ -163,6 +129,42 @@ public final class MainActivity extends Activity {
                     "<html><body style='background:#06060f;color:#fff;font-family:monospace;padding:24px'><h2>Glowstr failed to load</h2><p>" + message + "</p></body></html>",
                     "text/html", "UTF-8", APP_ORIGIN);
         }
+    }
+
+    private void installNativeFetchBridge() {
+        if (webView == null) return;
+        webView.evaluateJavascript("""
+                (() => {
+                  if (window.__GLOWSTR_ANDROID_NATIVE__) return;
+                  const helper = 'http://127.0.0.1:8788';
+                  const originalFetch = window.fetch.bind(window);
+                  window.__GLOWSTR_ANDROID_NATIVE__ = true;
+                  window.__glowstrOriginalFetch = originalFetch;
+                  window.fetch = function(input, init = {}) {
+                    const url = typeof input === 'string' ? input : String(input?.url || '');
+                    if (!url.startsWith(helper)) return originalFetch(input, init);
+                    const method = String(init.method || input?.method || 'GET').toUpperCase();
+                    const path = url.slice(helper.length) || '/';
+                    const body = typeof init.body === 'string' ? init.body : '';
+                    try {
+                      const raw = window.GlowstrAndroid.request(method, path, body);
+                      const envelope = JSON.parse(raw || '{}');
+                      const status = Number(envelope.status) || 500;
+                      const responseBody = envelope.body || {ok:false,error:'empty Android bridge response'};
+                      const makeResponse = () => new Response(JSON.stringify(responseBody), {
+                        status,
+                        headers: {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}
+                      });
+                      if (path.startsWith('/v1/events') && Array.isArray(responseBody.events) && responseBody.events.length === 0) {
+                        return new Promise(resolve => setTimeout(() => resolve(makeResponse()), 750));
+                      }
+                      return Promise.resolve(makeResponse());
+                    } catch (error) {
+                      return Promise.reject(new TypeError('Glowstr Android bridge: ' + String(error?.message || error)));
+                    }
+                  };
+                })();
+                """, null);
     }
 
     private void injectNativeUiState() {
@@ -178,15 +180,6 @@ public final class MainActivity extends Activity {
                     if (connect) connect.style.display = 'none';
                     const disconnect = document.getElementById('mesh-bluetooth-disconnect');
                     if (disconnect) disconnect.style.display = 'none';
-                    const card = document.getElementById('mesh-bluetooth-card');
-                    if (card) {
-                      const title = card.querySelector('.mesh-card-title');
-                      if (title) title.textContent = '📱 ANDROID BLUETOOTH MESH // PHONE ↔ PHONE';
-                      const desc = card.querySelector('.mesh-card-desc');
-                      if (desc) desc.textContent = 'Native Android Bluetooth mesh. No browser, localhost permission, or pairing-token copy/paste is required.';
-                      const helps = card.querySelectorAll('.mesh-help');
-                      if (helps.length) helps[helps.length - 1].textContent = 'Integrated Android transport · direct BLE/L2CAP · store-and-forward stays on this phone.';
-                    }
                   } catch (e) { console.warn('Glowstr native UI setup failed', e); }
                 })();
                 """, null);

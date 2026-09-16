@@ -48,33 +48,43 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && ACTION_STOP.equals(intent.getAction())) {
-            stopSelf();
+            stopSelf(startId);
             return START_NOT_STICKY;
         }
-        if (Build.VERSION.SDK_INT >= 29) {
-            startForeground(NOTIFICATION_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
-        } else {
-            startForeground(NOTIFICATION_ID, buildNotification());
-        }
         try {
+            Notification notification = buildNotification();
+            if (Build.VERSION.SDK_INT >= 29) {
+                startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
+            } else {
+                startForeground(NOTIFICATION_ID, notification);
+            }
+
+            if (mesh == null) throw new IllegalStateException("Bluetooth engine is unavailable");
             if (!mesh.isRunning()) mesh.start();
             if (http == null) {
                 http = new LocalHttpServer(token, store, mesh);
                 http.start();
             }
             lastError = "";
-        } catch (Exception e) {
-            lastError = e.getMessage() == null ? "Could not start Bluetooth Direct" : e.getMessage();
             updateNotification();
+            return START_NOT_STICKY;
+        } catch (RuntimeException | IOException e) {
+            lastError = safeMessage(e);
+            cleanupRuntime();
+            stopForeground(true);
+            stopSelf(startId);
+            return START_NOT_STICKY;
         }
-        return START_STICKY;
     }
 
     @Override public void onDestroy() {
-        if (http != null) http.stop();
-        http = null;
+        cleanupRuntime();
         if (mesh != null) mesh.destroy();
-        if (store != null) store.close();
+        mesh = null;
+        if (store != null) {
+            try { store.close(); } catch (RuntimeException ignored) {}
+        }
+        store = null;
         instance = null;
         super.onDestroy();
     }
@@ -113,6 +123,21 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
     }
 
     static MeshService current() { return instance; }
+
+    private void cleanupRuntime() {
+        if (http != null) {
+            try { http.stop(); } catch (RuntimeException ignored) {}
+            http = null;
+        }
+        if (mesh != null) {
+            try { mesh.stop(); } catch (RuntimeException ignored) {}
+        }
+    }
+
+    private static String safeMessage(Throwable t) {
+        String m = t == null ? null : t.getMessage();
+        return (m == null || m.trim().isEmpty()) ? "Could not start Bluetooth Direct" : m;
+    }
 
     private Notification buildNotification() {
         int peers = mesh == null ? 0 : mesh.peerCount();

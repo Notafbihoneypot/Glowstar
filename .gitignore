@@ -1,0 +1,19 @@
+# Local build and editor files
+.gradle/
+**/build/
+local.properties
+.idea/
+*.iml
+__pycache__/
+*.py[cod]
+*.class
+
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+
+# Generated test script
+tests/main-v53.js

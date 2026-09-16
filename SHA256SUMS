@@ -1,0 +1,9 @@
+45b61235c199d1f858b9fb33eaf8a9e46f92c2197cfbf5b6759ad393bd887351  glowstr-v5.3-bluetooth-direct.html
+e4243b3adaa5f20f246c96d46ea496223897e0b8aa1ee4b9fb23a31b68c9665c  glowstr-mesh-bridge.py
+379aa88f42dd7cb072054b6c35d4629177babe09dc775a3898e28a267c8b31a9  android-helper/app/src/main/java/org/glowstr/meshbridge/BluetoothMeshManager.java
+903fd3e592fa532071ef63212b4857ca048777892a500c55ad3dc7111b72e920  android-helper/app/src/main/java/org/glowstr/meshbridge/EventStore.java
+7704ad68b880530183df494843adfaa94ec0ff047b3ce3fd819e348fe52b1576  android-helper/app/src/main/java/org/glowstr/meshbridge/LocalHttpServer.java
+a44b9bdab40b3401205bbd1c8a2c9654dca2764b1154807c4b735127aec9fe6c  android-helper/app/src/main/java/org/glowstr/meshbridge/MainActivity.java
+bd3ca2a4302039f0511cc6d97043c9ee58d9e4d32ea50603f28a03bd85318fa1  android-helper/app/src/main/java/org/glowstr/meshbridge/MeshService.java
+fb9d154bed055893a58fa2d448b841ea6d7255d8c74e13787f99186fafe39cb3  android-helper/app/src/main/java/org/glowstr/meshbridge/NostrCrypto.java
+546197d59692db21b393aea7372758669f713a4ed1342f6604f5ae71cf1d8373  android-helper/app/src/main/java/org/glowstr/meshbridge/Protocol.java

@@ -1,0 +1,37 @@
+HTML duplicate IDs: PASS ([])
+Inline executable handlers: PASS (0)
+External script tags: PASS ([])
+Inline main script count: PASS (1)
+CSP main-script SHA-256: PASS (AYz9lXb5fqS+P5ED20QYazoEyacfTq6rYHAbNc14bV8=)
+CSP script-src-attr none: PASS
+CSP unsafe-eval absent: PASS
+CSP loopback HTTP only: PASS
+Bluetooth helper UI present: PASS
+Loopback address-space hint: PASS
+Token session-only: PASS
+Mesh imports verified events: PASS
+No automatic Bluetooth helper connect: PASS
+Client JavaScript syntax: PASS
+Android neverForLocation: PASS
+Android modern Bluetooth permissions: PASS
+No app-wide cleartext opt-in: PASS
+Connected-device FGS manifest: PASS
+Connected-device FGS runtime type: PASS
+Secure L2CAP server: PASS
+Secure L2CAP client: PASS
+Loopback-only HTTP bind: PASS
+Pairing token required: PASS
+Public kind-1 only helper: PASS
+Helper NIP-01 ID validation: PASS
+Helper BIP-340 validation: PASS
+Bounded helper cache: PASS
+Bounded peer sessions: PASS
+Bounded pending GATT: PASS
+Peer rate limits: PASS
+Fast scan falls back to balanced: PASS
+No signing/private-key implementation in helper: PASS
+Store-forward reaches 3-link chain: PASS
+Store-forward replay deduplicates: PASS
+Higher-TTL duplicate refreshes forwarding: PASS
+ALL STATIC / PROTOCOL TESTS PASSED
+NostrCrypto: PASS (8 BIP-340 vectors + 3 NIP-01 serialization cases)

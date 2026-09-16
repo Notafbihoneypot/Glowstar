@@ -44,7 +44,6 @@
         <activity
             android:name=".AmberProxyActivity"
             android:exported="false"
-            android:noHistory="true"
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 

@@ -80,7 +80,13 @@ public final class MainActivity extends Activity {
         s.setBuiltInZoomControls(false);
         s.setDisplayZoomControls(false);
         s.setMediaPlaybackRequiresUserGesture(true);
+        s.setUseWideViewPort(true);
+        s.setLoadWithOverviewMode(false);
+        s.setTextZoom(100);
         if (Build.VERSION.SDK_INT >= 26) s.setSafeBrowsingEnabled(true);
+
+        webView.setHorizontalScrollBarEnabled(false);
+        webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
 
         webView.addJavascriptInterface(new AndroidBridge(this), "GlowstrAndroid");
         webView.setWebChromeClient(new WebChromeClient());
@@ -97,6 +103,7 @@ public final class MainActivity extends Activity {
             @Override public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 if (url != null && url.startsWith(APP_ORIGIN)) {
+                    injectAndroidResponsiveStyles();
                     installNativeFetchBridge();
                     injectNativeUiState();
                     autoConnectNative();
@@ -129,6 +136,128 @@ public final class MainActivity extends Activity {
                     "<html><body style='background:#06060f;color:#fff;font-family:monospace;padding:24px'><h2>Glowstr failed to load</h2><p>" + message + "</p></body></html>",
                     "text/html", "UTF-8", APP_ORIGIN);
         }
+    }
+
+    private void injectAndroidResponsiveStyles() {
+        if (webView == null) return;
+        webView.evaluateJavascript("""
+                (() => {
+                  if (document.getElementById('glowstr-android-fit')) return;
+                  const style = document.createElement('style');
+                  style.id = 'glowstr-android-fit';
+                  style.textContent = `
+                    html, body {
+                      width: 100% !important;
+                      max-width: 100% !important;
+                      overflow-x: hidden !important;
+                      overscroll-behavior-x: none !important;
+                    }
+                    body {
+                      touch-action: pan-y pinch-zoom;
+                      -webkit-text-size-adjust: 100%;
+                    }
+                    main, .view, .feed-layout, .feed-center,
+                    section, article, header, footer,
+                    .window, .panel, .card, .modal, .modal-content {
+                      min-width: 0 !important;
+                      max-width: 100% !important;
+                    }
+                    .feed-layout { overflow-x: hidden !important; }
+                    img, video, canvas, svg, iframe {
+                      max-width: 100% !important;
+                    }
+                    input, textarea, select, button {
+                      min-width: 0 !important;
+                      max-width: 100% !important;
+                    }
+                    pre, table {
+                      max-width: 100% !important;
+                      overflow-x: auto !important;
+                    }
+                    .mesh-grid {
+                      grid-template-columns: minmax(0, 1fr) !important;
+                    }
+                    .mesh-row {
+                      flex-wrap: wrap !important;
+                    }
+                    .mesh-row > * {
+                      min-width: 0 !important;
+                      max-width: 100% !important;
+                    }
+                    @media (max-width: 760px) {
+                      html { font-size: 16px !important; }
+                      body { width: 100% !important; }
+                      main { width: 100% !important; max-width: 100% !important; }
+                      .sidebar-left, .sidebar-right { display: none !important; }
+                      .feed-center { width: 100% !important; flex-basis: 100% !important; }
+                      .feed-header { gap: 8px !important; padding: 10px 12px !important; }
+                      .nav-tabs {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        overflow-x: auto !important;
+                        overscroll-behavior-x: contain !important;
+                        scroll-snap-type: x proximity;
+                      }
+                      .nav-tab {
+                        flex: 0 0 auto !important;
+                        min-width: 72px !important;
+                        padding: 9px 10px !important;
+                        font-size: .9rem !important;
+                        scroll-snap-align: start;
+                      }
+                      #landing-page {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        padding: 18px 14px !important;
+                        overflow-y: auto !important;
+                        overflow-x: hidden !important;
+                      }
+                      .landing-logo {
+                        font-size: 1.65rem !important;
+                        letter-spacing: 2px !important;
+                        max-width: 100% !important;
+                        overflow-wrap: anywhere;
+                      }
+                      .landing-tagline {
+                        font-size: 1rem !important;
+                        letter-spacing: 2px !important;
+                        margin-bottom: 20px !important;
+                      }
+                      .landing-manifesto {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        padding: 0 4px !important;
+                      }
+                      .landing-features {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        gap: 10px !important;
+                        margin-bottom: 22px !important;
+                      }
+                      .landing-feature {
+                        width: calc(50% - 5px) !important;
+                        min-width: 0 !important;
+                      }
+                      .landing-enter {
+                        width: min(100%, 320px) !important;
+                        padding: 14px 18px !important;
+                        letter-spacing: 2px !important;
+                      }
+                      .note-header, .note-content, .note-actions {
+                        max-width: 100% !important;
+                      }
+                      .note-content {
+                        overflow-wrap: anywhere !important;
+                        word-break: break-word !important;
+                      }
+                    }
+                  `;
+                  document.head.appendChild(style);
+                  document.documentElement.scrollLeft = 0;
+                  document.body.scrollLeft = 0;
+                  window.scrollTo(0, window.scrollY);
+                })();
+                """, null);
     }
 
     private void installNativeFetchBridge() {

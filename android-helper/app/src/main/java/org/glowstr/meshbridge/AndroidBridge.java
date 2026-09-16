@@ -13,6 +13,7 @@ public final class AndroidBridge {
     AndroidBridge(Context context) {
         this.context = context.getApplicationContext();
         NativeNotifier.ensureChannel(this.context);
+        MeshDiagnostics.start(this.context);
     }
 
     @JavascriptInterface

@@ -230,6 +230,8 @@ final class LocalHttpServer {
                 "Access-Control-Allow-Origin: *\r\n"+
                 "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"+
                 "Access-Control-Allow-Headers: Content-Type, X-Glowstr-Token\r\n"+
+                "Access-Control-Allow-Private-Network: true\r\n"+
+                "Vary: Origin, Access-Control-Request-Private-Network\r\n"+
                 "Access-Control-Max-Age: 600\r\n"+
                 "Cache-Control: no-store\r\n"+
                 "X-Content-Type-Options: nosniff\r\n"+

@@ -101,8 +101,6 @@ def syncGlowstrAsset = tasks.register('syncGlowstrAsset', Copy) {
 
         def nativeAmber = '''
 // === ANDROID NATIVE NIP-55 OVERRIDE ===
-// The bundled Android app is a native NIP-55 client. Do not use the web callback URL
-// path (app.glowstr.local is an internal WebView origin, not a public callback route).
 if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 'function') {
   let __glowstrAmberPoll = null;
 
@@ -171,7 +169,7 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
     catch(e) { throw new Error('Invalid Amber event request'); }
     document.getElementById('signing-indicator')?.classList.add('active');
     try {
-      if (!window.GlowstrAndroid.amberSignEvent(eventJson)) {
+      if (!window.GlowstrAndroid.amberApproveEvent(eventJson)) {
         document.getElementById('signing-indicator')?.classList.remove('active');
         showToast('Could not open Amber signer');
         return;

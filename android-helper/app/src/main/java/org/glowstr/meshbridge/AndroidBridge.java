@@ -1,6 +1,8 @@
 package org.glowstr.meshbridge;
 
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.webkit.JavascriptInterface;
 
 import org.json.JSONObject;
@@ -23,6 +25,20 @@ public final class AndroidBridge {
             p.edit().putString("pairing_token", token).apply();
         }
         return token;
+    }
+
+    @JavascriptInterface
+    public boolean openExternal(String rawUrl) {
+        try {
+            Uri uri = Uri.parse(rawUrl == null ? "" : rawUrl.trim());
+            String scheme = uri.getScheme();
+            if (!("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme))) return false;
+            Intent i = new Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(i);
+            return true;
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     @JavascriptInterface

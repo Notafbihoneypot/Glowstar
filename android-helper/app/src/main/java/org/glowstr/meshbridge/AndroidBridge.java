@@ -9,11 +9,9 @@ import org.json.JSONObject;
 
 public final class AndroidBridge {
     private final Context context;
-    private final MainActivity activity;
 
     AndroidBridge(Context context) {
         this.context = context.getApplicationContext();
-        this.activity = context instanceof MainActivity ? (MainActivity) context : null;
         NativeNotifier.ensureChannel(this.context);
     }
 
@@ -28,18 +26,56 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
+    public boolean amberSignerAvailable() {
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("nostrsigner:"));
+            return !context.getPackageManager().queryIntentActivities(i, 0).isEmpty();
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    @JavascriptInterface
     public boolean amberGetPublicKey() {
-        return activity != null && activity.launchAmberGetPublicKey();
+        if (!amberSignerAvailable()) return false;
+        try {
+            context.startActivity(new Intent(context, AmberProxyActivity.class)
+                    .putExtra("request_type", AmberProxyActivity.ACTION_PUBLIC_KEY)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return true;
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     @JavascriptInterface
     public boolean amberSignEvent(String eventJson) {
-        return activity != null && activity.launchAmberSignEvent(eventJson == null ? "" : eventJson);
+        if (!amberSignerAvailable() || eventJson == null || eventJson.trim().isEmpty()) return false;
+        try {
+            String currentUser = "";
+            try { currentUser = new JSONObject(eventJson).optString("pubkey", ""); } catch (Exception ignored) {}
+            context.startActivity(new Intent(context, AmberProxyActivity.class)
+                    .putExtra("request_type", AmberProxyActivity.ACTION_SIGN_EVENT)
+                    .putExtra("event_json", eventJson)
+                    .putExtra("current_user", currentUser)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return true;
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     @JavascriptInterface
-    public boolean amberSignerAvailable() {
-        return activity != null && activity.isNip55SignerAvailable();
+    public String pollAmberResult() {
+        try {
+            android.content.SharedPreferences p = context.getSharedPreferences(AmberProxyActivity.PREFS, Context.MODE_PRIVATE);
+            String result = p.getString(AmberProxyActivity.KEY_RESULT, "");
+            if (result == null || result.isEmpty()) return "";
+            p.edit().remove(AmberProxyActivity.KEY_RESULT).apply();
+            return result;
+        } catch (RuntimeException e) {
+            return "";
+        }
     }
 
     @JavascriptInterface

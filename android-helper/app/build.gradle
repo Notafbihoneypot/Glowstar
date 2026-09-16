@@ -10,8 +10,8 @@ android {
         applicationId 'org.glowstr.meshbridge'
         minSdk 29
         targetSdk 36
-        versionCode 6
-        versionName '0.2.1'
+        versionCode 7
+        versionName '0.2.2'
     }
 
     buildTypes {
@@ -41,6 +41,64 @@ def syncGlowstrAsset = tasks.register('syncGlowstrAsset', Copy) {
     from('../../glowstr-v5.3-bluetooth-direct.html')
     into("$buildDir/generated/glowstrAssets")
     rename { 'glowstr.html' }
+
+    doLast {
+        def asset = file("$buildDir/generated/glowstrAssets/glowstr.html")
+        def text = asset.getText('UTF-8')
+
+        def oldAuth = '''          if (response.error) { clearTimeout(timeout); ws.close(); reject(new Error(response.error)); return; }
+          if (response.result === 'auth_url') {
+            // Signer wants user approval out-of-band (Amber prompts directly); keep waiting
+            return;
+          }'''
+        def newAuth = '''          if (response.result === 'auth_url') {
+            // NIP-46 auth challenge: the approval URL is carried in `error`.
+            // Open it externally on Android and keep listening on THIS request id.
+            const authUrl = typeof response.error === 'string' ? response.error.trim() : '';
+            if (/^https?:\\/\\//i.test(authUrl)) {
+              try {
+                if (window.GlowstrAndroid?.openExternal) window.GlowstrAndroid.openExternal(authUrl);
+                else window.open(authUrl, '_blank', 'noopener,noreferrer');
+              } catch(e) { console.warn('Could not open NIP-46 auth URL', e); }
+            }
+            return;
+          }
+          if (response.error) { clearTimeout(timeout); ws.close(); reject(new Error(response.error)); return; }'''
+        if (!text.contains(oldAuth)) throw new GradleException('Could not locate NIP-46 auth challenge block')
+        text = text.replace(oldAuth, newAuth)
+
+        def oldConnect = '''    const connectParams = [signerPubkey, secret || '', NIP46_REQUESTED_PERMS, nip46ClientMetadata()];
+    const connectResult = await nip46Request('connect', connectParams, 60000); // user may need to approve in signer'''
+        def newConnect = '''    const connectParams = [signerPubkey, secret || '', NIP46_REQUESTED_PERMS, nip46ClientMetadata()];
+    // Amber bunker URLs may advertise multiple relays. Try each instead of failing
+    // the entire login because the first relay is unreachable.
+    let connectResult = null;
+    let connectError = null;
+    for (const relayUrl of relays) {
+      state.nip46.relay = relayUrl;
+      try {
+        connectResult = await nip46Request('connect', connectParams, 60000);
+        connectError = null;
+        break;
+      } catch (e) {
+        connectError = e;
+      }
+    }
+    if (connectError) throw connectError;'''
+        if (!text.contains(oldConnect)) throw new GradleException('Could not locate NIP-46 connect block')
+        text = text.replace(oldConnect, newConnect)
+
+        // The app's CSP pins the one inline client script by SHA-256. Because the
+        // Android build applies the two compatibility fixes above at packaging time,
+        // recompute that hash rather than weakening CSP with unsafe-inline.
+        def matcher = (text =~ /(?s)<script>(.*?)<\/script>/)
+        if (!matcher.find()) throw new GradleException('Could not locate Glowstr inline script for CSP hash')
+        def script = matcher.group(1)
+        def digest = java.security.MessageDigest.getInstance('SHA-256').digest(script.getBytes('UTF-8'))
+        def hash = java.util.Base64.encoder.encodeToString(digest)
+        text = text.replaceFirst(/'sha256-[^']+'/, "'sha256-${hash}'")
+        asset.setText(text, 'UTF-8')
+    }
 }
 
 tasks.named('preBuild').configure {

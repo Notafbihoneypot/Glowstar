@@ -1,39 +1,20 @@
 package org.glowstr.meshbridge;
 
-import android.Manifest;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Build;
 import android.webkit.JavascriptInterface;
 
 import org.json.JSONObject;
 
 public final class AndroidBridge {
-    private static final int REQ_NOTIFICATIONS = 423;
-
     private final Context context;
-    private final Activity activity;
+    private final MainActivity activity;
 
     AndroidBridge(Context context) {
         this.context = context.getApplicationContext();
-        this.activity = context instanceof Activity ? (Activity) context : null;
+        this.activity = context instanceof MainActivity ? (MainActivity) context : null;
         NativeNotifier.ensureChannel(this.context);
-        requestNotificationPermissionIfNeeded();
-    }
-
-    private void requestNotificationPermissionIfNeeded() {
-        if (activity == null || Build.VERSION.SDK_INT < 33) return;
-        if (activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return;
-        activity.getWindow().getDecorView().post(() -> {
-            try {
-                if (activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                    activity.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIFICATIONS);
-                }
-            } catch (RuntimeException ignored) {}
-        });
     }
 
     @JavascriptInterface
@@ -44,6 +25,21 @@ public final class AndroidBridge {
     @JavascriptInterface
     public boolean notifyNostr(String type, String key) {
         return NativeNotifier.postActivity(context, type == null ? "activity" : type, key);
+    }
+
+    @JavascriptInterface
+    public boolean amberGetPublicKey() {
+        return activity != null && activity.launchAmberGetPublicKey();
+    }
+
+    @JavascriptInterface
+    public boolean amberSignEvent(String eventJson) {
+        return activity != null && activity.launchAmberSignEvent(eventJson == null ? "" : eventJson);
+    }
+
+    @JavascriptInterface
+    public boolean amberSignerAvailable() {
+        return activity != null && activity.isNip55SignerAvailable();
     }
 
     @JavascriptInterface

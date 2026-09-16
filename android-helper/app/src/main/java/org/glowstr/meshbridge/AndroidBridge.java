@@ -49,7 +49,7 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public boolean amberSignEvent(String eventJson) {
+    public boolean amberApproveEvent(String eventJson) {
         if (!amberSignerAvailable() || eventJson == null || eventJson.trim().isEmpty()) return false;
         try {
             String currentUser = "";

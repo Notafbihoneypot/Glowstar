@@ -11,7 +11,7 @@ on:
       - ".github/workflows/android-apk.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -71,3 +71,22 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
+
+      - name: Publish GitHub release APK
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" android-helper/app/build.gradle | head -n1)"
+          TAG="v${VERSION}"
+          APK="dist/Glowstr-Android-${VERSION}-debug.apk"
+          SUM="${APK}.sha256"
+
+          if ! gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release create "${TAG}" \
+              --target "${GITHUB_SHA}" \
+              --title "Glowstr Android ${VERSION}" \
+              --notes "Android debug build of Glowstr ${VERSION}. Includes the chat stability, relay reconnect, mobile chat, and native Amber/NIP-55 improvements."
+          fi
+
+          gh release upload "${TAG}" "${APK}" "${SUM}" --clobber

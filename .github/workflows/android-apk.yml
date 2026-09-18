@@ -57,11 +57,11 @@ jobs:
       - name: Verify and prepare APK
         run: |
           mkdir -p dist
-          cp android-helper/app/build/outputs/apk/debug/app-debug.apk dist/Glowstr-Android-0.2.5-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/Glowstr-Android-0.2.5-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging dist/Glowstr-Android-0.2.5-debug.apk
+          cp android-helper/app/build/outputs/apk/debug/app-debug.apk dist/Glowstr-Android-0.2.6-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/Glowstr-Android-0.2.6-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging dist/Glowstr-Android-0.2.6-debug.apk
           cd dist
-          sha256sum Glowstr-Android-0.2.5-debug.apk > Glowstr-Android-0.2.5-debug.apk.sha256
+          sha256sum Glowstr-Android-0.2.6-debug.apk > Glowstr-Android-0.2.6-debug.apk.sha256
 
       - name: Upload installable APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

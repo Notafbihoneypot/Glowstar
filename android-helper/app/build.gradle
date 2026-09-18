@@ -10,8 +10,8 @@ android {
         applicationId 'org.glowstr.meshbridge'
         minSdk 29
         targetSdk 36
-        versionCode 10
-        versionName '0.2.5'
+        versionCode 11
+        versionName '0.2.6'
     }
 
     buildTypes {
@@ -313,8 +313,30 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
           } else {
             __glowstrAmberBusy = false;
             __glowstrAmberMode = null;
-            broadcastEvent(signed);
-            showToast('✓ Signed by Amber, verified, and broadcast');
+            const sent = broadcastEvent(signed);
+            if (signed.kind === 42) {
+              state.eventIds.add(signed.id);
+              const channelId = glowstrCacheChatEvent(signed);
+              const input = document.getElementById('chat-input');
+              if (input) input.value = '';
+              state.chatUnreadCount = 0;
+              if (channelId) glowstrScheduleChatRender(channelId, false);
+              showToast(sent > 0 ? '✓ Chat message sent' : 'No connected relay could send the message');
+            } else if (signed.kind === 40) {
+              try {
+                const meta = JSON.parse(signed.content || '{}');
+                const joined = getJoinedRooms();
+                if (!joined.includes(signed.id)) { joined.push(signed.id); setJoinedRooms(joined); }
+                state.chatRooms = state.chatRooms || [];
+                if (!state.chatRooms.some(r => r.id === signed.id)) state.chatRooms.unshift({id:signed.id,creator:signed.pubkey,name:meta.name||'Untitled',about:meta.about||'',picture:meta.picture||'',created_at:signed.created_at});
+                closeCreateRoomModal();
+                ['room-name','room-about','room-picture'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+                showToast(sent > 0 ? '💬 Room opened' : 'Room signed, but no relay is connected');
+                if (sent > 0) setTimeout(() => enterChatRoom(signed.id), 250);
+              } catch(e) { showToast('Room signed, but could not open it locally'); }
+            } else {
+              showToast('✓ Signed by Amber, verified, and broadcast');
+            }
           }
         } catch(e) {
           if (mode === 'queue') __glowstrQueuePause(30000, 'Could not process Amber result — note remains queued');

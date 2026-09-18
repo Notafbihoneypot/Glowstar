@@ -7,7 +7,7 @@
 <title>GLOWSTR // v5.3 Bluetooth Direct</title>
 <meta name="description" content="Glowstr — a retro privacy-first Nostr PWA client">
 <meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-AYz9lXb5fqS+P5ED20QYazoEyacfTq6rYHAbNc14bV8='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-yKh9MOkFLqg/b3wmNixC8Zp9AMSd8P+/DuhDE5RfXdU='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkdMT1dTVFIiLCAic2hvcnRfbmFtZSI6ICJHTE9XU1RSIiwgImRlc2NyaXB0aW9uIjogIlNlZSBUaHJvdWdoIHRoZSBOb2lzZSBcdTIwMTQgUHJpdmFjeS1maXJzdCBOb3N0ciBjbGllbnQiLCAic3RhcnRfdXJsIjogIi4iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMGEwYSIsICJ0aGVtZV9jb2xvciI6ICIjRkY2NjAwIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCMmFXVjNRbTk0UFNJd0lEQWdNVGt5SURFNU1pSStDanh5WldOMElIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCbWFXeHNQU0lqTUdFd1lUQmhJaTgrQ2p4eVpXTjBJSGc5SWpnaUlIazlJamdpSUhkcFpIUm9QU0l4TnpZaUlHaGxhV2RvZEQwaU1UYzJJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlOR1JqWTJNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlOQ0l2UGdvOGRHVjRkQ0I0UFNJNU5pSWdlVDBpTVRFd0lpQm1iMjUwTFdaaGJXbHNlVDBpYlc5dWIzTndZV05sSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUJtYjI1MExYZGxhV2RvZEQwaVltOXNaQ0lnWm1sc2JEMGlJMFpHTmpZd01DSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krUnp3dmRHVjRkRDRLUEhSbGVIUWdlRDBpT1RZaUlIazlJakUxTUNJZ1ptOXVkQzFtWVcxcGJIazlJbTF2Ym05emNHRmpaU0lnWm05dWRDMXphWHBsUFNJeE5pSWdabWxzYkQwaUkyTmpOVEl3TUNJZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSStSMHhQVjFOVVVqd3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
@@ -1548,7 +1548,9 @@ main { flex: 1; width: 100%; margin: 0 auto; padding: 0; }
   display: flex;
   flex-direction: column;
   height: calc(100vh - 80px);
+  height: calc(100dvh - 80px);
   max-height: calc(100vh - 80px);
+  max-height: calc(100dvh - 80px);
   margin: 6px;
   border: 1px solid var(--xmr-win-border-dark);
   background: var(--xmr-darker);
@@ -1660,7 +1662,7 @@ main { flex: 1; width: 100%; margin: 0 auto; padding: 0; }
 .chat-compose {
   display: flex;
   gap: 6px;
-  padding: 8px 10px;
+  padding: 8px 10px max(8px, env(safe-area-inset-bottom));
   border-top: 2px solid var(--xmr-win-border-dark);
   background: var(--xmr-gray);
   flex-shrink: 0;
@@ -1672,10 +1674,12 @@ main { flex: 1; width: 100%; margin: 0 auto; padding: 0; }
   border: 2px inset var(--xmr-win-border-dark);
   color: var(--xmr-text);
   font-family: var(--font-mono);
-  font-size: 0.95rem;
+  font-size: 1rem;
+  min-height: 42px;
   padding: 6px 8px;
   outline: none;
 }
+.chat-compose .btn { min-height: 42px; }
 .chat-compose input:focus { border-color: var(--xmr-cyan); }
 .chat-empty-msg {
   text-align: center;
@@ -5701,6 +5705,7 @@ function connectRelay(url) {
       // Persistent traffic stays on two core relays. Heavy views query on demand.
       if (glowstrClaimCoreRelay(url)) glowstrSubscribeCore(ws);
       if (state.publicKey) subscribeUserSpecificEvents();
+      glowstrSubscribeSocketToActiveChat(ws);
     };
     ws.onmessage = async (msg) => {
       const frameSize = (typeof msg.data === 'string' ? msg.data.length : (msg.data?.byteLength || 0));
@@ -6105,16 +6110,11 @@ function handleEvent(event, relayUrl) {
 
   // Kind 42: NIP-28 channel message
   if (event.kind === 42) {
-    const channelTag = (event.tags || []).find(t => t[0] === 'e');
-    if (!channelTag || !channelTag[1]) return;
-    const channelId = channelTag[1];
-    if (!state.chatMessages) state.chatMessages = {};
-    if (!state.chatMessages[channelId]) state.chatMessages[channelId] = [];
     if (state.eventIds.has(event.id)) return;
+    const channelId = glowstrCacheChatEvent(event);
+    if (!channelId) return;
     state.eventIds.add(event.id);
-    state.chatMessages[channelId].push(event);
-    // If user is currently viewing this channel, re-render
-    if (state.activeChatRoom === channelId) renderChatMessages(channelId);
+    glowstrScheduleChatRender(channelId, true);
     return;
   }
 
@@ -9205,20 +9205,76 @@ const MARKET_CATEGORIES = ['electronics','gear','art','digital','services','book
 // Kind 43 = hide message (per-user, applies to one event)
 // Kind 44 = mute user (per-user, applies to one pubkey)
 
+const GLOWSTR_CHAT_CACHE_LIMIT = 500;
+const GLOWSTR_CHAT_RENDER_LIMIT = 250;
+let _glowstrChatRenderTimer = null;
+let _glowstrChatMembersTimer = null;
+
 function getJoinedRooms() {
-  try { return JSON.parse(sessionStorage.getItem('glowstr_chat_rooms') || '[]'); }
-  catch(e) { return []; }
+  try {
+    const raw = localStorage.getItem('glowstr_chat_rooms') || sessionStorage.getItem('glowstr_chat_rooms') || '[]';
+    const list = JSON.parse(raw);
+    if (Array.isArray(list)) localStorage.setItem('glowstr_chat_rooms', JSON.stringify(list));
+    return Array.isArray(list) ? list.filter(x => /^[0-9a-f]{64}$/i.test(String(x))).slice(0, 250) : [];
+  } catch(e) { return []; }
 }
 function setJoinedRooms(list) {
-  try { sessionStorage.setItem('glowstr_chat_rooms', JSON.stringify(list)); } catch(e) {}
+  try { localStorage.setItem('glowstr_chat_rooms', JSON.stringify([...new Set(list)].slice(0, 250))); } catch(e) {}
 }
 
 function getMutedChatUsers() {
-  try { return new Set(JSON.parse(sessionStorage.getItem('glowstr_chat_muted') || '[]')); }
-  catch(e) { return new Set(); }
+  try {
+    const raw = localStorage.getItem('glowstr_chat_muted') || sessionStorage.getItem('glowstr_chat_muted') || '[]';
+    const list = JSON.parse(raw);
+    if (Array.isArray(list)) localStorage.setItem('glowstr_chat_muted', JSON.stringify(list));
+    return new Set(Array.isArray(list) ? list.filter(x => /^[0-9a-f]{64}$/i.test(String(x))).slice(0, 1000) : []);
+  } catch(e) { return new Set(); }
 }
 function setMutedChatUsers(set) {
-  try { sessionStorage.setItem('glowstr_chat_muted', JSON.stringify([...set])); } catch(e) {}
+  try { localStorage.setItem('glowstr_chat_muted', JSON.stringify([...set].slice(0, 1000))); } catch(e) {}
+}
+
+function glowstrChatIsNearBottom(container) {
+  if (!container) return true;
+  return container.scrollHeight - container.scrollTop - container.clientHeight < 90;
+}
+function glowstrCacheChatEvent(event) {
+  const channelTag = (event?.tags || []).find(t => t[0] === 'e' && t[1]);
+  const channelId = channelTag?.[1];
+  if (!channelId) return null;
+  state.chatMessages = state.chatMessages || {};
+  const bucket = state.chatMessages[channelId] = state.chatMessages[channelId] || [];
+  if (bucket.some(x => x.id === event.id)) return channelId;
+  bucket.push(event);
+  if (bucket.length > GLOWSTR_CHAT_CACHE_LIMIT) {
+    bucket.sort((a,b) => (a.created_at || 0) - (b.created_at || 0));
+    bucket.splice(0, bucket.length - GLOWSTR_CHAT_CACHE_LIMIT);
+  }
+  return channelId;
+}
+function glowstrSubscribeSocketToActiveChat(ws) {
+  if (!ws || ws.readyState !== WebSocket.OPEN || !state.activeChatRoom || !state.chatSubId) return false;
+  try {
+    ws.send(JSON.stringify(['REQ', state.chatSubId, { kinds: [42], '#e': [state.activeChatRoom], limit: 200 }]));
+    return true;
+  } catch(e) { return false; }
+}
+function glowstrScheduleChatRender(channelId, incoming = false) {
+  if (state.activeChatRoom !== channelId) return;
+  const container = document.getElementById('chat-messages-container');
+  if (incoming && container && !glowstrChatIsNearBottom(container)) {
+    state.chatUnreadCount = Math.min(999, (state.chatUnreadCount || 0) + 1);
+  }
+  clearTimeout(_glowstrChatRenderTimer);
+  _glowstrChatRenderTimer = setTimeout(() => renderChatMessages(channelId), incoming ? 80 : 0);
+}
+function glowstrChatScrollBottom() {
+  const container = document.getElementById('chat-messages-container');
+  if (!container) return;
+  state.chatUnreadCount = 0;
+  container.scrollTop = container.scrollHeight;
+  const pill = document.getElementById('chat-new-pill');
+  if (pill) pill.style.display = 'none';
 }
 
 function loadChatView() {
@@ -9373,6 +9429,10 @@ async function createChatRoom() {
       signed = await glowstrVerifiedNip07Sign(eventTemplate);
     } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
       signed = await nip46Sign(eventTemplate);
+    } else if (state.signerMethod === 'amber-nip55') {
+      eventTemplate.pubkey = state.publicKey;
+      signWithAmber(JSON.stringify(eventTemplate));
+      return;
     } else if (state.privateKey) {
       signed = await signNostrEvent(eventTemplate, state.privateKey);
     } else { showToast('Cannot sign'); return; }
@@ -9400,8 +9460,10 @@ async function createChatRoom() {
 function enterChatRoom(channelId) {
   const room = (state.chatRooms || []).find(r => r.id === channelId);
   if (!room) { showToast('Room not found in cache — try refresh'); return; }
+  if (state.chatSubId) unsubscribeChatMessages();
   state.activeChatRoom = channelId;
   state.activeChatMessages = [];
+  state.chatUnreadCount = 0;
   state.chatSubId = 'chat-' + Math.random().toString(36).slice(2, 8);
 
   document.getElementById('chat-browse').style.display = 'none';
@@ -9426,6 +9488,7 @@ function enterChatRoom(channelId) {
     '</div>' +
     '<div class="chat-messages" id="chat-messages-container">' +
       '<div class="chat-empty-msg"><span style="display:inline-block;animation:spinSign 1s linear infinite;">⟳</span> Loading messages...</div>' +
+      '<button class="chat-new-pill" id="chat-new-pill" data-glow-action="chat-scroll-bottom" type="button" style="display:none;">↓ NEW MESSAGES</button>' +
     '</div>' +
     '<div class="chat-compose">' +
       '<input type="text" id="chat-input" placeholder="' + (state.publicKey ? 'Type a message...' : 'Login to chat') + '" ' + (state.publicKey ? '' : 'disabled') + ' data-glow-enter-action="send-chat-message" />' +
@@ -9438,6 +9501,15 @@ function enterChatRoom(channelId) {
     '<div id="chat-members-list"></div>' +
   '</div>';
 
+  const msgContainer = document.getElementById('chat-messages-container');
+  msgContainer?.addEventListener('scroll', () => {
+    if (glowstrChatIsNearBottom(msgContainer)) {
+      state.chatUnreadCount = 0;
+      const pill = document.getElementById('chat-new-pill');
+      if (pill) pill.style.display = 'none';
+    }
+  }, { passive: true });
+
   // Subscribe to messages from all relays
   subscribeChatMessages(channelId);
 }
@@ -9445,18 +9517,8 @@ function enterChatRoom(channelId) {
 function subscribeChatMessages(channelId) {
   state.chatMessages = state.chatMessages || {};
   state.chatMessages[channelId] = state.chatMessages[channelId] || [];
-
-  // Send REQ on every connected relay for kind 42 with #e: [channelId]
-  // Also request kind 41 to catch metadata updates and kinds 43/44 for moderation hints
-  Object.entries(state.relays).forEach(([url, r]) => {
-    if (r.ws?.readyState !== WebSocket.OPEN) return;
-    try {
-      r.ws.send(JSON.stringify(['REQ', state.chatSubId, { kinds: [42], '#e': [channelId], limit: 200 }]));
-    } catch(e) {}
-  });
-
-  // Render any cached messages immediately
-  setTimeout(() => renderChatMessages(channelId), 100);
+  Object.values(state.relays).forEach(r => glowstrSubscribeSocketToActiveChat(r.ws));
+  glowstrScheduleChatRender(channelId, false);
 }
 
 function unsubscribeChatMessages() {
@@ -9466,11 +9528,14 @@ function unsubscribeChatMessages() {
     try { r.ws.send(JSON.stringify(['CLOSE', state.chatSubId])); } catch(e) {}
   });
   state.chatSubId = null;
+  clearTimeout(_glowstrChatRenderTimer);
+  _glowstrChatRenderTimer = null;
 }
 
 function exitChatRoom() {
   unsubscribeChatMessages();
   state.activeChatRoom = null;
+  state.chatUnreadCount = 0;
   document.getElementById('chat-room-view').style.display = 'none';
   document.getElementById('chat-browse').style.display = 'block';
   filterChatRooms();
@@ -9479,20 +9544,17 @@ function exitChatRoom() {
 function renderChatMessages(channelId) {
   const container = document.getElementById('chat-messages-container');
   if (!container || state.activeChatRoom !== channelId) return;
-  const msgs = (state.chatMessages?.[channelId] || []).slice().sort((a, b) => a.created_at - b.created_at);
   const muted = getMutedChatUsers();
-  const visible = msgs.filter(m => !muted.has(m.pubkey));
-
+  const all = (state.chatMessages?.[channelId] || []).slice().sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
+  const visible = all.filter(m => !muted.has(m.pubkey)).slice(-GLOWSTR_CHAT_RENDER_LIMIT);
+  const wasAtBottom = glowstrChatIsNearBottom(container);
+  const distanceFromBottom = Math.max(0, container.scrollHeight - container.scrollTop - container.clientHeight);
   if (visible.length === 0) {
-    container.innerHTML = '<div class="chat-empty-msg"><p>No messages yet.</p><p style="margin-top:6px;font-size:0.9rem;">Be the first to say something!</p></div>';
+    container.innerHTML = '<div class="chat-empty-msg"><p>No messages yet.</p><p style="margin-top:6px;font-size:0.9rem;">Be the first to say something!</p></div>' +
+      '<button class="chat-new-pill" id="chat-new-pill" data-glow-action="chat-scroll-bottom" type="button" style="display:none;">↓ NEW MESSAGES</button>';
     return;
   }
-
-  // Check if user is scrolled to bottom (auto-scroll vs preserve position)
-  const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
-
-  const lastDay = { date: null };
-  container.innerHTML = visible.map(m => {
+  const html = visible.map(m => {
     const profile = state.profiles[m.pubkey];
     if (!profile) requestProfile(m.pubkey);
     const name = profile?.display_name || profile?.name || m.pubkey.slice(0, 12) + '...';
@@ -9503,26 +9565,26 @@ function renderChatMessages(channelId) {
       ? '<img src="' + escapeHtml(profile.picture) + '" loading="lazy" referrerpolicy="no-referrer" alt="" data-glow-error="hide" />'
       : safeInit;
     const cls = 'chat-msg' + (isMine ? ' mine' : '') + (mentioned && !isMine ? ' mentioned' : '');
-    const t = new Date(m.created_at * 1000);
+    const t = new Date((m.created_at || 0) * 1000);
     const timeStr = t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    return '<div class="' + cls + '">' +
+    return '<div class="' + cls + '" data-event-id="' + escapeHtml(m.id || '') + '">' +
       '<div class="chat-msg-avatar" data-glow-action="view-profile" data-pubkey="' + m.pubkey + '" title="' + escapeHtml(name) + '">' + av + '</div>' +
-      '<div class="chat-msg-body">' +
-        '<div class="chat-msg-meta">' +
-          '<span class="chat-msg-name' + (isMine ? ' mine' : '') + '" data-glow-action="view-profile" data-pubkey="' + m.pubkey + '">' + escapeHtml(name) + '</span>' +
-          '<span class="chat-msg-time">' + timeStr + '</span>' +
-          (!isMine && state.publicKey ? '<button data-glow-action="mute-chat-user" data-pubkey="' + m.pubkey + '" title="Mute this user (NIP-28 kind 44)" style="background:none;border:none;color:var(--xmr-text-dim);font-family:var(--font-retro);font-size:0.75rem;cursor:pointer;padding:0;text-decoration:underline;">🔇 mute</button>' : '') +
-        '</div>' +
-        '<div class="chat-msg-content">' + linkifyContent(escapeHtml(m.content || ''), m.pubkey) + '</div>' +
-      '</div>' +
-    '</div>';
+      '<div class="chat-msg-body"><div class="chat-msg-meta">' +
+      '<span class="chat-msg-name' + (isMine ? ' mine' : '') + '" data-glow-action="view-profile" data-pubkey="' + m.pubkey + '">' + escapeHtml(name) + '</span>' +
+      '<span class="chat-msg-time">' + timeStr + '</span>' +
+      (!isMine && state.publicKey ? '<button data-glow-action="mute-chat-user" data-pubkey="' + m.pubkey + '" title="Mute this user" style="background:none;border:none;color:var(--xmr-text-dim);font-family:var(--font-retro);font-size:0.75rem;cursor:pointer;padding:0;text-decoration:underline;">🔇 mute</button>' : '') +
+      '</div><div class="chat-msg-content">' + linkifyContent(escapeHtml(m.content || ''), m.pubkey) + '</div></div></div>';
   }).join('');
-
+  const unread = Math.max(0, Number(state.chatUnreadCount) || 0);
+  container.innerHTML = html + '<button class="chat-new-pill" id="chat-new-pill" data-glow-action="chat-scroll-bottom" type="button" style="display:' + (unread && !wasAtBottom ? 'block' : 'none') + ';">↓ ' + unread + ' NEW</button>';
   if (wasAtBottom) {
-    setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
+    state.chatUnreadCount = 0;
+    requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
+  } else {
+    requestAnimationFrame(() => { container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight - distanceFromBottom); });
   }
-
-  updateChatMembersList(channelId);
+  clearTimeout(_glowstrChatMembersTimer);
+  _glowstrChatMembersTimer = setTimeout(() => updateChatMembersList(channelId), 180);
 }
 
 function updateChatMembersList(channelId) {
@@ -9574,21 +9636,24 @@ async function sendChatMessage() {
       signed = await glowstrVerifiedNip07Sign(eventTemplate);
     } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
       signed = await nip46Sign(eventTemplate);
+    } else if (state.signerMethod === 'amber-nip55') {
+      eventTemplate.pubkey = state.publicKey;
+      signWithAmber(JSON.stringify(eventTemplate));
+      return;
     } else if (state.privateKey) {
       signed = await signNostrEvent(eventTemplate, state.privateKey);
-    } else { return; }
+    } else { showToast('No signing method available'); return; }
 
     if (signed) {
       const sent = broadcastEvent(signed);
       if (sent > 0) {
         state.eventIds.add(signed.id);
-        if (!state.chatMessages) state.chatMessages = {};
-        if (!state.chatMessages[state.activeChatRoom]) state.chatMessages[state.activeChatRoom] = [];
-        state.chatMessages[state.activeChatRoom].push(signed);
+        glowstrCacheChatEvent(signed);
         input.value = '';
-        renderChatMessages(state.activeChatRoom);
+        state.chatUnreadCount = 0;
+        glowstrScheduleChatRender(state.activeChatRoom, false);
       } else {
-        showToast('No relays accepted the message');
+        showToast('No connected relay could send the message');
       }
     }
   } catch(e) { showToast('Send error: ' + e.message); }
@@ -13071,6 +13136,7 @@ function glowstrHandleDynamicAction(event) {
     case 'exit-chat-room': exitChatRoom(); break;
     case 'toggle-emoji-picker': toggleEmojiPicker(el, el.dataset.targetInput || 'chat-input'); break;
     case 'send-chat-message': sendChatMessage(); break;
+    case 'chat-scroll-bottom': glowstrChatScrollBottom(); break;
     case 'mute-chat-user': muteChatUser(el.dataset.pubkey); break;
     case 'view-listing': viewListing(el.dataset.ref || ''); break;
     case 'copy-market-xmr': copyToClipboard(document.getElementById('market-xmr-addr')?.textContent || ''); break;

@@ -1,0 +1,18 @@
+services:
+  commerce:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8787:8787"
+    environment:
+      MONERO_WALLET_RPC: http://host.containers.internal:18083/json_rpc
+      MONERO_RPC_USER: ${MONERO_RPC_USER}
+      MONERO_RPC_PASS: ${MONERO_RPC_PASS}
+      GLOWSTR_COMMERCE_ADMIN_TOKEN: ${GLOWSTR_COMMERCE_ADMIN_TOKEN}
+      GLOWSTR_ALLOWED_ORIGIN: ${GLOWSTR_ALLOWED_ORIGIN:-https://glowstr.com}
+    volumes:
+      - glowstr-commerce:/data
+    extra_hosts:
+      - "host.containers.internal:host-gateway"
+volumes:
+  glowstr-commerce: {}

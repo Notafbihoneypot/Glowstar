@@ -1,0 +1,9 @@
+FROM python:3.13-alpine
+RUN addgroup -S glowstr && adduser -S -G glowstr glowstr
+WORKDIR /app
+COPY server.py /app/server.py
+RUN mkdir -p /data && chown -R glowstr:glowstr /data /app
+USER glowstr
+ENV GLOWSTR_COMMERCE_HOST=0.0.0.0 GLOWSTR_COMMERCE_PORT=8787 GLOWSTR_COMMERCE_DB=/data/commerce.sqlite3
+EXPOSE 8787
+CMD ["python3","/app/server.py"]

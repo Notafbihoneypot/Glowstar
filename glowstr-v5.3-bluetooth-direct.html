@@ -2449,6 +2449,28 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
   </div>
 </div>
 
+<!-- XMR COMMERCE MODAL -->
+<div class="top8-modal-overlay" id="xmr-commerce-modal">
+  <div class="top8-modal" style="max-width:500px;">
+    <div class="top8-modal-header" style="background:linear-gradient(180deg,var(--xmr-orange),#994000);">
+      <span>ɱ XMR-ONLY FEATURE</span>
+      <button class="top-friends-titlebar-btn" data-glow-action="xmr-commerce-close">X</button>
+    </div>
+    <div class="top8-modal-body">
+      <div id="xmr-commerce-title" style="font-family:var(--font-display);font-size:1.1rem;color:var(--xmr-orange);margin-bottom:8px;">—</div>
+      <div id="xmr-commerce-status" style="font-family:var(--font-retro);color:var(--xmr-text-dim);margin-bottom:12px;">Creating private invoice…</div>
+      <div id="xmr-commerce-qr" style="display:flex;justify-content:center;margin:10px 0;"></div>
+      <div id="xmr-commerce-address" class="market-xmr-addr" style="font-size:.76rem;word-break:break-all;"></div>
+      <div id="xmr-commerce-amount" style="text-align:center;font-family:var(--font-display);color:var(--xmr-orange);margin:10px 0;"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn" data-glow-action="xmr-commerce-wallet" style="flex:1;background:linear-gradient(180deg,var(--xmr-orange),#cc5200);color:#fff;">💸 OPEN WALLET</button>
+        <button class="btn" data-glow-action="xmr-commerce-copy" style="flex:1;">📋 COPY ADDRESS</button>
+      </div>
+      <div style="font-family:var(--font-retro);font-size:.8rem;color:var(--xmr-text-dim);margin-top:10px;line-height:1.4;">Each purchase gets a fresh Monero subaddress. Glowstr polls only this invoice capability; the invoice/tx association is not published to Nostr.</div>
+    </div>
+  </div>
+</div>
+
 <!-- CREATE CHAT ROOM MODAL (NIP-28 kind 40) -->
 <div class="top8-modal-overlay" id="create-room-modal">
   <div class="top8-modal" style="max-width:520px;">
@@ -3516,6 +3538,8 @@ https://another-server.example"></textarea>
     <!-- MONERO WALLET HUB -->
     <div class="view" id="view-wallet">
       <div class="wallet-view">
+
+        <div id="xmr-commerce-panel"></div>
 
         <!-- 0. XMR MARKET DASHBOARD -->
         <div class="wallet-section">
@@ -11753,6 +11777,8 @@ function setDefaultWallet(name) {
 }
 
 function loadWalletState() {
+  const commercePanel=document.getElementById('xmr-commerce-panel');
+  if(commercePanel) commercePanel.innerHTML=renderXmrCommercePanel();
   const ws = getWalletState();
   // Highlight active wallet
   if (ws.default) {
@@ -12272,6 +12298,87 @@ function restoreNWC() {
     status.innerHTML = '<span style="color:var(--xmr-green);">✓ Wallet connected (relay: ' + escapeHtml((ws.nwc.relay || '').replace('wss://','')) + ')</span>';
     if (testDiv) testDiv.style.display = 'block';
   }
+}
+
+// ═══ XMR COMMERCE — PAID NOSTR FEATURES ═══
+const XMR_COMMERCE = {
+  // Production: reverse-proxy this path to monero-commerce on 127.0.0.1:8787.
+  apiBase: '/xmr-commerce/v1',
+  pollMs: 5000,
+  features: {
+    relay_30d: { title: '⚡ PAID RELAY — 30 DAYS', target: '' },
+    room_30d: { title: '🔒 XMR ROOM — 30 DAYS', target: '' },
+    storage_10gb_30d: { title: '💾 10 GB STORAGE — 30 DAYS', target: '' },
+    creator_30d: { title: '⭐ SUPPORT CREATOR — 30 DAYS', target: '' }
+  }
+};
+let _xmrCommercePoll = null;
+
+function atomicXmrString(n) {
+  try {
+    const v=BigInt(String(n||0)), whole=v/1000000000000n, frac=(v%1000000000000n).toString().padStart(12,'0').replace(/0+$/,'');
+    return whole.toString()+(frac?'.'+frac:'');
+  } catch(e) { return '0'; }
+}
+function xmrCommerceSaved() {
+  try { return JSON.parse(localStorage.getItem('glowstr_xmr_invoices')||'{}'); } catch(e) { return {}; }
+}
+function xmrCommerceSave(id,token,feature) {
+  const all=xmrCommerceSaved(); all[id]={token,feature,createdAt:Date.now()}; localStorage.setItem('glowstr_xmr_invoices',JSON.stringify(all));
+}
+function xmrCommerceForget(id) {
+  const all=xmrCommerceSaved(); delete all[id]; localStorage.setItem('glowstr_xmr_invoices',JSON.stringify(all));
+}
+function closeXmrCommerce() {
+  if (_xmrCommercePoll) clearInterval(_xmrCommercePoll); _xmrCommercePoll=null;
+  document.getElementById('xmr-commerce-modal')?.classList.remove('visible');
+}
+function xmrCommerceRender(inv,feature) {
+  const spec=XMR_COMMERCE.features[feature]||{title:feature};
+  const title=document.getElementById('xmr-commerce-title'), status=document.getElementById('xmr-commerce-status');
+  if(title) title.textContent=spec.title;
+  const addr=document.getElementById('xmr-commerce-address'); if(addr) addr.textContent=inv.address||'';
+  const amt=document.getElementById('xmr-commerce-amount'); if(amt) amt.textContent=atomicXmrString(inv.amount_atomic)+' XMR';
+  const qr=document.getElementById('xmr-commerce-qr'); if(qr&&inv.uri){ try{qr.innerHTML=generateQrSvg(inv.uri,4);}catch(e){qr.textContent='';} }
+  state.activeXmrInvoice={...inv,feature};
+  const map={WAITING:'Waiting for XMR payment…',MEMPOOL:'Payment seen in mempool…',CONFIRMING:'Payment seen — '+(inv.confirmations||0)+' / '+(inv.confirmations_required||'?')+' confirmations',PAID:'✓ PAID — access activated',EXPIRED:'Invoice expired — create a new one'};
+  if(status) { status.textContent=map[inv.status]||String(inv.status||'WAITING'); status.style.color=inv.status==='PAID'?'var(--xmr-green)':(inv.status==='EXPIRED'?'var(--xmr-red)':'var(--xmr-text-dim)'); }
+}
+async function xmrCommerceCheck(id,token,feature) {
+  const r=await fetch(XMR_COMMERCE.apiBase+'/invoices/'+encodeURIComponent(id),{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+  if(!r.ok) throw new Error('Invoice check failed ('+r.status+')');
+  const inv=await r.json(); xmrCommerceRender(inv,feature);
+  if(inv.status==='PAID'||inv.status==='EXPIRED'){ if(_xmrCommercePoll) clearInterval(_xmrCommercePoll); _xmrCommercePoll=null; if(inv.status==='PAID'){xmrCommerceForget(id);showToast('✓ XMR payment confirmed — feature activated');} }
+}
+async function buyXmrFeature(feature,target='') {
+  if(!state.publicKey){showToast('Login first to buy an XMR feature');switchView('keys');return;}
+  if(!XMR_COMMERCE.features[feature]){showToast('Unknown XMR feature');return;}
+  closeXmrCommerce(); document.getElementById('xmr-commerce-modal')?.classList.add('visible');
+  const status=document.getElementById('xmr-commerce-status'); if(status) status.textContent='Creating private invoice…';
+  try{
+    const r=await fetch(XMR_COMMERCE.apiBase+'/invoices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pubkey:state.publicKey,feature,target:String(target||'').slice(0,160)})});
+    const inv=await r.json(); if(!r.ok) throw new Error(inv.error||('HTTP '+r.status));
+    xmrCommerceSave(inv.id,inv.token,feature); xmrCommerceRender(inv,feature);
+    _xmrCommercePoll=setInterval(()=>xmrCommerceCheck(inv.id,inv.token,feature).catch(e=>console.warn('XMR invoice poll',e)),XMR_COMMERCE.pollMs);
+  }catch(e){ if(status){status.textContent='Could not create invoice: '+(e.message||e);status.style.color='var(--xmr-red)';} }
+}
+function openXmrCommerceWallet(){
+  const inv=state.activeXmrInvoice; if(!inv?.uri){showToast('No active invoice');return;}
+  window.location.href=inv.uri;
+}
+function copyXmrCommerceAddress(){
+  const inv=state.activeXmrInvoice; if(!inv?.address){showToast('No active invoice');return;}
+  copyToClipboard(inv.address);
+}
+function renderXmrCommercePanel(){
+  return '<div class="wallet-section"><div class="wallet-section-title">ɱ XMR-ONLY NOSTR FEATURES</div><div class="wallet-section-body">'+
+    '<div style="font-family:var(--font-retro);font-size:.9rem;color:var(--xmr-text-dim);margin-bottom:10px;">Pay directly in XMR. Every purchase uses a unique subaddress and activates access for your current Nostr pubkey after confirmations.</div>'+
+    '<div class="wallet-pick-grid">'+
+    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="relay_30d"><div class="wallet-pick-icon">⚡</div><span class="wallet-pick-name">PAID RELAY</span><span class="wallet-pick-platform">30 days</span></div>'+
+    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="room_30d"><div class="wallet-pick-icon">🔒</div><span class="wallet-pick-name">XMR ROOM</span><span class="wallet-pick-platform">30 days</span></div>'+
+    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="storage_10gb_30d"><div class="wallet-pick-icon">💾</div><span class="wallet-pick-name">10 GB STORAGE</span><span class="wallet-pick-platform">30 days</span></div>'+
+    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="creator_30d"><div class="wallet-pick-icon">⭐</div><span class="wallet-pick-name">SUPPORT CREATOR</span><span class="wallet-pick-platform">30 days</span></div>'+
+    '</div></div></div>';
 }
 
 // ═══ TIPPING (uses chosen wallet) ═══
@@ -13120,6 +13227,10 @@ function glowstrHandleDynamicAction(event) {
     case 'toggle-bookmark': toggleBookmark(el.dataset.eventId, el); break;
     case 'open-dm': openDmWith(el.dataset.pubkey); break;
     case 'xmr-tip': xmrTip(el.dataset.pubkey); break;
+    case 'xmr-buy-feature': buyXmrFeature(el.dataset.feature || '', el.dataset.target || ''); break;
+    case 'xmr-commerce-close': closeXmrCommerce(); break;
+    case 'xmr-commerce-wallet': openXmrCommerceWallet(); break;
+    case 'xmr-commerce-copy': copyXmrCommerceAddress(); break;
     case 'open-notif': openNotifTarget(el.dataset.eventId || '', el.dataset.pubkey || '', el.dataset.notifType || ''); break;
     case 'render-articles': renderArticles(); break;
     case 'open-top8': openTop8Picker(); break;

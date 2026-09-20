@@ -119,8 +119,17 @@ root=Path(sys.argv[1]); app=sys.argv[2]; relay=sys.argv[3]
 src=(root/"glowstr-v5.3-bluetooth-direct.html").read_text()
 src=src.replace("wss://relay.glowstr.com/", f"wss://{relay}/")
 src=src.replace("https://relay.glowstr.com", f"https://{relay}")
-# APK uses a synthetic origin, but the web deployment can use the same public API.
+# Use the current Commerce API for the hosted app instead of the retired v4 /api/xmr routes.
 src=src.replace("apiBase: '/xmr-commerce/v1'", f"apiBase: 'https://{relay}/xmr-commerce/v1'")
+src=src.replace("NIP-42 AUTHENTICATED", "NIP-42 AUTHENTICATED · XMR CHECK ON WRITE")
+src=re.sub(
+    r"async function glowstrCheckMembershipV42\(\)\{[\s\S]*?\n\}\nfunction glowstrPayOpenV42",
+    "async function glowstrCheckMembershipV42(){\\n  const entry=glowstrFirstPartyEntryV42(); const ws=entry?.[1]?.ws;\\n  if(!ws || ws.readyState!==WebSocket.OPEN){glowstrSetMembershipV42('DISCONNECTED');showToast('Connect to the Glowstr relay first');return false;}\\n  if(ws._glowstrAuthedV42){glowstrSetMembershipV42('NIP-42 AUTHENTICATED · XMR CHECK ON WRITE');showToast('XMR membership is enforced privately when you publish');return true;}\\n  glowstrSetMembershipV42('WAITING FOR NIP-42 AUTH');return false;\\n}\\nfunction glowstrPayOpenV42",
+    src, count=1)
+src=re.sub(
+    r"async function glowstrPayRelayV42\(\)\{[\s\S]*?\n\}\nfunction initGlowstrV42",
+    "async function glowstrPayRelayV42(){\\n  return buyXmrFeature('relay_30d', GLOWSTR_RELAY_V42.relay);\\n}\\nfunction initGlowstrV42",
+    src, count=1)
 scripts=re.findall(r"<script>([\s\S]*?)</script>", src, flags=re.I)
 if len(scripts)!=1:
     raise SystemExit(f"expected one inline executable script, found {len(scripts)}")

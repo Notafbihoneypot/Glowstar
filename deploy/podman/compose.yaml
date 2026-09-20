@@ -49,7 +49,7 @@ services:
       MONERO_RPC_USER: glowstr
       MONERO_RPC_PASS_FILE: /run/secrets/rpc_password
       GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE: /run/secrets/admin_token
-      GLOWSTR_ALLOWED_ORIGIN: https://${APP_DOMAIN}
+      GLOWSTR_ALLOWED_ORIGINS: https://${APP_DOMAIN},https://app.glowstr.local
       GLOWSTR_XMR_CONFIRMATIONS: ${GLOWSTR_XMR_CONFIRMATIONS}
     volumes:
       - commerce-data:/data:U
@@ -85,7 +85,6 @@ services:
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
       RELAY_DOMAIN: ${RELAY_DOMAIN}
-      ACME_EMAIL: ${ACME_EMAIL}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro,Z
       - ./generated/index.html:/srv/index.html:ro,Z

@@ -37,6 +37,7 @@ services:
 
   commerce:
     build: ../../monero-commerce
+    user: "0:0"
     restart: unless-stopped
     network_mode: host
     depends_on:
@@ -57,6 +58,7 @@ services:
 
   relay:
     build: ../../xmr-relay
+    user: "0:0"
     restart: unless-stopped
     network_mode: host
     depends_on:

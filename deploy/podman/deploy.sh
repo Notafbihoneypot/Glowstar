@@ -13,9 +13,22 @@ command -v podman >/dev/null || die "Podman is required."
 podman compose version >/dev/null 2>&1 || die "A Podman Compose provider is required (podman compose)."
 command -v python3 >/dev/null || die "python3 is required."
 command -v openssl >/dev/null || die "openssl is required."
+command -v curl >/dev/null || die "curl is required."
 
 if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
-  die "Run this deployment rootful so Caddy can bind 80/443. On your systems: doas ./deploy.sh [--stagenet|--mainnet]"
+  LOW_PORT="$(sysctl -n net.ipv4.ip_unprivileged_port_start 2>/dev/null || echo 1024)"
+  if [[ "$LOW_PORT" -gt 80 ]]; then
+    cat >&2 <<'EOF'
+Rootless Podman is supported and preferred, but this host does not currently
+allow an unprivileged process to bind ports 80/443.
+
+Run this one-time host setting, then rerun deploy.sh as your normal user:
+
+  echo 'net.ipv4.ip_unprivileged_port_start=80' | doas tee /etc/sysctl.d/90-rootless-web.conf
+  doas sysctl --system
+EOF
+    exit 2
+  fi
 fi
 
 MODE="mainnet"
@@ -27,8 +40,7 @@ esac
 
 if [[ ! -f .env ]]; then
   cp .env.example .env
-  say "Created deploy/podman/.env. Edit APP_DOMAIN, RELAY_DOMAIN and ACME_EMAIL, then rerun."
-  exit 2
+  say "Created deploy/podman/.env with Glowstr defaults. Edit APP_DOMAIN/RELAY_DOMAIN if you use different DNS names."
 fi
 
 set -a
@@ -38,7 +50,6 @@ set +a
 
 [[ -n "${APP_DOMAIN:-}" ]] || die "APP_DOMAIN is empty in .env"
 [[ -n "${RELAY_DOMAIN:-}" ]] || die "RELAY_DOMAIN is empty in .env"
-[[ -n "${ACME_EMAIL:-}" ]] || die "ACME_EMAIL is empty in .env"
 [[ "$APP_DOMAIN" != "example.com" ]] || die "Set a real APP_DOMAIN."
 [[ "$RELAY_DOMAIN" != "relay.example.com" ]] || die "Set a real RELAY_DOMAIN."
 
@@ -131,12 +142,14 @@ podman compose up -d monerod
 
 say "Waiting for monerod RPC"
 for _ in $(seq 1 120); do
-  if curl -fsS -m 2 http://127.0.0.1:18081/get_info >/dev/null 2>&1; then
+  if curl -fsS -m 2 -H 'Content-Type: application/json' \
+    -d '{"jsonrpc":"2.0","id":"0","method":"get_info"}' \
+    http://127.0.0.1:18081/json_rpc >/dev/null 2>&1; then
     break
   fi
   sleep 2
 done
-curl -fsS -m 3 http://127.0.0.1:18081/get_info >/dev/null 2>&1 || die "monerod RPC did not become ready. Run: podman compose logs monerod"
+curl -fsS -m 3 -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":"0","method":"get_info"}' http://127.0.0.1:18081/json_rpc >/dev/null 2>&1 || die "monerod RPC did not become ready. Run: podman compose logs monerod"
 
 MONERO_IMAGE="localhost/glowstr-monero:${MONERO_VERSION}-${MONERO_ARCH}"
 podman volume inspect glowstr-xmr-wallet >/dev/null 2>&1 || podman volume create glowstr-xmr-wallet >/dev/null

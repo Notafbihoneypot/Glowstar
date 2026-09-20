@@ -9,16 +9,24 @@ import base64, hashlib, json, os, secrets, sqlite3, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.request import build_opener, HTTPDigestAuthHandler, HTTPPasswordMgrWithDefaultRealm, Request
 
+def read_secret(env_name,file_env_name):
+ path=os.getenv(file_env_name,"").strip()
+ if path:
+  try:
+   with open(path,"r",encoding="utf-8") as fh: return fh.read().strip()
+  except OSError as exc: raise RuntimeError(f"cannot read {file_env_name}: {exc}") from exc
+ return os.getenv(env_name,"").strip()
+
 DB=os.getenv("GLOWSTR_COMMERCE_DB","/data/commerce.sqlite3")
 HOST=os.getenv("GLOWSTR_COMMERCE_HOST","127.0.0.1")
 PORT=int(os.getenv("GLOWSTR_COMMERCE_PORT","8787"))
 RPC=os.getenv("MONERO_WALLET_RPC","http://127.0.0.1:18083/json_rpc")
 RPC_USER=os.getenv("MONERO_RPC_USER","")
-RPC_PASS=os.getenv("MONERO_RPC_PASS","")
+RPC_PASS=read_secret("MONERO_RPC_PASS","MONERO_RPC_PASS_FILE")
 ACCOUNT=int(os.getenv("MONERO_ACCOUNT_INDEX","0"))
 CONFIRMATIONS=max(1,int(os.getenv("GLOWSTR_XMR_CONFIRMATIONS","2")))
 ORIGIN=os.getenv("GLOWSTR_ALLOWED_ORIGIN","https://glowstr.com")
-ADMIN_TOKEN=os.getenv("GLOWSTR_COMMERCE_ADMIN_TOKEN","")
+ADMIN_TOKEN=read_secret("GLOWSTR_COMMERCE_ADMIN_TOKEN","GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE")
 ATOMIC=10**12
 FEATURES={
  "relay_30d": {"amount": 20000000000, "seconds": 30*86400, "label":"30 day paid relay"},

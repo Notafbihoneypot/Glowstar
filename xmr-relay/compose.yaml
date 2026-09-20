@@ -1,0 +1,40 @@
+services:
+  commerce:
+    build: ../monero-commerce
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8787:8787"
+    environment:
+      MONERO_WALLET_RPC: ${MONERO_WALLET_RPC:-http://host.containers.internal:18083/json_rpc}
+      MONERO_RPC_USER: ${MONERO_RPC_USER:-}
+      MONERO_RPC_PASS: ${MONERO_RPC_PASS:-}
+      GLOWSTR_COMMERCE_ADMIN_TOKEN: ${GLOWSTR_COMMERCE_ADMIN_TOKEN:?set GLOWSTR_COMMERCE_ADMIN_TOKEN}
+      GLOWSTR_ALLOWED_ORIGIN: ${GLOWSTR_ALLOWED_ORIGIN:-https://glowstr.com}
+      GLOWSTR_XMR_CONFIRMATIONS: ${GLOWSTR_XMR_CONFIRMATIONS:-2}
+    volumes:
+      - glowstr-commerce:/data
+    extra_hosts:
+      - "host.containers.internal:host-gateway"
+
+  relay:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - commerce
+    ports:
+      - "127.0.0.1:7777:7777"
+    environment:
+      GLOWSTR_COMMERCE_ADMIN_URL: http://commerce:8787/v1/admin
+      GLOWSTR_COMMERCE_ADMIN_TOKEN: ${GLOWSTR_COMMERCE_ADMIN_TOKEN:?set GLOWSTR_COMMERCE_ADMIN_TOKEN}
+      GLOWSTR_RELAY_FEATURE: relay_30d
+      GLOWSTR_RELAY_TARGET: ${GLOWSTR_RELAY_TARGET:-relay.glowstr.com}
+      GLOWSTR_ENTITLEMENT_CACHE_SECONDS: ${GLOWSTR_ENTITLEMENT_CACHE_SECONDS:-20}
+      GLOWSTR_COMMERCE_TIMEOUT_SECONDS: ${GLOWSTR_COMMERCE_TIMEOUT_SECONDS:-3}
+      GLOWSTR_ALLOW_LOCAL_IMPORTS: ${GLOWSTR_ALLOW_LOCAL_IMPORTS:-true}
+      GLOWSTR_REQUIRE_AUTHOR_MATCH: ${GLOWSTR_REQUIRE_AUTHOR_MATCH:-true}
+    volumes:
+      - glowstr-relay:/app/strfry-db
+
+volumes:
+  glowstr-commerce: {}
+  glowstr-relay: {}

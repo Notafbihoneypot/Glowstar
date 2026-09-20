@@ -1,0 +1,13 @@
+# Public Nostr WebSocket + NIP-11 endpoint.
+relay.glowstr.com {
+    reverse_proxy 127.0.0.1:7777
+}
+
+# Add this handler to the HTTPS origin that serves Glowstr.
+# handle_path strips /xmr-commerce before proxying, so the backend receives /v1/...
+glowstr.com {
+    handle_path /xmr-commerce/* {
+        reverse_proxy 127.0.0.1:8787
+    }
+    # Keep your existing Glowstr site handler below this line.
+}

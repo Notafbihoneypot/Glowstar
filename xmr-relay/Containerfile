@@ -1,0 +1,8 @@
+FROM golang:1.26-alpine AS policy-builder
+WORKDIR /src
+COPY policy.go ./policy.go
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/glowstr-xmr-policy ./policy.go
+
+FROM ghcr.io/hoytech/strfry@sha256:7349cd736b2dd99f152592e414530f12f99886730afa89fccf9bb5407e1f4a9b
+COPY --from=policy-builder --chown=strfry:strfry /out/glowstr-xmr-policy /usr/local/bin/glowstr-xmr-policy
+COPY --chown=strfry:strfry strfry.conf /app/strfry.conf

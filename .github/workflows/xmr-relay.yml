@@ -1,0 +1,34 @@
+name: Test XMR Relay
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "xmr-relay/**"
+      - "monero-commerce/**"
+      - ".github/workflows/xmr-relay.yml"
+  pull_request:
+    paths:
+      - "xmr-relay/**"
+      - "monero-commerce/**"
+      - ".github/workflows/xmr-relay.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Test XMR relay write policy
+        run: |
+          cd xmr-relay
+          go test policy.go policy_test.go
+
+      - name: Validate Monero commerce service
+        run: python3 -m py_compile monero-commerce/server.py

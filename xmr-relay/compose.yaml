@@ -2,10 +2,11 @@ services:
   commerce:
     build: ../monero-commerce
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:8787:8787"
+    network_mode: host
     environment:
-      MONERO_WALLET_RPC: ${MONERO_WALLET_RPC:-http://host.containers.internal:18083/json_rpc}
+      GLOWSTR_COMMERCE_HOST: 127.0.0.1
+      GLOWSTR_COMMERCE_PORT: 8787
+      MONERO_WALLET_RPC: ${MONERO_WALLET_RPC:-http://127.0.0.1:18083/json_rpc}
       MONERO_RPC_USER: ${MONERO_RPC_USER:-}
       MONERO_RPC_PASS: ${MONERO_RPC_PASS:-}
       GLOWSTR_COMMERCE_ADMIN_TOKEN: ${GLOWSTR_COMMERCE_ADMIN_TOKEN:?set GLOWSTR_COMMERCE_ADMIN_TOKEN}
@@ -13,18 +14,15 @@ services:
       GLOWSTR_XMR_CONFIRMATIONS: ${GLOWSTR_XMR_CONFIRMATIONS:-2}
     volumes:
       - glowstr-commerce:/data
-    extra_hosts:
-      - "host.containers.internal:host-gateway"
 
   relay:
     build: .
     restart: unless-stopped
+    network_mode: host
     depends_on:
       - commerce
-    ports:
-      - "127.0.0.1:7777:7777"
     environment:
-      GLOWSTR_COMMERCE_ADMIN_URL: http://commerce:8787/v1/admin
+      GLOWSTR_COMMERCE_ADMIN_URL: http://127.0.0.1:8787/v1/admin
       GLOWSTR_COMMERCE_ADMIN_TOKEN: ${GLOWSTR_COMMERCE_ADMIN_TOKEN:?set GLOWSTR_COMMERCE_ADMIN_TOKEN}
       GLOWSTR_RELAY_FEATURE: relay_30d
       GLOWSTR_RELAY_TARGET: ${GLOWSTR_RELAY_TARGET:-relay.glowstr.com}

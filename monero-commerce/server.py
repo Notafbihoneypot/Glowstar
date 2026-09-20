@@ -25,7 +25,7 @@ RPC_USER=os.getenv("MONERO_RPC_USER","")
 RPC_PASS=read_secret("MONERO_RPC_PASS","MONERO_RPC_PASS_FILE")
 ACCOUNT=int(os.getenv("MONERO_ACCOUNT_INDEX","0"))
 CONFIRMATIONS=max(1,int(os.getenv("GLOWSTR_XMR_CONFIRMATIONS","2")))
-ORIGIN=os.getenv("GLOWSTR_ALLOWED_ORIGIN","https://glowstr.com")
+ORIGINS={x.strip() for x in os.getenv("GLOWSTR_ALLOWED_ORIGINS",os.getenv("GLOWSTR_ALLOWED_ORIGIN","https://glowstr.com")).split(",") if x.strip()}
 ADMIN_TOKEN=read_secret("GLOWSTR_COMMERCE_ADMIN_TOKEN","GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE")
 ATOMIC=10**12
 FEATURES={
@@ -98,7 +98,9 @@ class H(BaseHTTPRequestHandler):
  def log_message(self,fmt,*args): print("%s - %s"%(self.address_string(),fmt%args))
  def _headers(self,code=200):
   self.send_response(code); self.send_header("Content-Type","application/json"); self.send_header("Cache-Control","no-store")
-  if ORIGIN: self.send_header("Access-Control-Allow-Origin",ORIGIN); self.send_header("Vary","Origin")
+  origin=self.headers.get("Origin","").strip()
+  if origin and origin in ORIGINS:
+   self.send_header("Access-Control-Allow-Origin",origin); self.send_header("Vary","Origin")
   self.send_header("Access-Control-Allow-Headers","Content-Type, Authorization"); self.send_header("Access-Control-Allow-Methods","GET,POST,OPTIONS"); self.end_headers()
  def out(self,obj,code=200): self._headers(code); self.wfile.write(json.dumps(obj,separators=(",",":")).encode())
  def body(self):

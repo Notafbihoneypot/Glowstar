@@ -28,20 +28,25 @@ Set:
 
 - `APP_DOMAIN`
 - `RELAY_DOMAIN`
-- `ACME_EMAIL`
-
 Both DNS records must point to the server.
+
+Rootless Podman is supported and preferred. If your host still reserves ports below 1024 for root, run this once:
+
+```sh
+echo 'net.ipv4.ip_unprivileged_port_start=80' | doas tee /etc/sysctl.d/90-rootless-web.conf
+doas sysctl --system
+```
 
 Test without real XMR first:
 
 ```sh
-doas ./deploy.sh --stagenet
+./deploy.sh --stagenet
 ```
 
 When satisfied, deploy a separate mainnet wallet:
 
 ```sh
-doas ./deploy.sh --mainnet
+./deploy.sh --mainnet
 ```
 
 On first run the script opens `monero-wallet-cli` interactively. Record the recovery seed offline and type `exit`. The seed is never written into the repo or environment file.
@@ -58,10 +63,10 @@ Supported automatically:
 ## Operations
 
 ```sh
-doas ./status.sh
-doas podman compose logs -f --tail=100
-doas podman compose restart
-doas podman compose down
+./status.sh
+podman compose logs -f --tail=100
+podman compose restart
+podman compose down
 ```
 
 Do not publish the `secrets/` directory. It contains the wallet file password, wallet-RPC password, and the internal Commerce/relay authorization token.

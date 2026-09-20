@@ -34,13 +34,13 @@ strfry already verifies normal Nostr events and exposes the NIP-42 authenticated
 
 ## Deploy with Podman
 
-Copy `.env.example` to `.env` and set a strong random admin token plus your `monero-wallet-rpc` credentials.
+Copy `.env.example` to `.env` and set a strong random admin token plus your `monero-wallet-rpc` credentials. Keep `monero-wallet-rpc` bound to `127.0.0.1:18083`; it does not need a LAN or public bind.
 
 ```sh
 podman compose up -d --build
 ```
 
-The compose file binds the relay to `127.0.0.1:7777` and Commerce to `127.0.0.1:8787`. Put TLS in front of both. `Caddyfile.example` shows the intended routing.
+The Podman services use host networking so Commerce can reach `monero-wallet-rpc` on host loopback without exposing wallet RPC. Commerce binds only to `127.0.0.1:8787`, strfry binds only to `127.0.0.1:7777`, and Caddy is the only public listener. `Caddyfile.example` shows the intended routing.
 
 `strfry.conf` is configured for `wss://relay.glowstr.com/`. If the public relay hostname changes, update `relay.auth.serviceUrl` before building. NIP-42 authentication requires that URL to match the public relay URL.
 

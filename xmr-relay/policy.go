@@ -97,10 +97,22 @@ func envInt(name string, fallback int) int {
 	return n
 }
 
+func secretValue(envName, fileEnvName string) string {
+	if path := strings.TrimSpace(os.Getenv(fileEnvName)); path != "" {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "glowstr-xmr-policy: cannot read secret file:", err)
+			return ""
+		}
+		return strings.TrimSpace(string(b))
+	}
+	return strings.TrimSpace(os.Getenv(envName))
+}
+
 func loadConfig() config {
 	return config{
 		AdminURL:           strings.TrimRight(strings.TrimSpace(valueOr(os.Getenv("GLOWSTR_COMMERCE_ADMIN_URL"), "http://commerce:8787/v1/admin")), "/"),
-		AdminToken:         strings.TrimSpace(os.Getenv("GLOWSTR_COMMERCE_ADMIN_TOKEN")),
+		AdminToken:         secretValue("GLOWSTR_COMMERCE_ADMIN_TOKEN", "GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE"),
 		Feature:            strings.TrimSpace(valueOr(os.Getenv("GLOWSTR_RELAY_FEATURE"), "relay_30d")),
 		Target:             strings.TrimSpace(os.Getenv("GLOWSTR_RELAY_TARGET")),
 		CacheTTL:           time.Duration(envInt("GLOWSTR_ENTITLEMENT_CACHE_SECONDS", 20)) * time.Second,

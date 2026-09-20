@@ -1,0 +1,107 @@
+name: glowstr-xmr
+
+services:
+  monerod:
+    build:
+      context: ./monero
+      args:
+        MONERO_VERSION: ${MONERO_VERSION}
+        MONERO_ARCHIVE: ${MONERO_ARCHIVE}
+        MONERO_SHA256: ${MONERO_SHA256}
+    image: localhost/glowstr-monero:${MONERO_VERSION}-${MONERO_ARCH}
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        exec monerod ${MONERO_NETWORK_FLAG:-}           --data-dir=/var/lib/monero           --rpc-bind-ip=127.0.0.1           --rpc-bind-port=18081           --restricted-rpc           --p2p-bind-ip=127.0.0.1           --hide-my-port           --prune-blockchain           --non-interactive           --log-level=0
+    volumes:
+      - monero-chain:/var/lib/monero
+
+  wallet-rpc:
+    image: localhost/glowstr-monero:${MONERO_VERSION}-${MONERO_ARCH}
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - monerod
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        test -f "/wallet/${MONERO_WALLET_NAME}.keys" || { echo "wallet not initialized"; exit 1; }
+        exec monero-wallet-rpc ${MONERO_NETWORK_FLAG:-}           --wallet-file "/wallet/${MONERO_WALLET_NAME}"           --password-file /run/secrets/wallet_password           --daemon-address 127.0.0.1:18081           --rpc-bind-ip 127.0.0.1           --rpc-bind-port 18083           --rpc-login "glowstr:$$(cat /run/secrets/rpc_password)"           --trusted-daemon           --non-interactive
+    volumes:
+      - monero-wallet:/wallet
+      - ./secrets:/run/secrets:ro,Z
+
+  commerce:
+    build: ../../monero-commerce
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - wallet-rpc
+    environment:
+      GLOWSTR_COMMERCE_HOST: 127.0.0.1
+      GLOWSTR_COMMERCE_PORT: "8787"
+      GLOWSTR_COMMERCE_DB: /data/commerce.sqlite3
+      MONERO_WALLET_RPC: http://127.0.0.1:18083/json_rpc
+      MONERO_RPC_USER: glowstr
+      MONERO_RPC_PASS_FILE: /run/secrets/rpc_password
+      GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE: /run/secrets/admin_token
+      GLOWSTR_ALLOWED_ORIGIN: https://${APP_DOMAIN}
+      GLOWSTR_XMR_CONFIRMATIONS: ${GLOWSTR_XMR_CONFIRMATIONS}
+    volumes:
+      - commerce-data:/data:U
+      - ./secrets:/run/secrets:ro,Z
+
+  relay:
+    build: ../../xmr-relay
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - commerce
+    environment:
+      GLOWSTR_COMMERCE_ADMIN_URL: http://127.0.0.1:8787/v1/admin
+      GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE: /run/secrets/admin_token
+      GLOWSTR_RELAY_FEATURE: relay_30d
+      GLOWSTR_RELAY_TARGET: ${RELAY_DOMAIN}
+      GLOWSTR_ENTITLEMENT_CACHE_SECONDS: "20"
+      GLOWSTR_COMMERCE_TIMEOUT_SECONDS: "3"
+      GLOWSTR_ALLOW_LOCAL_IMPORTS: "true"
+      GLOWSTR_REQUIRE_AUTHOR_MATCH: "true"
+    volumes:
+      - relay-data:/app/strfry-db:U
+      - ./generated/strfry.conf:/app/strfry.conf:ro,Z
+      - ./secrets:/run/secrets:ro,Z
+
+  caddy:
+    image: docker.io/library/caddy:2-alpine
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - relay
+      - commerce
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      RELAY_DOMAIN: ${RELAY_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro,Z
+      - ./generated/index.html:/srv/index.html:ro,Z
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  monero-chain:
+    name: glowstr-xmr-chain
+  monero-wallet:
+    name: glowstr-xmr-wallet
+  commerce-data:
+    name: glowstr-xmr-commerce
+  relay-data:
+    name: glowstr-xmr-relay
+  caddy-data:
+    name: glowstr-xmr-caddy-data
+  caddy-config:
+    name: glowstr-xmr-caddy-config

@@ -1,0 +1,27 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	handle_path /xmr-commerce/* {
+		reverse_proxy 127.0.0.1:8787
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+{$RELAY_DOMAIN} {
+	handle_path /xmr-commerce/* {
+		reverse_proxy 127.0.0.1:8787
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:7777
+	}
+}

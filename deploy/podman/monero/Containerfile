@@ -1,0 +1,20 @@
+FROM debian:bookworm-slim
+
+ARG MONERO_VERSION=0.18.5.1
+ARG MONERO_ARCHIVE=monero-linux-x64-v0.18.5.1.tar.bz2
+ARG MONERO_SHA256=22a7dda7b0cb699fdd6b7674c3b4a4465b337cc98a54983523b759e1e7cc9958
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl bzip2 libgomp1 \
+ && rm -rf /var/lib/apt/lists/* \
+ && curl -fL --retry 3 "https://downloads.getmonero.org/cli/${MONERO_ARCHIVE}" -o /tmp/monero.tar.bz2 \
+ && echo "${MONERO_SHA256}  /tmp/monero.tar.bz2" | sha256sum -c - \
+ && mkdir -p /opt/monero \
+ && tar -xjf /tmp/monero.tar.bz2 --strip-components=1 -C /opt/monero \
+ && rm -f /tmp/monero.tar.bz2 \
+ && ln -s /opt/monero/monerod /usr/local/bin/monerod \
+ && ln -s /opt/monero/monero-wallet-rpc /usr/local/bin/monero-wallet-rpc \
+ && ln -s /opt/monero/monero-wallet-cli /usr/local/bin/monero-wallet-cli
+
+ENTRYPOINT []
+CMD ["monerod","--version"]

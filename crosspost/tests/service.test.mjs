@@ -56,6 +56,28 @@ test('platform versions enforce weighted X and Bluesky byte limits without chang
   assert.match(versions[0].errors.join(),/Shorten/);assert.equal(versions[0].text,text);assert.equal(versions[1].count,300);assert.match(versions[1].errors.join(),/UTF-8/);
   assert.equal(inspectPost({text:'Check https://example.org/'+'a'.repeat(300),destinations:['x']},{x:{}})[0].count,29);
 });
+
+test('Crosspost invoice proxy requires an authenticated hub and binds the invoice to that Nostr pubkey',async t=>{
+  const seen=[];
+  const f=await fixture(t,{CROSSPOST_COMMERCE_URL:'https://commerce.example',GLOWSTR_COMMERCE_ADMIN_TOKEN:'test-admin'},{fetcher:async(url,options={})=>{
+    seen.push({url,options});
+    if(url.endsWith('/v1/invoices')&&options.method==='POST'){
+      const body=JSON.parse(options.body);assert.equal(body.pubkey,f.owner);assert.equal(body.feature,'crosspost_30d');assert.equal(body.target,'');
+      return response({id:'invoice_123456789',token:'t'.repeat(32),status:'WAITING',address:'44test',amount_atomic:20000000000,uri:'monero:44test?tx_amount=0.02',expires_at:Math.floor(Date.now()/1000)+1800,confirmations_required:2});
+    }
+    if(url.endsWith('/v1/invoices/invoice_123456789')){
+      assert.equal(options.headers.Authorization,'Bearer '+'t'.repeat(32));
+      return response({id:'invoice_123456789',status:'CONFIRMING',confirmations:1,confirmations_required:2,expires_at:Math.floor(Date.now()/1000)+1200});
+    }
+    if(url.includes('/v1/admin/entitlements/'))return response({entitlements:[]});
+    throw new Error('Unexpected '+url);
+  }});
+  assert.equal((await f.request('/api/membership/invoice',{method:'POST',body:{}})).status,401);
+  const session=await f.login();
+  const invoice=await f.request('/api/membership/invoice',{method:'POST',session,body:{}});assert.equal(invoice.status,201);assert.equal(invoice.value.amount_atomic,20000000000);
+  const status=await f.request('/api/membership/invoice/status',{method:'POST',session,body:{id:invoice.value.id,token:invoice.value.token}});assert.equal(status.status,200);assert.equal(status.value.status,'CONFIRMING');
+  assert.equal((await f.request('/api/membership/invoice/status',{method:'POST',session,body:{id:'bad',token:'short'}})).status,400);
+});
 test('optional Monero membership fails closed and concurrent accepted requests queue once',async t=>{
   let active=false,broken=false;const f=await fixture(t,{CROSSPOST_COMMERCE_URL:'https://commerce.example',GLOWSTR_COMMERCE_ADMIN_TOKEN:'test-admin'},{fetcher:async()=>{if(broken)throw new Error();await new Promise(resolve=>setTimeout(resolve,10));return response({entitlements:active?[{feature:'crosspost_30d',target:'',valid_until:Math.floor(Date.now()/1000)+3600}]:[]});}});
   const session=await f.login();connect(f);const options={method:'POST',session,body:postBody(),headers:{'Idempotency-Key':randomUUID()}};

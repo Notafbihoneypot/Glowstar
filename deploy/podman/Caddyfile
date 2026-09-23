@@ -1,5 +1,10 @@
 {$APP_DOMAIN} {
 	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+	}
 
 	# Connected-identity bridge from the unified Podman stack.
 	handle /crosspost {
@@ -18,6 +23,11 @@
 }
 
 {$RELAY_DOMAIN} {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+	}
 	handle_path /xmr-commerce/* {
 		reverse_proxy commerce:8787
 	}

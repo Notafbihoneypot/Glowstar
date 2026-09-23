@@ -17,7 +17,7 @@ try{
   await page.exposeFunction('testSign',template=>finalizeEvent(template,f.key));await page.addInitScript(()=>{window.nostr={signEvent:template=>window.testSign(template)};});
   await page.goto(f.config.base+'/');await page.getByRole('button',{name:'Connect signer'}).click();await page.getByText('Signed in. Link your identities, then choose where to publish.').waitFor();
   await page.locator('[data-tab=accounts]').click();assert.equal(await page.locator('.account-card a').count(),4);
-  assert.equal(await page.getByText('you never paste a social-account password into Glowstr.').count(),1);
+  assert.equal(await page.getByText('Your social passwords are never entered here.').count(),1);
   if(process.env.CROSSPOST_SCREENSHOT_DIR)await page.screenshot({path:process.env.CROSSPOST_SCREENSHOT_DIR+'/crosspost-identities.png',fullPage:true});
   await page.locator('[data-tab=compose]').click();for(const p of ['bluesky','mastodon','x','activitypub'])await page.locator('[data-destination='+p+']').check();
   await page.getByLabel('Post text',{exact:true}).fill('One public update, across my linked identities.');

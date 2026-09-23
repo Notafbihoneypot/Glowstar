@@ -144,11 +144,11 @@ volumes:
   monero-wallet:
     name: glowstr-xmr-wallet
   commerce-data:
-    name: glowstr-xmr-commerce
+    name: glowstr-xmr-commerce-${MONERO_NETWORK:-mainnet}
   crosspost-data:
-    name: glowstr-xmr-crosspost
+    name: glowstr-xmr-crosspost-${MONERO_NETWORK:-mainnet}
   relay-data:
-    name: glowstr-xmr-relay
+    name: glowstr-xmr-relay-${MONERO_NETWORK:-mainnet}
   caddy-data:
     name: glowstr-xmr-caddy-data
   caddy-config:

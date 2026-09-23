@@ -2,7 +2,7 @@
 
 Link **Bluesky, Mastodon, X, and a Mastodon-compatible ActivityPub account** to one Glowstr identity. Compose a public post once, choose which linked accounts publish it, customize individual versions, review, and track every delivery separately. Nostr output is also available through your client signer.
 
-This initial implementation has local API and browser tests with simulated destinations. Live platform publishing and container deployment require operator acceptance testing. Posting starts in the shared composer; it does not monitor existing social feeds.
+This implementation has local API and browser tests with simulated destinations, plus live publishing adapters. Account linking now uses OAuth/authorization redirects for Bluesky, Mastodon, X, and the Mastodon-compatible ActivityPub slot. Live platform publishing and container deployment still require operator acceptance testing with accounts you control. Posting starts in the shared composer; it does not monitor existing social feeds.
 
 ## How identities are linked
 
@@ -26,7 +26,7 @@ These connections are private to your bridge account. They do not modify public 
 
 - Mobile composer, connected-profile cards, per-platform versions and character checks, explicit public-post review, and delivery history.
 - NIP-98 sign-in with an operator allowlist, one-use challenges, HttpOnly sessions, and CSRF/origin checks. Your Nostr private key stays in the client signer.
-- Encrypted provider credentials (AES-256-GCM), SQLite queue, bounded retries, and durable upload checkpoints.
+- Encrypted provider credentials, OAuth state, refresh credentials, and AT Protocol sessions (AES-256-GCM), plus a SQLite queue, bounded retries, and durable upload checkpoints.
 - One image per post, normalized to a metadata-free 1080×1080 JPEG under 950 KB with padding. Descriptions go to Bluesky, Mastodon, and the compatible ActivityPub service.
 - Request idempotency and stable Bluesky record keys. Ambiguous publication failures are marked `uncertain` and need an explicit destination check before manual retry.
 - Optional existing Monero Commerce entitlement checks. Preview-only mode is on by default.
@@ -41,7 +41,7 @@ cp .env.example .env
 node setup.mjs
 ```
 
-Edit `.env`: set `CROSSPOST_ALLOWED_PUBKEYS` to your hex **public** key, or a comma-separated list. Never put an `nsec` here. Then:
+Edit `.env`: set `CROSSPOST_ALLOWED_PUBKEYS` to your hex **public** key, or a comma-separated list. Never put an `nsec` here. To connect X, also create an OAuth 2 application, set its callback URL to `CROSSPOST_PUBLIC_URL/oauth/x/callback`, and set `CROSSPOST_X_CLIENT_ID`. A confidential web app may provide `CROSSPOST_X_CLIENT_SECRET_FILE`; leave it unset for a public client. Then:
 
 ```sh
 node --env-file=.env server.mjs
@@ -57,12 +57,12 @@ HTTPS is required outside localhost. The configured public URL must match the pr
 
 | Platform | What to connect |
 | --- | --- |
-| Bluesky | Handle/DID and an app password from Bluesky settings. The password is exchanged and discarded; encrypted sessions refresh automatically. Login hosts are operator-approved; Bluesky-hosted `*.bsky.network` PDS endpoints are recognized from the login response. |
-| Mastodon | User token from an application in Development settings, with `read:accounts`, `write:statuses`, and `write:media`. Add your instance to `CROSSPOST_MASTODON_HOSTS`. |
-| X | OAuth 2 **user** token with `users.read`, `tweet.read`, `tweet.write`, and `media.write` for images. Your developer app needs the appropriate publishing access and API credits. An app-only token cannot publish as you. |
-| ActivityPub-compatible service | User token and operator-approved host in `CROSSPOST_ACTIVITYPUB_HOSTS`. The service must support the required Mastodon API endpoints/scopes. This host list is empty by default. |
+| Bluesky | Enter a handle or DID, then authorize Glowstr through AT Protocol OAuth. The bridge requests `atproto`, `repo:app.bsky.feed.post`, and `blob:image/jpeg`; the DID is the stable account binding. OAuth session refresh is handled by the AT Protocol OAuth client and stored encrypted. |
+| Mastodon | Enter an operator-approved instance, then authorize there. Glowstr dynamically registers its OAuth client and requests `read:accounts`, `write:statuses`, and `write:media`. Add your instance to `CROSSPOST_MASTODON_HOSTS`. |
+| X | Configure `CROSSPOST_X_CLIENT_ID`, then authorize with OAuth 2.0 + PKCE. The requested user scopes are `users.read`, `tweet.read`, `tweet.write`, `media.write`, and `offline.access`; refresh tokens are rotated and saved encrypted when X issues them. |
+| ActivityPub-compatible service | Enter an operator-approved host in `CROSSPOST_ACTIVITYPUB_HOSTS`, then authorize through its Mastodon-compatible OAuth endpoints. The service must support the account, status, and media APIs used by this bridge. This remains a compatibility connector, not universal ActivityPub client-to-server support. |
 
-This version uses credential-entry forms; an OAuth redirect/consent wizard is not included. Replace expired X/Mastodon/ActivityPub tokens manually. Identity verification does not guarantee write permissions. Keep credentials out of chat, Git, and logs; the UI does not persist them in browser storage.
+The normal UI no longer asks users to paste social-account passwords or long-lived provider tokens. The legacy credential verification endpoint remains for local/operator migration and tests, but the supported interactive path is OAuth. Identity verification still does not guarantee a provider will accept every later write; provider permissions, limits, and account state can change. Keep OAuth application secrets out of chat, Git, and logs.
 
 Nostr output requires writable WSS relays in `CROSSPOST_NOSTR_RELAYS`. Success means at least one relay acknowledged the event; the full result records every relay acknowledgement. Server-side NIP-42 challenge signing is not implemented, so the existing XMR-gated relay is a separate service and is not a supported authenticated output relay yet.
 
@@ -126,7 +126,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Tests use temporary databases, local HTTP sessions, fake provider responses, and a test signer. They do not publish externally. The browser flow links Bluesky, Mastodon, X, and an ActivityPub-compatible identity, reviews a post, and verifies four simulated deliveries and mobile layout.
+Tests use temporary databases, local HTTP sessions, fake provider responses, and a test signer. They do not publish externally. OAuth unit tests cover PKCE, stable identity binding, one-use state, encrypted application credentials, and X refresh rotation. The browser flow uses four pre-linked test identities, reviews a post, and verifies four simulated deliveries and mobile layout without opening external consent pages.
 
 - [Mastodon ActivityPub implementation](https://docs.joinmastodon.org/spec/activitypub/), [W3C ActivityPub](https://www.w3.org/TR/activitypub/), [Akkoma Mastodon API differences](https://docs.akkoma.dev/stable/development/API/differences_in_mastoapi_responses/)
 - [Mastodon statuses](https://docs.joinmastodon.org/methods/statuses/) and [media](https://docs.joinmastodon.org/methods/media/)

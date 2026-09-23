@@ -6,12 +6,9 @@
 		redir /crosspost/ 308
 	}
 	handle_path /crosspost/* {
-		reverse_proxy 127.0.0.1:8790
+		reverse_proxy crosspost:8790
 	}
 
-	handle_path /xmr-commerce/* {
-		reverse_proxy 127.0.0.1:8787
-	}
 
 	handle {
 		root * /srv
@@ -22,10 +19,10 @@
 
 {$RELAY_DOMAIN} {
 	handle_path /xmr-commerce/* {
-		reverse_proxy 127.0.0.1:8787
+		reverse_proxy commerce:8787
 	}
 
 	handle {
-		reverse_proxy 127.0.0.1:7777
+		reverse_proxy relay:7777
 	}
 }

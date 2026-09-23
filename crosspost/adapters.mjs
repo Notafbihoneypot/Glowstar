@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { allowedServer, Problem, textFor } from './validation.mjs';
+import { blueskyAgent, xAccessToken } from './oauth.mjs';
 export class DeliveryError extends Error { constructor(message,state='failed',delay=0){super(message);this.state=state;this.delay=delay;} }
 export function makeAPI(fetcher=fetch) {
   return async function api(url,{method='GET',bearer,json,form,bytes,headers={}}={},context=null,final=false) {
@@ -64,9 +65,11 @@ export function createPublisher(config,store,{fetcher=fetch,WebSocketImpl=WebSoc
     if(platform==='nostr')return publishNostr(post.event,config.relays,WebSocketImpl);
     const text=textFor(post,platform),auth=connection.secret,image=media?await readFile(join(config.data,'media',media.id+'.jpg')):null;
     if(platform==='x'){
+      let accessToken=auth.accessToken;
+      if(auth.auth==='oauth2'){try{accessToken=await xAccessToken(config,store,post.owner,connection,fetcher);}catch(error){throw new DeliveryError(error.message,error.status===502?'retrying':'failed',30000);}}
       const payload={text};
-      if(image){const upload=await api('https://api.x.com/2/media/upload',{method:'POST',bearer:auth.accessToken,json:{media:image.toString('base64'),media_category:'tweet_image'}});if(!upload.data?.id)throw new DeliveryError('X did not return a media ID');payload.media={media_ids:[upload.data.id]};}
-      const data=(await api('https://api.x.com/2/tweets',{method:'POST',bearer:auth.accessToken,json:payload},context,true)).data;
+      if(image){const upload=await api('https://api.x.com/2/media/upload',{method:'POST',bearer:accessToken,json:{media:image.toString('base64'),media_category:'tweet_image'}});if(!upload.data?.id)throw new DeliveryError('X did not return a media ID');payload.media={media_ids:[upload.data.id]};}
+      const data=(await api('https://api.x.com/2/tweets',{method:'POST',bearer:accessToken,json:payload},context,true)).data;
       return result(data?.id,'https://x.com/i/status/'+data?.id);
     }
     if(['mastodon','activitypub'].includes(platform)){
@@ -83,14 +86,20 @@ export function createPublisher(config,store,{fetcher=fetch,WebSocketImpl=WebSoc
       return result(published.id,published.url);
     }
     if(platform==='bluesky'){
-      const refreshed=await api(auth.pds+'/xrpc/com.atproto.server.refreshSession',{method:'POST',bearer:auth.refreshToken});
-      if(refreshed.did!==connection.identity||!refreshed.accessJwt||!refreshed.refreshJwt)throw new DeliveryError('Bluesky session changed identity; reconnect');
-      auth.accessToken=refreshed.accessJwt;auth.refreshToken=refreshed.refreshJwt;
-      // Do not overwrite credentials replaced or disconnected during this request.
-      store.db.prepare('UPDATE connections SET secret=? WHERE owner=? AND platform=? AND identity=? AND secret=?').run(store.seal(post.owner,platform,auth),post.owner,platform,connection.identity,connection.sealed);
       const record={$type:'app.bsky.feed.post',text,createdAt:new Date(post.created).toISOString()},facets=[];
       for(const match of text.matchAll(/https?:\/\/[^\s<>]+/gu)){const uri=match[0].replace(/[.,!?;:)]+$/,'');try{new URL(uri);}catch{continue;}facets.push({index:{byteStart:Buffer.byteLength(text.slice(0,match.index)),byteEnd:Buffer.byteLength(text.slice(0,match.index)+uri)},features:[{$type:'app.bsky.richtext.facet#link',uri}]});}
       if(facets.length)record.facets=facets;
+      if(auth.auth==='oauth'){
+        let agent;try{agent=await blueskyAgent(config,store,post.owner,connection.identity);}catch{throw new DeliveryError('Bluesky authorization expired or was revoked. Reconnect this identity.');}
+        if(image){let uploaded;try{uploaded=await agent.uploadBlob(image,{encoding:'image/jpeg'});}catch{throw new DeliveryError('Bluesky image upload failed; delivery will retry.','retrying',30000);}const blob=uploaded.data?.blob||uploaded.blob;if(!blob)throw new DeliveryError('Bluesky did not return an image blob');record.embed={$type:'app.bsky.embed.images',images:[{alt:media.alt,image:blob,aspectRatio:{width:media.width,height:media.height}}]};}
+        context.markPublishing();
+        try{const published=await agent.com.atproto.repo.putRecord({repo:connection.identity,collection:'app.bsky.feed.post',rkey:post.rkey,record,validate:true}),data=published.data||published;return result(data.uri,'https://bsky.app/profile/'+encodeURIComponent(connection.identity)+'/post/'+post.rkey);}
+        catch(error){const status=Number(error.status||error.statusCode||error.response?.status);if(status===429)throw new DeliveryError('Bluesky rate limit; waiting to retry.','retrying',60000);if(status>=400&&status<500)throw new DeliveryError('Bluesky rejected the post. Check authorization and content limits.');throw new DeliveryError('Bluesky publication may have completed. Check the destination before retrying.','uncertain');}
+      }
+      const refreshed=await api(auth.pds+'/xrpc/com.atproto.server.refreshSession',{method:'POST',bearer:auth.refreshToken});
+      if(refreshed.did!==connection.identity||!refreshed.accessJwt||!refreshed.refreshJwt)throw new DeliveryError('Bluesky session changed identity; reconnect');
+      auth.accessToken=refreshed.accessJwt;auth.refreshToken=refreshed.refreshJwt;
+      if(!store.replaceConnectionSecret(post.owner,platform,connection.identity,connection.sealed,auth))throw new DeliveryError('Bluesky identity changed while refreshing; create a new post after reviewing the account');
       if(image){const uploaded=await api(auth.pds+'/xrpc/com.atproto.repo.uploadBlob',{method:'POST',bearer:auth.accessToken,bytes:image,headers:{'Content-Type':'image/jpeg'}});if(!uploaded.blob)throw new DeliveryError('Bluesky did not return an image blob');record.embed={$type:'app.bsky.embed.images',images:[{alt:media.alt,image:uploaded.blob,aspectRatio:{width:media.width,height:media.height}}]};}
       const published=await api(auth.pds+'/xrpc/com.atproto.repo.putRecord',{method:'POST',bearer:auth.accessToken,json:{repo:connection.identity,collection:'app.bsky.feed.post',rkey:post.rkey,record,validate:true}},context,true);
       return result(published.uri,'https://bsky.app/profile/'+encodeURIComponent(connection.identity)+'/post/'+post.rkey);

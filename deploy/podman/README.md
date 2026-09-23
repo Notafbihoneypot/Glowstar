@@ -11,6 +11,8 @@ This folder deploys the complete server side with Podman:
 
 Only ports **80/443** need to be public. Monero RPC, wallet RPC, Commerce, and strfry bind to loopback.
 
+The optional [Crosspost identity hub](../../crosspost/README.md) runs as a separate Compose project on loopback port 8790. This Caddyfile routes `/crosspost/` to it. It links Bluesky, Mastodon, X, and Mastodon-compatible ActivityPub accounts for reviewed public cross-posting; preview-only mode is the default.
+
 ## Recommended host
 
 Use a dedicated Linux VM rather than installing this directly on a Proxmox VE host. Give the VM enough disk for a pruned Monero chain plus growth, and back up the wallet/Commerce databases separately.

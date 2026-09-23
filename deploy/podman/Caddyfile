@@ -1,6 +1,14 @@
 {$APP_DOMAIN} {
 	encode zstd gzip
 
+	# Optional connected-identity bridge; start ../../crosspost/compose.yaml.
+	handle /crosspost {
+		redir /crosspost/ 308
+	}
+	handle_path /crosspost/* {
+		reverse_proxy 127.0.0.1:8790
+	}
+
 	handle_path /xmr-commerce/* {
 		reverse_proxy 127.0.0.1:8787
 	}

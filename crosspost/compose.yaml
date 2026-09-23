@@ -1,0 +1,26 @@
+name: glowstr-crosspost
+services:
+  crosspost:
+    build:
+      context: .
+      dockerfile: Containerfile
+    # Use ROOTLESS Podman: container UID 0 maps to the unprivileged host user.
+    user: "0:0"
+    restart: unless-stopped
+    network_mode: host
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp:size=64m,mode=1777]
+    env_file: .env
+    environment:
+      CROSSPOST_HOST: 127.0.0.1
+      CROSSPOST_PORT: "8790"
+      CROSSPOST_DATA: /data
+      CROSSPOST_ENCRYPTION_KEY_FILE: /run/secrets/encryption_key
+    volumes:
+      - crosspost-data:/data:U
+      - ./secrets/encryption_key:/run/secrets/encryption_key:ro,Z
+volumes:
+  crosspost-data:
+    name: glowstr-crosspost-data

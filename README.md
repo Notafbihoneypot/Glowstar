@@ -5,6 +5,7 @@ This repository contains the complete Glowstr v5.3 source bundle: the Nostr web 
 ## Project files
 
 - [`glowstr-v5.3-bluetooth-direct.html`](glowstr-v5.3-bluetooth-direct.html): web client.
+- [`crosspost/`](crosspost/): connected-identity publishing for Bluesky, Mastodon, X, and Mastodon-compatible ActivityPub accounts, with optional Nostr output and Monero membership checks.
 - [`android-helper/`](android-helper/): native Android Bluetooth bridge source.
 - [`glowstr-mesh-bridge.py`](glowstr-mesh-bridge.py): Meshtastic / Reticulum bridge.
 - [`GLOWSTR_V5_3_BLUETOOTH_DIRECT_README.md`](GLOWSTR_V5_3_BLUETOOTH_DIRECT_README.md): Bluetooth setup, pairing, API, and limitations.

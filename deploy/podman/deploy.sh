@@ -51,6 +51,12 @@ set +a
 [[ -n "${APP_DOMAIN:-}" ]] || die "APP_DOMAIN is empty in .env"
 [[ -n "${RELAY_DOMAIN:-}" ]] || die "RELAY_DOMAIN is empty in .env"
 [[ -n "${CROSSPOST_ALLOWED_PUBKEYS:-}" ]] || die "Set CROSSPOST_ALLOWED_PUBKEYS in .env to your 64-character hex Nostr public key."
+python3 - "$CROSSPOST_ALLOWED_PUBKEYS" <<'PY'
+import re,sys
+keys=[x.strip() for x in sys.argv[1].split(",") if x.strip()]
+if not keys or any(not re.fullmatch(r"[0-9a-fA-F]{64}",x) for x in keys):
+    raise SystemExit("CROSSPOST_ALLOWED_PUBKEYS must contain only comma-separated 64-character hex public keys")
+PY
 [[ "$APP_DOMAIN" != "example.com" ]] || die "Set a real APP_DOMAIN."
 [[ "$RELAY_DOMAIN" != "relay.example.com" ]] || die "Set a real RELAY_DOMAIN."
 
@@ -226,5 +232,5 @@ IMPORTANT:
   - DNS for $APP_DOMAIN and $RELAY_DOMAIN must point to this server.
   - Allow inbound TCP 80/443. Monero P2P/RPC and internal Glowstr ports stay on loopback.
   - The node can take a long time to sync. Payment detection is reliable only after the wallet/node is synchronized.
-  - Back up the wallet seed you recorded and the Commerce/relay data volumes.
+  - Back up the wallet seed you recorded, Crosspost encryption key, and Commerce/Crosspost/relay data volumes.
 EOF

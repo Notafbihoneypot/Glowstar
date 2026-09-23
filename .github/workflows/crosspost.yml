@@ -2,7 +2,7 @@ name: Test Crosspost
 on:
   workflow_dispatch:
   push:
-    branches: [main, codex/crosspost-bridge]
+    branches: [main]
     paths: ["crosspost/**", "glowstr-v5.3-bluetooth-direct.html", ".github/workflows/crosspost.yml"]
   pull_request:
     paths: ["crosspost/**", "glowstr-v5.3-bluetooth-direct.html", ".github/workflows/crosspost.yml"]

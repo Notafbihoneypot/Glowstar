@@ -26,7 +26,7 @@ try{
   await page.locator('#public-consent').check();await page.locator('#publish').click();await page.getByText('Queued 4 identities. Track each delivery here.').waitFor();
   for(let i=0;i<4;i++)await f.worker.tick();await page.getByRole('button',{name:'Refresh',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.delivery-row .success').length===4);
   assert.equal(delivered.length,4);assert.deepEqual(new Set(delivered.map(d=>d.platform)),new Set(['bluesky','mastodon','x','activitypub']));assert.deepEqual(errors,[]);
-  await page.setViewportSize({width:390,height:844});await page.locator('[data-tab=compose]').click();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  await page.setViewportSize({width:390,height:844});await page.locator('[data-mobile-tab=compose]').click();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   if(process.env.CROSSPOST_SCREENSHOT_DIR)await page.screenshot({path:process.env.CROSSPOST_SCREENSHOT_DIR+'/crosspost-mobile.png',fullPage:true});
   console.log('Browser flow passed: signed hub, four linked identities, profile links, review consent, four simulated deliveries, history, and mobile layout. No external posts.');
 }finally{await browser?.close();for(const fn of cleanup.reverse())await fn();}

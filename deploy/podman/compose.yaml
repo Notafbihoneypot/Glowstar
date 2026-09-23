@@ -52,10 +52,39 @@ services:
       GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE: /run/secrets/admin_token
       GLOWSTR_ALLOWED_ORIGINS: https://${APP_DOMAIN},https://app.glowstr.local
       GLOWSTR_XMR_CONFIRMATIONS: ${GLOWSTR_XMR_CONFIRMATIONS}
+      GLOWSTR_XMR_CROSSPOST_30D_ATOMIC: ${GLOWSTR_XMR_CROSSPOST_30D_ATOMIC:-20000000000}
     volumes:
       - commerce-data:/data:U
       - ./secrets:/run/secrets:ro,Z
 
+  crosspost:
+    build: ../../crosspost
+    user: "0:0"
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - commerce
+    environment:
+      CROSSPOST_PUBLIC_URL: https://${APP_DOMAIN}/crosspost
+      CROSSPOST_ALLOWED_PUBKEYS: ${CROSSPOST_ALLOWED_PUBKEYS}
+      CROSSPOST_PREVIEW_ONLY: ${CROSSPOST_PREVIEW_ONLY:-true}
+      CROSSPOST_HOST: 127.0.0.1
+      CROSSPOST_PORT: "8790"
+      CROSSPOST_DATA: /data
+      CROSSPOST_ENCRYPTION_KEY_FILE: /run/secrets/crosspost_encryption_key
+      CROSSPOST_MASTODON_HOSTS: ${CROSSPOST_MASTODON_HOSTS:-mastodon.social,fosstodon.org,hachyderm.io}
+      CROSSPOST_ACTIVITYPUB_HOSTS: ${CROSSPOST_ACTIVITYPUB_HOSTS:-}
+      CROSSPOST_BLUESKY_HOSTS: ${CROSSPOST_BLUESKY_HOSTS:-bsky.social}
+      CROSSPOST_X_CLIENT_ID: ${CROSSPOST_X_CLIENT_ID:-}
+      CROSSPOST_NOSTR_RELAYS: ${CROSSPOST_NOSTR_RELAYS:-wss://relay.damus.io,wss://nos.lol}
+      CROSSPOST_DAILY_LIMIT: ${CROSSPOST_DAILY_LIMIT:-50}
+      CROSSPOST_COMMERCE_URL: http://127.0.0.1:8787
+      CROSSPOST_ENTITLEMENT_FEATURE: crosspost_30d
+      CROSSPOST_ENTITLEMENT_TARGET: ""
+      GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE: /run/secrets/admin_token
+    volumes:
+      - crosspost-data:/data:U
+      - ./secrets:/run/secrets:ro,Z
   relay:
     build: ../../xmr-relay
     user: "0:0"
@@ -84,6 +113,7 @@ services:
     depends_on:
       - relay
       - commerce
+      - crosspost
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
       RELAY_DOMAIN: ${RELAY_DOMAIN}
@@ -100,6 +130,8 @@ volumes:
     name: glowstr-xmr-wallet
   commerce-data:
     name: glowstr-xmr-commerce
+  crosspost-data:
+    name: glowstr-xmr-crosspost
   relay-data:
     name: glowstr-xmr-relay
   caddy-data:

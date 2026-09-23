@@ -57,7 +57,7 @@ test('platform versions enforce weighted X and Bluesky byte limits without chang
   assert.equal(inspectPost({text:'Check https://example.org/'+'a'.repeat(300),destinations:['x']},{x:{}})[0].count,29);
 });
 test('optional Monero membership fails closed and concurrent accepted requests queue once',async t=>{
-  let active=false,broken=false;const f=await fixture(t,{CROSSPOST_COMMERCE_URL:'https://commerce.example',GLOWSTR_COMMERCE_ADMIN_TOKEN:'test-admin'},{fetcher:async()=>{if(broken)throw new Error();await new Promise(resolve=>setTimeout(resolve,10));return response({entitlements:active?[{feature:'relay_30d',target:'',valid_until:Math.floor(Date.now()/1000)+3600}]:[]});}});
+  let active=false,broken=false;const f=await fixture(t,{CROSSPOST_COMMERCE_URL:'https://commerce.example',GLOWSTR_COMMERCE_ADMIN_TOKEN:'test-admin'},{fetcher:async()=>{if(broken)throw new Error();await new Promise(resolve=>setTimeout(resolve,10));return response({entitlements:active?[{feature:'crosspost_30d',target:'',valid_until:Math.floor(Date.now()/1000)+3600}]:[]});}});
   const session=await f.login();connect(f);const options={method:'POST',session,body:postBody(),headers:{'Idempotency-Key':randomUUID()}};
   assert.equal((await f.request('/api/posts',options)).status,402);broken=true;assert.equal((await f.request('/api/posts',options)).status,503);broken=false;active=true;
   const results=await Promise.all([f.request('/api/posts',options),f.request('/api/posts',options)]);assert.equal(results[0].value.id,results[1].value.id);assert.equal(f.store.db.prepare('SELECT COUNT(*) AS n FROM posts').get().n,1);

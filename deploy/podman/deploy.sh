@@ -147,7 +147,7 @@ Path("generated/index.html").write_text(src)
 
 conf=(root/"xmr-relay/strfry.conf").read_text()
 conf=conf.replace("wss://relay.glowstr.com/", f"wss://{relay}/")
-conf=re.sub(r'bind\s*=\s*"[^"]+"', 'bind = "127.0.0.1"', conf, count=1)
+conf=re.sub(r'bind\s*=\s*"[^"]+"', 'bind = "0.0.0.0"', conf, count=1)
 Path("generated/strfry.conf").write_text(conf)
 PY
 

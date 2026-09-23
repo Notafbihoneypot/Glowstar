@@ -73,6 +73,28 @@ export function createService(config,dependencies={}){
     const entitlement=entitlements.find(e=>e.feature===config.entitlementFeature&&e.target===config.entitlementTarget&&Number(e.valid_until)>Date.now()/1000);
     res.json({enabled:true,active:!!entitlement,feature:config.entitlementFeature,target:config.entitlementTarget,validUntil:entitlement?Number(entitlement.valid_until):null});
   });
+  app.post('/api/membership/invoice',csrf,async(req,res)=>{
+    if(!config.commerceURL)throw new Problem('Monero membership is not enabled',409);
+    let response,value;
+    try{
+      response=await fetcher(config.commerceURL.replace(/\/$/,'')+'/v1/invoices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pubkey:req.session.owner,feature:config.entitlementFeature,target:config.entitlementTarget}),redirect:'error',signal:AbortSignal.timeout(10000)});
+      value=await response.json();
+    }catch{throw new Problem('Membership service unavailable',503);}
+    if(!response.ok)throw new Problem('Membership service could not create an invoice',502);
+    res.status(201).json(value);
+  });
+  app.post('/api/membership/invoice/status',csrf,async(req,res)=>{
+    if(!config.commerceURL)throw new Problem('Monero membership is not enabled',409);
+    const {id,token:invoiceToken}=req.body||{};
+    if(typeof id!=='string'||!/^[A-Za-z0-9_-]{12,64}$/.test(id)||typeof invoiceToken!=='string'||invoiceToken.length<20||invoiceToken.length>160)throw new Problem('Invalid invoice capability');
+    let response,value;
+    try{
+      response=await fetcher(config.commerceURL.replace(/\/$/,'')+'/v1/invoices/'+encodeURIComponent(id),{headers:{Authorization:'Bearer '+invoiceToken},redirect:'error',signal:AbortSignal.timeout(10000)});
+      value=await response.json();
+    }catch{throw new Problem('Membership service unavailable',503);}
+    if(!response.ok)throw new Problem('Invoice could not be checked',response.status===401?401:502);
+    res.json(value);
+  });
   app.post('/api/logout',csrf,(req,res)=>{db.prepare('DELETE FROM sessions WHERE id=?').run(req.session.id);setCookie(res,'',new Date(0));res.json({ok:true});});
   app.post('/api/connections/:platform',csrf,async(req,res)=>{
     const {platform}=req.params;if(!PLATFORMS.includes(platform)||platform==='nostr')throw new Problem('Unknown connection');

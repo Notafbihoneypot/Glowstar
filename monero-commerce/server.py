@@ -5,7 +5,7 @@ Small dependency-free service for XMR invoices and Nostr-pubkey entitlements.
 Keep monero-wallet-rpc on loopback. Never expose wallet RPC to the browser.
 """
 from __future__ import annotations
-import base64, hashlib, json, os, secrets, sqlite3, time
+import base64, hashlib, json, os, secrets, sqlite3, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.request import build_opener, HTTPDigestAuthHandler, HTTPPasswordMgrWithDefaultRealm, Request
 
@@ -27,6 +27,7 @@ ACCOUNT=int(os.getenv("MONERO_ACCOUNT_INDEX","0"))
 CONFIRMATIONS=max(1,int(os.getenv("GLOWSTR_XMR_CONFIRMATIONS","2")))
 MAX_PENDING_PER_PUBKEY=max(1,int(os.getenv("GLOWSTR_XMR_MAX_PENDING_PER_PUBKEY","5")))
 MAX_INVOICES_PER_HOUR=max(10,int(os.getenv("GLOWSTR_XMR_MAX_INVOICES_PER_HOUR","500")))
+WATCH_SECONDS=max(5,int(os.getenv("GLOWSTR_XMR_WATCH_SECONDS","10")))
 ORIGINS={x.strip() for x in os.getenv("GLOWSTR_ALLOWED_ORIGINS",os.getenv("GLOWSTR_ALLOWED_ORIGIN","https://glowstr.com")).split(",") if x.strip()}
 ADMIN_TOKEN=read_secret("GLOWSTR_COMMERCE_ADMIN_TOKEN","GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE")
 ATOMIC=10**12
@@ -103,6 +104,25 @@ def refresh_invoice(c,row):
    ON CONFLICT(pubkey,feature,target) DO UPDATE SET valid_until=excluded.valid_until,invoice_id=excluded.invoice_id""",(row["pubkey"],row["feature"],row["target"],until,row["id"]))
  c.commit(); return c.execute("SELECT * FROM invoices WHERE id=?",(row["id"],)).fetchone()
 
+def watch_invoices():
+ while True:
+  try:
+   now=int(time.time()); c=db()
+   ids=[row["id"] for row in c.execute("SELECT id FROM invoices WHERE status!='PAID' AND created_at>? ORDER BY created_at",(now-7*86400,)).fetchall()]
+   c.close()
+   for iid in ids:
+    c=db()
+    try:
+     row=c.execute("SELECT * FROM invoices WHERE id=?",(iid,)).fetchone()
+     if row: refresh_invoice(c,row)
+    except Exception as exc:
+     print("invoice watcher error:",iid,repr(exc))
+    finally:
+     c.close()
+  except Exception as exc:
+   print("invoice watcher loop error:",repr(exc))
+  time.sleep(WATCH_SECONDS)
+
 class H(BaseHTTPRequestHandler):
  server_version="GlowstrCommerce/0.1"
  def log_message(self,fmt,*args): print("%s - %s"%(self.address_string(),fmt%args))
@@ -161,5 +181,6 @@ class H(BaseHTTPRequestHandler):
    return self.out({"error":"server_error"},500)
 
 if __name__=="__main__":
- print(f"Glowstr Commerce listening on {HOST}:{PORT}; wallet RPC={RPC}")
+ print(f"Glowstr Commerce listening on {HOST}:{PORT}; wallet RPC={RPC}; invoice watcher={WATCH_SECONDS}s")
+ threading.Thread(target=watch_invoices,name="invoice-watcher",daemon=True).start()
  ThreadingHTTPServer((HOST,PORT),H).serve_forever()

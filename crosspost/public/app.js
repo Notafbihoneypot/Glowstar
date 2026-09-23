@@ -8,22 +8,58 @@ const specs={
   x:{info:'Authorize through X OAuth 2.0 with PKCE. Glowstr requests users.read, tweet.read, tweet.write, media.write, and offline.access so expiring access tokens can refresh.',docs:'https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code',fields:[]},
   activitypub:{info:'Authorize another federated account on an operator-approved Mastodon-compatible service. This uses that service’s OAuth and Mastodon-compatible posting API; it is not a universal ActivityPub login.',docs:'https://docs.joinmastodon.org/spec/oauth/',fields:[['server','Compatible server URL','url']]},
 };
-let me=null,uploaded=null,reviewed=null,pending=null,busy=false,currentPlatform,poll;
+let me=null,uploaded=null,reviewed=null,pending=null,busy=false,currentPlatform,poll,membership=null,payment=null,paymentPoll;
 function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
 function networkIcon(platform){return el('span',marks[platform],'network-icon network-'+platform);}
 function shortIdentity(value=''){return value.length>26?value.slice(0,13)+'…'+value.slice(-8):value;}
+function formatAtomic(value){try{const n=BigInt(value),whole=n/1000000000000n,frac=(n%1000000000000n).toString().padStart(12,'0').replace(/0+$/,'');return whole.toString()+(frac?'.'+frac:'');}catch{return '—';}}
+function membershipAllowsPublish(){return !membership?.enabled||membership.active;}
+function renderMembership(){
+  const pill=$('membership-pill'),button=$('buy-pass'),status=$('membership-status');if(!pill||!button||!status)return;
+  if(!me||!membership||membership.enabled===false){pill.hidden=true;button.hidden=true;return;}
+  pill.hidden=false;button.hidden=!!membership.active;pill.classList.toggle('active',!!membership.active);
+  if(membership.error){status.textContent='XMR pass unavailable';return;}
+  status.textContent=membership.active?'XMR pass · '+new Date(membership.validUntil*1000).toLocaleDateString():'XMR pass required';
+  if(reviewed&&$('review-dialog')?.open)$('publish').disabled=!$('public-consent').checked||$('publish').dataset.invalid==='true'||me.previewOnly||busy||!membershipAllowsPublish();
+}
+async function loadMembership(){
+  if(!me){membership=null;renderMembership();return;}
+  try{membership=await api('membership');}catch(error){membership={enabled:true,active:false,error:error.message};}
+  renderMembership();
+}
+async function refreshPayment(){
+  if(!payment)return;
+  try{
+    const state=await commerce('invoices/'+payment.id,{token:payment.token});$('payment-state').textContent=state.status;$('payment-confirmations').textContent=(state.confirmations||0)+' / '+state.confirmations_required+' confirmations';
+    if(state.status==='PAID'){clearInterval(paymentPoll);paymentPoll=null;await loadMembership();notice('Monero payment confirmed. Crosspost publishing is unlocked.');}
+    if(state.status==='EXPIRED'){clearInterval(paymentPoll);paymentPoll=null;}
+  }catch(error){$('payment-state').textContent='CHECK FAILED';$('payment-confirmations').textContent=error.message;}
+}
+async function buyPass(){
+  if(!me)return notice('Connect your signer first.');
+  $('buy-pass').disabled=true;
+  try{
+    payment=await commerce('invoices',{method:'POST',body:{pubkey:me.pubkey,feature:'crosspost_30d',target:''}});
+    $('payment-amount').textContent=formatAtomic(payment.amount_atomic)+' XMR';$('payment-address').textContent=payment.address;$('payment-wallet').href=payment.uri;$('payment-state').textContent=payment.status;$('payment-confirmations').textContent='0 / '+payment.confirmations_required+' confirmations';$('payment-expiry').textContent='Invoice expires '+new Date(payment.expires_at*1000).toLocaleTimeString()+'. A fresh subaddress is used for this purchase.';
+    $('payment-dialog').showModal();clearInterval(paymentPoll);paymentPoll=setInterval(refreshPayment,5000);
+  }catch(error){notice(error.message);}finally{$('buy-pass').disabled=false;}
+}
 function notice(message){$('notice').textContent=message;$('notice').hidden=!message;}
 function profileLink(url,label){try{const parsed=new URL(url);if(parsed.protocol!=='https:')return null;const a=el('a',label);a.href=parsed.href;a.target='_blank';a.rel='noopener noreferrer';return a;}catch{return null;}}
 async function api(path,{method='GET',body,headers={}}={}){
   const response=await fetch('./api/'+path,{method,credentials:'same-origin',headers:{...(body!==undefined?{'Content-Type':'application/json'}:{}),...(me?{'X-CSRF-Token':me.csrf}:{}),...headers},body:body===undefined?undefined:typeof body==='string'?body:JSON.stringify(body)});
   const value=await response.json();if(!response.ok){const error=new Error(value.error||'Request failed');error.status=response.status;throw error;}return value;
 }
+async function commerce(path,{method='GET',body,token}={}){
+  const response=await fetch('/xmr-commerce/v1/'+path,{method,credentials:'same-origin',headers:{...(body!==undefined?{'Content-Type':'application/json'}:{}),...(token?{Authorization:'Bearer '+token}:{})},body:body===undefined?undefined:JSON.stringify(body)});
+  const value=await response.json();if(!response.ok)throw new Error(value.error||'Monero payment service request failed');return value;
+}
 async function sign(template){
   try{if(window.opener&&window.opener.location.origin===location.origin&&typeof window.opener.signEventUniversal==='function'&&window.opener.canSignInline()){const event=await window.opener.signEventUniversal(template);if(event)return event;}}catch(error){if(error.name!=='SecurityError')throw error;}
   if(window.nostr?.signEvent)return window.nostr.signEvent(template);
   throw new Error('Use a NIP-07 extension, or open from Glowstr with an inline NIP-46, NIP-07, or local signer. Amber redirect signing is not supported here yet.');
 }
-async function loadMe(){me=await api('me');render();const params=new URLSearchParams(location.search),connected=params.get('connected'),oauthError=params.get('oauthError');if(connected||oauthError){switchTab('accounts');notice(connected?(names[connected]+' identity authorized and linked.'):(params.get('reason')||'Authorization failed.'));window.history.replaceState({},'',location.pathname+location.hash);}}
+async function loadMe(){me=await api('me');render();await loadMembership();const params=new URLSearchParams(location.search),connected=params.get('connected'),oauthError=params.get('oauthError');if(connected||oauthError){switchTab('accounts');notice(connected?(names[connected]+' identity authorized and linked.'):(params.get('reason')||'Authorization failed.'));window.history.replaceState({},'',location.pathname+location.hash);}}
 async function login(){
   $('login').disabled=true;notice('');
   try{const challenge=await api('challenge'),body=JSON.stringify({challenge:challenge.challenge}),digest=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(body)))].map(b=>b.toString(16).padStart(2,'0')).join('');
@@ -54,7 +90,7 @@ function render(){
     }
     $('account-list').append(card);
   }
-  renderLinkedSummary();updateCount();
+  renderLinkedSummary();renderMembership();updateCount();
 }
 function renderLinkedSummary(){
   const box=$('linked-summary'),count=$('linked-count');if(!box||!count)return;box.replaceChildren();let total=0;
@@ -108,14 +144,14 @@ async function review(){
   notice('');$('review').disabled=true;
   try{if($('image-file').files.length&&!uploaded)throw new Error('Prepare the selected image first.');reviewed=composePost();pending=null;const preview=await api('preview',{method:'POST',body:reviewed});$('versions').replaceChildren();let invalid=false;
     for(const version of preview.versions){const card=el('div',undefined,'version'),heading=el('div',undefined,'section-heading'),connection=me.connections.find(c=>c.platform===version.platform);heading.append(el('h3',names[version.platform]),el('span',version.count+' / '+version.limit,'small muted'));card.append(heading,el('p',version.platform==='nostr'?me.pubkey:connection?.label||'Not linked','small muted'),el('pre',version.text||'(Image only)'));if(uploaded){const img=el('img');img.src='./api/media/'+uploaded.id;img.alt=uploaded.alt;card.append(img);}for(const error of version.errors){invalid=true;card.append(el('p',error,'error'));}$('versions').append(card);}
-    $('public-consent').checked=false;$('publish').dataset.invalid=String(invalid);$('publish').disabled=true;$('publish').textContent='Publish to '+reviewed.destinations.length+' identities';$('publish-note').textContent=me.previewOnly?'Preview-only mode is on. The operator must enable publishing before posts can be sent.':'Posting starts here and is immediate. Image descriptions are sent to Bluesky, Mastodon, and compatible ActivityPub accounts.';$('review-dialog').showModal();
+    $('public-consent').checked=false;$('publish').dataset.invalid=String(invalid);$('publish').disabled=true;$('publish').textContent='Publish to '+reviewed.destinations.length+' identities';$('publish-note').textContent=me.previewOnly?'Preview-only mode is on. The operator must enable publishing before posts can be sent.':membership?.enabled&&!membership.active?'An active 30-day XMR Crosspost pass is required to publish. You can still review everything before paying.':'Posting starts here and is immediate. Image descriptions are sent to Bluesky, Mastodon, and compatible ActivityPub accounts.';$('review-dialog').showModal();
   }catch(error){notice(error.message);}finally{updateCount();}
 }
 async function publishPost(){
   if(!reviewed||busy)return;busy=true;$('publish').disabled=true;
   try{if(!pending){const body={...reviewed,confirmPublic:true};if(body.destinations.includes('nostr'))body.event=await sign({kind:1,created_at:Math.floor(Date.now()/1000),tags:[['client','Glowstr Crosspost']],content:(body.overrides.nostr??body.text)+(uploaded?'\n\n'+uploaded.url:'')});pending={key:crypto.randomUUID(),body};}
     const result=await api('posts',{method:'POST',body:pending.body,headers:{'Idempotency-Key':pending.key}});pending=null;reviewed=null;$('review-dialog').close();$('post-text').value='';$('post-text').dispatchEvent(new Event('input'));for(const n of document.querySelectorAll('[data-override]'))n.value='';resetImage();switchTab('history');notice('Queued '+result.deliveries.length+' identities. Track each delivery here.');
-  }catch(error){if([400,401,402,403,409,413,429].includes(error.status))pending=null;$('publish-note').textContent=error.message+' Keep this review open to retry the same request safely.';}finally{busy=false;$('publish').disabled=!reviewed||!$('public-consent').checked;}
+  }catch(error){if([400,401,402,403,409,413,429].includes(error.status))pending=null;$('publish-note').textContent=error.message+' Keep this review open to retry the same request safely.';}finally{busy=false;$('publish').disabled=!reviewed||!$('public-consent').checked||!membershipAllowsPublish();}
 }
 async function history(quiet=false){if(!me)return;try{const result=await api('posts');$('history-list').replaceChildren();if(!result.posts.length)$('history-list').append(el('p','No deliveries yet. Compose your first public post.','empty'));
   for(const post of result.posts){const card=el('article',undefined,'card history-card');card.append(el('p',new Date(post.created).toLocaleString(),'small muted'),el('p',post.text||'(Image post)','post-summary'));
@@ -125,17 +161,17 @@ async function history(quiet=false){if(!me)return;try{const result=await api('po
   }
 }catch(error){if(!quiet)notice(error.message);}}
 $('login').addEventListener('click',login);
-$('logout').addEventListener('click',async()=>{try{await api('logout',{method:'POST',body:{}});me=null;pending=null;reviewed=null;resetImage();clearInterval(poll);$('history-list').replaceChildren(el('p','Sign in to view your deliveries.','empty'));render();}catch(error){notice(error.message);}});
+$('logout').addEventListener('click',async()=>{try{await api('logout',{method:'POST',body:{}});me=null;membership=null;payment=null;pending=null;reviewed=null;resetImage();clearInterval(poll);clearInterval(paymentPoll);$('history-list').replaceChildren(el('p','Sign in to view your deliveries.','empty'));render();}catch(error){notice(error.message);}});
 $('post-text').addEventListener('input',()=>{$('length').textContent=[...new Intl.Segmenter().segment($('post-text').value)].length+' characters';renderLivePreview();});
 $('prepare-image').addEventListener('click',prepareImage);
 $('remove-image').addEventListener('click',async()=>{try{if(uploaded)await api('media/'+uploaded.id,{method:'DELETE'});resetImage();}catch(error){notice(error.message);}});
 $('clear-uploads').addEventListener('click',async()=>{if(!confirm('Remove all unpublished uploads? Open drafts will need their images uploaded again.'))return;try{const result=await api('media',{method:'DELETE'});resetImage();notice('Removed '+result.removed+' unused uploads.');}catch(error){notice(error.message);}});
 $('manage-identities')?.addEventListener('click',()=>switchTab('accounts'));
-$('review').addEventListener('click',review);$('publish').addEventListener('click',publishPost);$('refresh').addEventListener('click',()=>history());
-$('public-consent').addEventListener('change',()=>{$('publish').disabled=!$('public-consent').checked||$('publish').dataset.invalid==='true'||me.previewOnly||busy;});
+$('review').addEventListener('click',review);$('publish').addEventListener('click',publishPost);$('refresh').addEventListener('click',()=>history());$('buy-pass').addEventListener('click',buyPass);$('check-payment').addEventListener('click',refreshPayment);
+$('public-consent').addEventListener('change',()=>{$('publish').disabled=!$('public-consent').checked||$('publish').dataset.invalid==='true'||me.previewOnly||busy||!membershipAllowsPublish();});
 function canCloseReview(){return !busy&&(!pending||confirm('This request may already be queued. Check Deliveries before starting another post. Close this review?'));}
 $('review-dialog').addEventListener('cancel',event=>{if(!canCloseReview())event.preventDefault();});
-for(const b of document.querySelectorAll('[data-close]'))b.addEventListener('click',()=>{if(b.dataset.close==='review-dialog'?!canCloseReview():busy)return;$(b.dataset.close).close();});
+for(const b of document.querySelectorAll('[data-close]'))b.addEventListener('click',()=>{if(b.dataset.close==='review-dialog'?!canCloseReview():busy)return;if(b.dataset.close==='payment-dialog'){clearInterval(paymentPoll);paymentPoll=null;}$(b.dataset.close).close();});
 for(const b of document.querySelectorAll('[data-tab],[data-mobile-tab]'))b.addEventListener('click',()=>switchTab(b.dataset.tab||b.dataset.mobileTab));
 window.addEventListener('beforeunload',event=>{if(pending){event.preventDefault();event.returnValue='';}});
 render();loadMe().catch(()=>{});

@@ -59,6 +59,8 @@ test('platform versions enforce weighted X and Bluesky byte limits without chang
 test('optional Monero membership fails closed and concurrent accepted requests queue once',async t=>{
   let active=false,broken=false;const f=await fixture(t,{CROSSPOST_COMMERCE_URL:'https://commerce.example',GLOWSTR_COMMERCE_ADMIN_TOKEN:'test-admin'},{fetcher:async()=>{if(broken)throw new Error();await new Promise(resolve=>setTimeout(resolve,10));return response({entitlements:active?[{feature:'crosspost_30d',target:'',valid_until:Math.floor(Date.now()/1000)+3600}]:[]});}});
   const session=await f.login();connect(f);const options={method:'POST',session,body:postBody(),headers:{'Idempotency-Key':randomUUID()}};
-  assert.equal((await f.request('/api/posts',options)).status,402);broken=true;assert.equal((await f.request('/api/posts',options)).status,503);broken=false;active=true;
+  let membership=await f.request('/api/membership',{session});assert.equal(membership.status,200);assert.equal(membership.value.enabled,true);assert.equal(membership.value.active,false);assert.equal(membership.value.feature,'crosspost_30d');
+  assert.equal((await f.request('/api/posts',options)).status,402);broken=true;assert.equal((await f.request('/api/posts',options)).status,503);assert.equal((await f.request('/api/membership',{session})).status,503);broken=false;active=true;
+  membership=await f.request('/api/membership',{session});assert.equal(membership.value.active,true);assert.ok(membership.value.validUntil>Date.now()/1000);
   const results=await Promise.all([f.request('/api/posts',options),f.request('/api/posts',options)]);assert.equal(results[0].value.id,results[1].value.id);assert.equal(f.store.db.prepare('SELECT COUNT(*) AS n FROM posts').get().n,1);
 });

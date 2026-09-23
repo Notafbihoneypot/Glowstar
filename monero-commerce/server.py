@@ -127,7 +127,7 @@ class H(BaseHTTPRequestHandler):
    if not address or idx is None: raise RuntimeError("wallet RPC did not return subaddress")
    c=db(); c.execute("INSERT INTO invoices(id,token_hash,pubkey,feature,target,amount,account_index,address_index,address,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",(inv,token_hash(token),pubkey,feature,target,spec["amount"],ACCOUNT,int(idx),address,now,now+1800)); c.commit()
    return self.out({"id":inv,"token":token,"status":"WAITING","address":address,"amount_atomic":spec["amount"],"uri":invoice_uri(address,spec["amount"],spec["label"]),"expires_at":now+1800,"confirmations_required":CONFIRMATIONS})
-  except Exception as e: return self.out({"error":"server_error","detail":str(e)[:180]},500)
+  except Exception as e:\n   print("invoice error:",repr(e))\n   return self.out({"error":"server_error"},500)
  def do_GET(self):
   try:
    if self.path=="/health": return self.out({"ok":True})
@@ -146,7 +146,7 @@ class H(BaseHTTPRequestHandler):
     now=int(time.time()); rows=db().execute("SELECT feature,target,valid_until,invoice_id FROM entitlements WHERE pubkey=? AND valid_until>?",(pubkey,now)).fetchall()
     return self.out({"pubkey":pubkey,"entitlements":[dict(x) for x in rows]})
    return self.out({"error":"not_found"},404)
-  except Exception as e: return self.out({"error":"server_error","detail":str(e)[:180]},500)
+  except Exception as e:\n   print("request error:",repr(e))\n   return self.out({"error":"server_error"},500)
 
 if __name__=="__main__":
  print(f"Glowstr Commerce listening on {HOST}:{PORT}; wallet RPC={RPC}")

@@ -216,7 +216,7 @@ Glowstr XMR stack is running.
 
 Web app:       https://$APP_DOMAIN/
 Nostr relay:   wss://$RELAY_DOMAIN/
-Commerce:      https://$APP_DOMAIN/xmr-commerce/v1/
+Commerce:      https://$RELAY_DOMAIN/xmr-commerce/v1/
 Crosspost:     https://$APP_DOMAIN/crosspost/
 Local monerod: http://127.0.0.1:18081
 Local wallet:  http://127.0.0.1:18083

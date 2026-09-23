@@ -3,10 +3,10 @@ const names={bluesky:'Bluesky',mastodon:'Mastodon',x:'X',activitypub:'ActivityPu
 const marks={bluesky:'B',mastodon:'m',x:'𝕏',activitypub:'AP',nostr:'N'};
 const protocols={bluesky:'AT PROTOCOL',mastodon:'ACTIVITYPUB',x:'X API',activitypub:'MASTODON API',nostr:'NOSTR'};
 const specs={
-  bluesky:{info:'Create an app password in Bluesky settings. It is exchanged for a refreshable session and is not stored. Your DID identifies the linked account even if its handle changes.',docs:'https://docs.bsky.app/docs/advanced-guides/api-directory',fields:[['server','Login server','url','https://bsky.social'],['identifier','Handle or DID','text'],['appPassword','App password','password']]},
-  mastodon:{info:'Create an application in your server’s Development settings. Its user token needs read:accounts, write:statuses, and write:media. Your existing account federates through ActivityPub.',docs:'https://docs.joinmastodon.org/client/token/',fields:[['server','Server URL','url','https://mastodon.social'],['accessToken','User access token','password']]},
-  x:{info:'Use an OAuth 2 user token with users.read, tweet.read, tweet.write, and media.write for images. Your developer app needs publishing access and API credits. Replace expired tokens here.',docs:'https://docs.x.com/x-api/getting-started/getting-access',fields:[['accessToken','User access token','password']]},
-  activitypub:{info:'Link another ActivityPub account on a service that supports the Mastodon account, status, and media APIs. Use a user token with read:accounts, write:statuses, and write:media. This is not a universal ActivityPub login or a new federated actor. Compatibility must be checked for your server.',docs:'https://docs.akkoma.dev/stable/development/API/differences_in_mastoapi_responses/',fields:[['server','Compatible server URL','url'],['accessToken','User access token','password']]},
+  bluesky:{info:'Authorize Glowstr with Bluesky/AT Protocol OAuth. Glowstr requests only identity, post-record, and JPEG blob permissions; your DID remains the stable account binding.',docs:'https://atproto.com/guides/about-oauth',fields:[['handle','Handle or DID','text','your-handle.bsky.social']]},
+  mastodon:{info:'Authorize on your Mastodon server. Glowstr dynamically registers an OAuth app and requests read:accounts, write:statuses, and write:media.',docs:'https://docs.joinmastodon.org/client/authorized/',fields:[['server','Server URL','url','https://mastodon.social']]},
+  x:{info:'Authorize through X OAuth 2.0 with PKCE. Glowstr requests users.read, tweet.read, tweet.write, media.write, and offline.access so expiring access tokens can refresh.',docs:'https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code',fields:[]},
+  activitypub:{info:'Authorize another federated account on an operator-approved Mastodon-compatible service. This uses that service’s OAuth and Mastodon-compatible posting API; it is not a universal ActivityPub login.',docs:'https://docs.joinmastodon.org/spec/oauth/',fields:[['server','Compatible server URL','url']]},
 };
 let me=null,uploaded=null,reviewed=null,pending=null,busy=false,currentPlatform,poll;
 function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
@@ -21,7 +21,7 @@ async function sign(template){
   if(window.nostr?.signEvent)return window.nostr.signEvent(template);
   throw new Error('Use a NIP-07 extension, or open from Glowstr with an inline NIP-46, NIP-07, or local signer. Amber redirect signing is not supported here yet.');
 }
-async function loadMe(){me=await api('me');render();}
+async function loadMe(){me=await api('me');render();const params=new URLSearchParams(location.search),connected=params.get('connected'),oauthError=params.get('oauthError');if(connected||oauthError){switchTab('accounts');notice(connected?(names[connected]+' identity authorized and linked.'):(params.get('reason')||'Authorization failed.'));history.replaceState({},'',location.pathname+location.hash);}}
 async function login(){
   $('login').disabled=true;notice('');
   try{const challenge=await api('challenge'),body=JSON.stringify({challenge:challenge.challenge}),digest=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(body)))].map(b=>b.toString(16).padStart(2,'0')).join('');
@@ -47,7 +47,7 @@ function render(){
     else{
       if(connection){card.append(el('code',connection.identity));const link=profileLink(connection.profileURL,'View verified profile ↗');if(link)card.append(link);}
       else card.append(el('p',platform==='activitypub'?'Another account on a Mastodon-compatible federated service.':platform==='mastodon'?'Your existing Mastodon identity, with ActivityPub federation.':platform==='bluesky'?'Linked by your stable Bluesky DID.':'Linked by your verified X user ID.','small muted'));
-      const actions=el('div',undefined,'actions'),button=el('button',connection?'Replace credentials':'Link identity');button.disabled=!me;button.addEventListener('click',()=>connectDialog(platform));actions.append(button);
+      const actions=el('div',undefined,'actions'),button=el('button',connection?'Reconnect account':'Link identity');button.disabled=!me||(platform==='x'&&!me?.oauth?.xConfigured);button.addEventListener('click',()=>connectDialog(platform));actions.append(button);if(platform==='x'&&me&&!me.oauth?.xConfigured)actions.append(el('span','Operator must set CROSSPOST_X_CLIENT_ID first.','small muted'));
       if(connection){const disconnect=el('button','Unlink');disconnect.addEventListener('click',async()=>{if(!confirm('Unlink '+name+'? Waiting deliveries will be cancelled. A request already in progress may complete.'))return;try{await api('connections/'+platform,{method:'DELETE'});await loadMe();}catch(error){notice(error.message);}});actions.append(disconnect);}card.append(actions);
     }
     $('account-list').append(card);
@@ -63,7 +63,7 @@ function connectDialog(platform){
   $('account-instructions').textContent=spec.info+(hosts?' Operator-approved servers: '+(hosts.join(', ')||'none yet; ask your operator to add your server.'):'');$('account-docs').href=spec.docs;$('account-fields').replaceChildren();
   for(const [name,text,type,value]of spec.fields){const label=el('label',text),input=el('input');input.name=name;input.id='field-'+name;input.type=type;input.required=true;input.maxLength=8192;input.autocomplete='off';input.spellcheck=false;input.value=value||'';label.htmlFor=input.id;$('account-fields').append(label,input);}$('account-dialog').showModal();
 }
-$('account-form').addEventListener('submit',async event=>{event.preventDefault();const button=event.submitter;button.disabled=true;try{await api('connections/'+currentPlatform,{method:'POST',body:Object.fromEntries(new FormData(event.target))});$('account-dialog').close();await loadMe();notice(names[currentPlatform]+' identity verified and linked. Publishing also needs the correct provider permissions.');}catch(error){alert(error.message);}finally{button.disabled=false;}});
+$('account-form').addEventListener('submit',async event=>{event.preventDefault();const button=event.submitter;button.disabled=true;try{const result=await api('oauth/'+currentPlatform+'/start',{method:'POST',body:Object.fromEntries(new FormData(event.target))});location.assign(result.url);}catch(error){alert(error.message);button.disabled=false;}});
 $('account-dialog').addEventListener('close',()=>$('account-form').reset());
 async function prepareImage(){
   if(!me)return notice('Sign in before uploading.');const file=$('image-file').files[0],alt=$('image-alt').value.trim();if(!file||file.size>8*1024*1024||!alt)return notice('Choose an image under 8 MB and add its description.');$('prepare-image').disabled=true;notice('');

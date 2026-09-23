@@ -21,7 +21,7 @@ async function sign(template){
   if(window.nostr?.signEvent)return window.nostr.signEvent(template);
   throw new Error('Use a NIP-07 extension, or open from Glowstr with an inline NIP-46, NIP-07, or local signer. Amber redirect signing is not supported here yet.');
 }
-async function loadMe(){me=await api('me');render();const params=new URLSearchParams(location.search),connected=params.get('connected'),oauthError=params.get('oauthError');if(connected||oauthError){switchTab('accounts');notice(connected?(names[connected]+' identity authorized and linked.'):(params.get('reason')||'Authorization failed.'));history.replaceState({},'',location.pathname+location.hash);}}
+async function loadMe(){me=await api('me');render();const params=new URLSearchParams(location.search),connected=params.get('connected'),oauthError=params.get('oauthError');if(connected||oauthError){switchTab('accounts');notice(connected?(names[connected]+' identity authorized and linked.'):(params.get('reason')||'Authorization failed.'));window.history.replaceState({},'',location.pathname+location.hash);}}
 async function login(){
   $('login').disabled=true;notice('');
   try{const challenge=await api('challenge'),body=JSON.stringify({challenge:challenge.challenge}),digest=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(body)))].map(b=>b.toString(16).padStart(2,'0')).join('');

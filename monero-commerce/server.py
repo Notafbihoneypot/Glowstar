@@ -25,6 +25,8 @@ RPC_USER=os.getenv("MONERO_RPC_USER","")
 RPC_PASS=read_secret("MONERO_RPC_PASS","MONERO_RPC_PASS_FILE")
 ACCOUNT=int(os.getenv("MONERO_ACCOUNT_INDEX","0"))
 CONFIRMATIONS=max(1,int(os.getenv("GLOWSTR_XMR_CONFIRMATIONS","2")))
+MAX_PENDING_PER_PUBKEY=max(1,int(os.getenv("GLOWSTR_XMR_MAX_PENDING_PER_PUBKEY","5")))
+MAX_INVOICES_PER_HOUR=max(10,int(os.getenv("GLOWSTR_XMR_MAX_INVOICES_PER_HOUR","500")))
 ORIGINS={x.strip() for x in os.getenv("GLOWSTR_ALLOWED_ORIGINS",os.getenv("GLOWSTR_ALLOWED_ORIGIN","https://glowstr.com")).split(",") if x.strip()}
 ADMIN_TOKEN=read_secret("GLOWSTR_COMMERCE_ADMIN_TOKEN","GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE")
 ATOMIC=10**12
@@ -121,11 +123,17 @@ class H(BaseHTTPRequestHandler):
    if not valid_pubkey(pubkey): return self.out({"error":"invalid_pubkey"},400)
    if feature not in FEATURES: return self.out({"error":"unknown_feature","features":FEATURES},400)
    inv=secrets.token_urlsafe(18); token=secrets.token_urlsafe(32); now=int(time.time()); spec=FEATURES[feature]
+   c=db()
+   c.execute("DELETE FROM invoices WHERE status!='PAID' AND expires_at<?",(now-7*86400,))
+   if c.execute("SELECT COUNT(*) FROM invoices WHERE created_at>?",(now-3600,)).fetchone()[0]>=MAX_INVOICES_PER_HOUR:
+    c.commit(); return self.out({"error":"invoice_rate_limited"},429)
+   if c.execute("SELECT COUNT(*) FROM invoices WHERE pubkey=? AND status!='PAID' AND expires_at>?",(pubkey,now)).fetchone()[0]>=MAX_PENDING_PER_PUBKEY:
+    c.commit(); return self.out({"error":"too_many_pending_invoices"},429)
    a=rpc("create_address",{"account_index":ACCOUNT,"label":"glowstr:"+inv,"count":1})
    address=a.get("address") or (a.get("addresses") or [None])[0]; idx=a.get("address_index")
    if idx is None: idx=(a.get("address_indices") or [None])[0]
    if not address or idx is None: raise RuntimeError("wallet RPC did not return subaddress")
-   c=db(); c.execute("INSERT INTO invoices(id,token_hash,pubkey,feature,target,amount,account_index,address_index,address,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",(inv,token_hash(token),pubkey,feature,target,spec["amount"],ACCOUNT,int(idx),address,now,now+1800)); c.commit()
+   c.execute("INSERT INTO invoices(id,token_hash,pubkey,feature,target,amount,account_index,address_index,address,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",(inv,token_hash(token),pubkey,feature,target,spec["amount"],ACCOUNT,int(idx),address,now,now+1800)); c.commit()
    return self.out({"id":inv,"token":token,"status":"WAITING","address":address,"amount_atomic":spec["amount"],"uri":invoice_uri(address,spec["amount"],spec["label"]),"expires_at":now+1800,"confirmations_required":CONFIRMATIONS})
   except Exception as e:\n   print("invoice error:",repr(e))\n   return self.out({"error":"server_error"},500)
  def do_GET(self):

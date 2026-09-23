@@ -30,7 +30,7 @@ async function loadMembership(){
 async function refreshPayment(){
   if(!payment)return;
   try{
-    const state=await commerce('invoices/'+payment.id,{token:payment.token});$('payment-state').textContent=state.status;$('payment-confirmations').textContent=(state.confirmations||0)+' / '+state.confirmations_required+' confirmations';
+    const state=await api('membership/invoice/status',{method:'POST',body:{id:payment.id,token:payment.token}});$('payment-state').textContent=state.status;$('payment-confirmations').textContent=(state.confirmations||0)+' / '+state.confirmations_required+' confirmations';
     if(state.status==='PAID'){clearInterval(paymentPoll);paymentPoll=null;await loadMembership();notice('Monero payment confirmed. Crosspost publishing is unlocked.');}
     if(state.status==='EXPIRED'){clearInterval(paymentPoll);paymentPoll=null;}
   }catch(error){$('payment-state').textContent='CHECK FAILED';$('payment-confirmations').textContent=error.message;}
@@ -39,7 +39,7 @@ async function buyPass(){
   if(!me)return notice('Connect your signer first.');
   $('buy-pass').disabled=true;
   try{
-    payment=await commerce('invoices',{method:'POST',body:{pubkey:me.pubkey,feature:'crosspost_30d',target:''}});
+    payment=await api('membership/invoice',{method:'POST',body:{}});
     $('payment-amount').textContent=formatAtomic(payment.amount_atomic)+' XMR';$('payment-address').textContent=payment.address;$('payment-wallet').href=payment.uri;$('payment-state').textContent=payment.status;$('payment-confirmations').textContent='0 / '+payment.confirmations_required+' confirmations';$('payment-expiry').textContent='Invoice expires '+new Date(payment.expires_at*1000).toLocaleTimeString()+'. A fresh subaddress is used for this purchase.';
     $('payment-dialog').showModal();clearInterval(paymentPoll);paymentPoll=setInterval(refreshPayment,5000);
   }catch(error){notice(error.message);}finally{$('buy-pass').disabled=false;}
@@ -49,10 +49,6 @@ function profileLink(url,label){try{const parsed=new URL(url);if(parsed.protocol
 async function api(path,{method='GET',body,headers={}}={}){
   const response=await fetch('./api/'+path,{method,credentials:'same-origin',headers:{...(body!==undefined?{'Content-Type':'application/json'}:{}),...(me?{'X-CSRF-Token':me.csrf}:{}),...headers},body:body===undefined?undefined:typeof body==='string'?body:JSON.stringify(body)});
   const value=await response.json();if(!response.ok){const error=new Error(value.error||'Request failed');error.status=response.status;throw error;}return value;
-}
-async function commerce(path,{method='GET',body,token}={}){
-  const response=await fetch('/xmr-commerce/v1/'+path,{method,credentials:'same-origin',headers:{...(body!==undefined?{'Content-Type':'application/json'}:{}),...(token?{Authorization:'Bearer '+token}:{})},body:body===undefined?undefined:JSON.stringify(body)});
-  const value=await response.json();if(!response.ok)throw new Error(value.error||'Monero payment service request failed');return value;
 }
 async function sign(template){
   try{if(window.opener&&window.opener.location.origin===location.origin&&typeof window.opener.signEventUniversal==='function'&&window.opener.canSignInline()){const event=await window.opener.signEventUniversal(template);if(event)return event;}}catch(error){if(error.name!=='SecurityError')throw error;}

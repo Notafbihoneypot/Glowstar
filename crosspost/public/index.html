@@ -60,7 +60,11 @@
       <span id="identity">Your Nostr key connects your identities.</span>
       <p id="signer-hint" class="small muted">Use NIP-07, or open this from a signed-in Glowstr window.</p>
     </div>
-    <button id="login" class="primary">Connect signer ↗</button>
+    <div class="session-actions">
+      <span id="membership-pill" class="membership-pill" hidden><span class="xmr-dot">ɱ</span><span id="membership-status">XMR pass</span></span>
+      <button id="buy-pass" class="xmr-button" hidden>Unlock with XMR</button>
+      <button id="login" class="primary">Connect signer ↗</button>
+    </div>
   </section>
 
   <section id="compose" class="panel workspace-panel">
@@ -204,6 +208,29 @@
   <button data-mobile-tab="accounts" aria-selected="false"><span>◎</span>Identities</button>
   <button data-mobile-tab="history" aria-selected="false"><span>◷</span>Deliveries</button>
 </nav>
+
+<dialog id="payment-dialog">
+  <div class="section-heading">
+    <div><p class="section-kicker">MONERO ACCESS</p><h2>Unlock Crosspost</h2></div>
+    <button class="close" data-close="payment-dialog" aria-label="Close">×</button>
+  </div>
+  <p class="muted payment-intro">Pay a fresh Monero invoice to unlock publishing for 30 days. Your invoice is bound to the Nostr identity currently signed in.</p>
+  <div class="payment-card">
+    <p class="section-kicker">AMOUNT</p>
+    <strong id="payment-amount">— XMR</strong>
+    <a id="payment-wallet" class="primary-link" href="#">Open in Monero wallet ↗</a>
+    <label for="payment-address">Payment subaddress</label>
+    <code id="payment-address" class="payment-address">—</code>
+    <div class="payment-progress">
+      <span id="payment-state" class="badge">WAITING</span>
+      <span id="payment-confirmations" class="small muted">0 confirmations</span>
+    </div>
+  </div>
+  <p id="payment-expiry" class="small muted"></p>
+  <div class="actions">
+    <button id="check-payment">Check payment</button>
+  </div>
+</dialog>
 
 <dialog id="account-dialog">
   <form id="account-form">

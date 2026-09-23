@@ -50,6 +50,7 @@ set +a
 
 [[ -n "${APP_DOMAIN:-}" ]] || die "APP_DOMAIN is empty in .env"
 [[ -n "${RELAY_DOMAIN:-}" ]] || die "RELAY_DOMAIN is empty in .env"
+[[ -n "${CROSSPOST_ALLOWED_PUBKEYS:-}" ]] || die "Set CROSSPOST_ALLOWED_PUBKEYS in .env to your 64-character hex Nostr public key."
 [[ "$APP_DOMAIN" != "example.com" ]] || die "Set a real APP_DOMAIN."
 [[ "$RELAY_DOMAIN" != "relay.example.com" ]] || die "Set a real RELAY_DOMAIN."
 
@@ -109,6 +110,7 @@ chmod 700 secrets generated
 [[ -s secrets/admin_token ]] || openssl rand -hex 32 > secrets/admin_token
 [[ -s secrets/rpc_password ]] || openssl rand -base64 36 | tr -d '\n' > secrets/rpc_password
 [[ -s secrets/wallet_password ]] || openssl rand -base64 48 | tr -d '\n' > secrets/wallet_password
+[[ -s secrets/crosspost_encryption_key ]] || openssl rand -hex 32 > secrets/crosspost_encryption_key
 chmod 600 secrets/*
 
 say "Generating deployment-specific Glowstr and strfry configuration"
@@ -144,7 +146,7 @@ Path("generated/strfry.conf").write_text(conf)
 PY
 
 say "Building the verified Monero image plus Glowstr services"
-podman compose build monerod commerce relay
+podman compose build monerod commerce crosspost relay
 
 say "Starting local Monero node ($MODE)"
 podman compose up -d monerod
@@ -177,8 +179,8 @@ EOF
   podman run --rm -it --network host     -v glowstr-xmr-wallet:/wallet     -v "$HERE/secrets:/run/secrets:ro,Z"     "$MONERO_IMAGE" /bin/sh -ec     'exec monero-wallet-cli '"${MONERO_NETWORK_FLAG:-}"' --generate-new-wallet "/wallet/'"${MONERO_WALLET_NAME}"'" --password-file /run/secrets/wallet_password --daemon-address 127.0.0.1:18081'
 fi
 
-say "Starting wallet RPC, Commerce, XMR-gated Nostr relay and Caddy"
-podman compose up -d wallet-rpc commerce relay caddy
+say "Starting wallet RPC, Commerce, Crosspost, XMR-gated Nostr relay and Caddy"
+podman compose up -d wallet-rpc commerce crosspost relay caddy
 
 say "Waiting for Commerce health endpoint"
 for _ in $(seq 1 60); do
@@ -191,13 +193,25 @@ curl -fsS -m 3 http://127.0.0.1:8787/health || {
   die "Commerce did not become healthy."
 }
 
+say "Waiting for Crosspost health endpoint"
+for _ in $(seq 1 60); do
+  if curl -fsS -m 2 http://127.0.0.1:8790/health >/dev/null 2>&1; then break; fi
+  sleep 2
+done
+curl -fsS -m 3 http://127.0.0.1:8790/health || {
+  echo
+  podman compose logs --tail=100 crosspost
+  die "Crosspost did not become healthy."
+}
+
 cat <<EOF
 
 Glowstr XMR stack is running.
 
 Web app:       https://$APP_DOMAIN/
 Nostr relay:   wss://$RELAY_DOMAIN/
-Commerce:      https://$RELAY_DOMAIN/xmr-commerce/v1/
+Commerce:      https://$APP_DOMAIN/xmr-commerce/v1/
+Crosspost:     https://$APP_DOMAIN/crosspost/
 Local monerod: http://127.0.0.1:18081
 Local wallet:  http://127.0.0.1:18083
 

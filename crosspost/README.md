@@ -77,7 +77,7 @@ podman compose logs --tail=50 crosspost
 
 Run this recipe as your normal unprivileged host user. Container UID 0 maps to that user inside **rootless** Podman, allowing access to its mode-0600 encryption key. The service listens on **127.0.0.1:8790**, uses a read-only container filesystem, and stores data in `glowstr-crosspost-data`. Run one process per data volume.
 
-The existing `deploy/podman/Caddyfile` includes the `/crosspost/` route. Start this Compose project alongside that stack and reload its Caddy configuration. Regenerate the hosted Glowstr client with the stack's normal deployment workflow to include the new launcher, or open `/crosspost/` directly with a NIP-07 extension.
+The recommended deployment is now the unified `deploy/podman` stack, which starts Crosspost, Monero Commerce, wallet RPC, the relay, and Caddy together. Crosspost remains isolated on loopback port 8790 and Caddy exposes only the `/crosspost/` path over HTTPS. Regenerate the hosted Glowstr client with the stack's normal deployment workflow to include the launcher, or open `/crosspost/` directly with a NIP-07 extension.
 
 For another Caddy installation, add these before the catch-all handler:
 
@@ -98,7 +98,7 @@ To require an existing Commerce entitlement at enqueue time:
 
 ```dotenv
 CROSSPOST_COMMERCE_URL=http://127.0.0.1:8787
-CROSSPOST_ENTITLEMENT_FEATURE=relay_30d
+CROSSPOST_ENTITLEMENT_FEATURE=crosspost_30d
 CROSSPOST_ENTITLEMENT_TARGET=EXACT_EXISTING_ENTITLEMENT_TARGET
 GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE=/absolute/path/to/admin_token
 ```

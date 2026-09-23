@@ -10,6 +10,7 @@ import { openStore, hash, token } from './store.mjs';
 import { normalizePost, inspectPost, Problem, nostrContent, validateSignedNote } from './validation.mjs';
 import { createPublisher, makeAPI, verifyConnection, DeliveryError } from './adapters.mjs';
 import { createWorker } from './worker.mjs';
+import { blueskyClientMetadata, startBlueskyOAuth, finishBlueskyOAuth, startStandardOAuth, finishStandardOAuth, revokeBluesky } from './oauth.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),cookieName='glowstr_crosspost';
 const cookieValue=req=>(req.headers.cookie||'').split(';').map(v=>v.trim()).find(v=>v.startsWith(cookieName+'='))?.slice(cookieName.length+1)||'';
 
@@ -30,6 +31,10 @@ export function createService(config,dependencies={}){
   const postResult=id=>{const post=db.prepare('SELECT id,created,payload FROM posts WHERE id=?').get(id);return {id:post.id,created:post.created,text:JSON.parse(post.payload).text,deliveries:db.prepare('SELECT id,platform,identity,status,attempts,result,error FROM deliveries WHERE post_id=? ORDER BY id').all(id).map(d=>({...d,result:d.result?JSON.parse(d.result):null}))};};
 
   app.get('/health',(_req,res)=>res.json({ok:true,service:'glowstr-crosspost',previewOnly:config.previewOnly}));
+  app.get('/oauth/bluesky/client-metadata.json',(_req,res)=>res.json(blueskyClientMetadata(config)));
+  const oauthReturn=(res,platform,error='')=>{const url=new URL(config.base+'/');url.searchParams.set(error?'oauthError':'connected',platform);if(error)url.searchParams.set('reason',error);res.redirect(303,url.href);};
+  app.get('/oauth/bluesky/callback',async(req,res)=>{try{const finished=await finishBlueskyOAuth(config,store,new URLSearchParams(req.url.split('?')[1]||''));store.saveConnection(finished.owner,'bluesky',finished.account);oauthReturn(res,'bluesky');}catch(error){oauthReturn(res,'bluesky',error instanceof Problem?error.message:'Bluesky authorization failed');}});
+  for(const platform of ['mastodon','activitypub','x'])app.get('/oauth/'+platform+'/callback',async(req,res)=>{try{const finished=await finishStandardOAuth(config,store,platform,new URLSearchParams(req.url.split('?')[1]||''),fetcher);store.saveConnection(finished.owner,platform,finished.account);oauthReturn(res,platform);}catch(error){oauthReturn(res,platform,error instanceof Problem?error.message:'Authorization failed');}});
   app.get('/api/challenge',loginLimit,(_req,res)=>{
     db.prepare('DELETE FROM challenges WHERE expires<?').run(Date.now());db.prepare('DELETE FROM sessions WHERE expires<?').run(Date.now());
     if(db.prepare('SELECT COUNT(*) AS n FROM challenges').get().n>1000)throw new Problem('Try signing in later',429);
@@ -50,8 +55,13 @@ export function createService(config,dependencies={}){
     setCookie(res,session,new Date(expires));res.json({pubkey:event.pubkey,csrf:csrfToken});
   });
   app.use('/api',auth);
+  app.post('/api/oauth/:platform/start',csrf,async(req,res)=>{
+    const {platform}=req.params;if(!['bluesky','mastodon','activitypub','x'].includes(platform))throw new Problem('Unknown OAuth provider');
+    const url=platform==='bluesky'?await startBlueskyOAuth(config,store,req.session.owner,req.body?.handle||req.body?.identifier):await startStandardOAuth(config,store,req.session.owner,platform,req.body||{},fetcher);
+    res.json({url});
+  });
   app.get('/api/me',(req,res)=>res.json({pubkey:req.session.owner,csrf:req.session.csrf,previewOnly:config.previewOnly,base:config.base,relays:config.relays,
-    mastodonHosts:[...config.mastodonHosts],activitypubHosts:[...config.activitypubHosts],blueskyHosts:[...config.pdsHosts],
+    mastodonHosts:[...config.mastodonHosts],activitypubHosts:[...config.activitypubHosts],blueskyHosts:[...config.pdsHosts],oauth:{xConfigured:!!config.xClientId},
     connections:db.prepare('SELECT platform,identity,label,profile_url AS profileURL FROM connections WHERE owner=? ORDER BY platform').all(req.session.owner)}));
   app.post('/api/logout',csrf,(req,res)=>{db.prepare('DELETE FROM sessions WHERE id=?').run(req.session.id);setCookie(res,'',new Date(0));res.json({ok:true});});
   app.post('/api/connections/:platform',csrf,async(req,res)=>{
@@ -59,7 +69,9 @@ export function createService(config,dependencies={}){
     const account=await verifyConnection(platform,req.body||{},config,makeAPI(fetcher));store.saveConnection(req.session.owner,platform,account);
     res.json({platform,identity:account.identity,label:account.label,profileURL:account.profileURL});
   });
-  app.delete('/api/connections/:platform',csrf,(req,res)=>{
+  app.delete('/api/connections/:platform',csrf,async(req,res)=>{
+    const existing=store.connection(req.session.owner,req.params.platform);
+    if(req.params.platform==='bluesky'&&existing?.secret?.auth==='oauth')await revokeBluesky(config,store,req.session.owner,existing.identity);
     db.prepare('DELETE FROM connections WHERE owner=? AND platform=?').run(req.session.owner,req.params.platform);
     db.prepare("UPDATE deliveries SET status='cancelled',error='Identity disconnected' WHERE platform=? AND status IN ('queued','retrying') AND post_id IN (SELECT id FROM posts WHERE owner=?)").run(req.params.platform,req.session.owner);res.json({ok:true});
   });

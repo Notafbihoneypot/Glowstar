@@ -63,6 +63,16 @@ export function createService(config,dependencies={}){
   app.get('/api/me',(req,res)=>res.json({pubkey:req.session.owner,csrf:req.session.csrf,previewOnly:config.previewOnly,base:config.base,relays:config.relays,
     mastodonHosts:[...config.mastodonHosts],activitypubHosts:[...config.activitypubHosts],blueskyHosts:[...config.pdsHosts],oauth:{xConfigured:!!config.xClientId},
     connections:db.prepare('SELECT platform,identity,label,profile_url AS profileURL FROM connections WHERE owner=? ORDER BY platform').all(req.session.owner)}));
+  app.get('/api/membership',async(req,res)=>{
+    if(!config.commerceURL)return res.json({enabled:false,active:true,feature:null,target:'',validUntil:null});
+    let entitlements;
+    try{
+      const response=await fetcher(config.commerceURL.replace(/\/$/,'')+'/v1/admin/entitlements/'+req.session.owner,{headers:{Authorization:'Bearer '+config.commerceToken},redirect:'error',signal:AbortSignal.timeout(5000)});
+      if(!response.ok)throw new Error();entitlements=(await response.json()).entitlements;if(!Array.isArray(entitlements))throw new Error();
+    }catch{throw new Problem('Membership service unavailable',503);}
+    const entitlement=entitlements.find(e=>e.feature===config.entitlementFeature&&e.target===config.entitlementTarget&&Number(e.valid_until)>Date.now()/1000);
+    res.json({enabled:true,active:!!entitlement,feature:config.entitlementFeature,target:config.entitlementTarget,validUntil:entitlement?Number(entitlement.valid_until):null});
+  });
   app.post('/api/logout',csrf,(req,res)=>{db.prepare('DELETE FROM sessions WHERE id=?').run(req.session.id);setCookie(res,'',new Date(0));res.json({ok:true});});
   app.post('/api/connections/:platform',csrf,async(req,res)=>{
     const {platform}=req.params;if(!PLATFORMS.includes(platform)||platform==='nostr')throw new Problem('Unknown connection');

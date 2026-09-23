@@ -18,5 +18,5 @@ export function loadConfig(env = process.env) {
     allowed:new Set(allowed.map(p=>p.toLowerCase())), data:env.CROSSPOST_DATA || './data', host:env.CROSSPOST_HOST || '127.0.0.1', port, dailyLimit,
     relays, previewOnly:env.CROSSPOST_PREVIEW_ONLY !== 'false', mastodonHosts:new Set(list(env.CROSSPOST_MASTODON_HOSTS || 'mastodon.social,fosstodon.org,hachyderm.io')),
     activitypubHosts:new Set(list(env.CROSSPOST_ACTIVITYPUB_HOSTS)), pdsHosts:new Set(list(env.CROSSPOST_BLUESKY_HOSTS || 'bsky.social')), xClientId, xClientSecret,
-    commerceURL:env.CROSSPOST_COMMERCE_URL || '', commerceToken, entitlementFeature:env.CROSSPOST_ENTITLEMENT_FEATURE || 'relay_30d', entitlementTarget:env.CROSSPOST_ENTITLEMENT_TARGET || '' };
+    commerceURL:env.CROSSPOST_COMMERCE_URL || '', commerceToken, entitlementFeature:env.CROSSPOST_ENTITLEMENT_FEATURE || 'crosspost_30d', entitlementTarget:env.CROSSPOST_ENTITLEMENT_TARGET || '' };
 }

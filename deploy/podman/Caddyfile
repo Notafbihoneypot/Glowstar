@@ -28,6 +28,9 @@
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "no-referrer"
 	}
+	handle /xmr-commerce/v1/admin/* {
+		respond 404
+	}
 	handle_path /xmr-commerce/* {
 		reverse_proxy commerce:8787
 	}

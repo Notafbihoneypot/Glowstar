@@ -72,6 +72,9 @@ main{max-width:1510px;margin:auto;padding:28px 34px 34px}
 .session-strip>div{min-width:0}.session-strip #identity{font-size:12px;color:#c9d7e8;overflow-wrap:anywhere}.session-strip p{margin:3px 0 0}
 .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 12px #4de2aa;margin-right:7px}
 
+
+.session-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}.membership-pill{display:inline-flex;align-items:center;gap:7px;border:1px solid #6e4d2a;background:#24170b;color:#ffc883;border-radius:999px;padding:7px 10px;font-size:10px;font-weight:750;letter-spacing:.3px}.membership-pill.active{border-color:#236a51;background:#09261d;color:#62e4b3}.xmr-dot{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#ff7b24;color:#17100b;font-weight:900;font-size:12px}.xmr-button{border-color:#914d20;background:linear-gradient(135deg,#3a1b0b,#21130b);color:#ffbc79}.xmr-button:hover{border-color:#ff8d3b;background:linear-gradient(135deg,#51250d,#2c170b)}.payment-intro{font-size:13px;margin-top:-2px}.payment-card{border:1px solid #6b4426;background:linear-gradient(180deg,#25160b,#140f0b);border-radius:15px;padding:17px;margin:16px 0}.payment-card>strong{display:block;font-size:25px;color:#ffc27c;margin-bottom:12px}.primary-link{display:inline-block;border:1px solid #a25b26;border-radius:11px;padding:10px 13px;background:#2f190b;color:#ffbd7b;font-weight:700}.payment-address{display:block;margin-top:7px;border:1px solid #4c3729;background:#0d0b09;padding:11px;border-radius:10px;color:#d8c8b8;overflow-wrap:anywhere;font-size:11px;user-select:all}.payment-progress{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px}.payment-progress .badge{color:#ffc27c;border-color:#714625;background:#1c120b}
+
 .workspace-grid{display:grid;grid-template-columns:minmax(245px,.8fr) minmax(470px,1.75fr) minmax(270px,.95fr);gap:16px;align-items:start}
 .card{border:1px solid #203653;border-radius:18px;background:linear-gradient(180deg,#0c1728,#091321);box-shadow:0 16px 50px #0003;padding:20px}
 .sidebar-card,.preview-panel{position:sticky;top:92px}
@@ -174,7 +177,7 @@ footer{display:flex;justify-content:space-between;border-top:1px solid #1d2d44;m
   .topbar{height:60px}.glow-mark{width:30px;height:30px;font-size:23px}.brand-word{font-size:15px}.top-actions .mode-badge{font-size:7px;max-width:90px}.top-actions #logout{display:none}
   main{padding:12px 10px 82px}
   .hero{padding:20px 16px;border-radius:17px;margin-bottom:10px;min-height:150px}.hero h1{font-size:31px}.hero p{font-size:12px;line-height:1.5}.hero-badges{margin-bottom:10px}
-  .session-strip{margin-bottom:10px;border-radius:12px;padding:10px 11px}.session-strip #identity{font-size:10px}.session-strip #signer-hint{display:none}.session-strip button{font-size:10px;padding:8px 10px;min-height:36px}
+  .session-strip{margin-bottom:10px;border-radius:12px;padding:10px 11px}.session-strip #identity{font-size:10px}.session-strip #signer-hint{display:none}.session-strip button{font-size:10px;padding:8px 10px;min-height:36px}.session-actions{gap:6px}.membership-pill{padding:6px 8px;font-size:8px}
   .card{border-radius:15px;padding:14px}.editor-card{padding:14px}.section-heading h2,.page-heading h2{font-size:16px}
   .composer-shell{border-radius:13px}.editor-card textarea#post-text{min-height:150px;padding:14px;font-size:15px}
   .image-grid{grid-template-columns:1fr}.destination-grid{grid-template-columns:1fr 1fr;gap:7px}.destination{padding:9px}

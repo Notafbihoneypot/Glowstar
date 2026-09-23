@@ -125,5 +125,5 @@ export async function xAccessToken(config,store,owner,connection,fetcher=fetch){
   const token=await jsonFetch(fetcher,'https://api.x.com/2/oauth2/token',{method:'POST',headers,form});
   if(!token.access_token)throw new Error('X token refresh failed; reconnect this identity');
   const next={...secret,accessToken:token.access_token,refreshToken:token.refresh_token||secret.refreshToken,expiresAt:Date.now()+Number(token.expires_in||7200)*1000};
-  store.replaceConnectionSecret(owner,'x',connection.identity,connection.sealed,next);connection.secret=next;connection.sealed=store.connection(owner,'x')?.sealed||connection.sealed;return next.accessToken;
+  if(!store.replaceConnectionSecret(owner,'x',connection.identity,connection.sealed,next))throw new Error('X identity changed while refreshing; create a new post after reviewing the account');connection.secret=next;connection.sealed=store.connection(owner,'x')?.sealed||connection.sealed;return next.accessToken;
 }

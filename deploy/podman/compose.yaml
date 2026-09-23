@@ -44,7 +44,7 @@ services:
     depends_on:
       - wallet-rpc
     environment:
-      GLOWSTR_COMMERCE_HOST: 127.0.0.1
+      GLOWSTR_COMMERCE_HOST: 0.0.0.0
       GLOWSTR_COMMERCE_PORT: "8787"
       GLOWSTR_COMMERCE_DB: /data/commerce.sqlite3
       MONERO_WALLET_RPC: http://wallet-rpc:18083/json_rpc

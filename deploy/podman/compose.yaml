@@ -10,19 +10,19 @@ services:
         MONERO_SHA256: ${MONERO_SHA256}
     image: localhost/glowstr-monero:${MONERO_VERSION}-${MONERO_ARCH}
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - "127.0.0.1:18081:18081"
     command:
       - /bin/sh
       - -ec
       - |
-        exec monerod ${MONERO_NETWORK_FLAG:-}           --data-dir=/var/lib/monero           --rpc-bind-ip=127.0.0.1           --rpc-bind-port=18081           --restricted-rpc           --p2p-bind-ip=127.0.0.1           --hide-my-port           --prune-blockchain           --non-interactive           --log-level=0
+        exec monerod ${MONERO_NETWORK_FLAG:-}           --data-dir=/var/lib/monero           --rpc-bind-ip=0.0.0.0           --rpc-bind-port=18081           --restricted-rpc           --p2p-bind-ip=0.0.0.0           --hide-my-port           --prune-blockchain           --non-interactive           --log-level=0
     volumes:
       - monero-chain:/var/lib/monero
 
   wallet-rpc:
     image: localhost/glowstr-monero:${MONERO_VERSION}-${MONERO_ARCH}
     restart: unless-stopped
-    network_mode: host
     depends_on:
       - monerod
     command:
@@ -30,7 +30,9 @@ services:
       - -ec
       - |
         test -f "/wallet/${MONERO_WALLET_NAME}.keys" || { echo "wallet not initialized"; exit 1; }
-        exec monero-wallet-rpc ${MONERO_NETWORK_FLAG:-}           --wallet-file "/wallet/${MONERO_WALLET_NAME}"           --password-file /run/secrets/wallet_password           --daemon-address 127.0.0.1:18081           --rpc-bind-ip 127.0.0.1           --rpc-bind-port 18083           --rpc-login "glowstr:$$(cat /run/secrets/rpc_password)"           --trusted-daemon           --non-interactive
+        exec monero-wallet-rpc ${MONERO_NETWORK_FLAG:-}           --wallet-file "/wallet/${MONERO_WALLET_NAME}"           --password-file /run/secrets/wallet_password           --daemon-address monerod:18081           --rpc-bind-ip 0.0.0.0           --rpc-bind-port 18083           --rpc-login "glowstr:$$(cat /run/secrets/rpc_password)"           --trusted-daemon           --non-interactive
+    ports:
+      - "127.0.0.1:18083:18083"
     volumes:
       - monero-wallet:/wallet
       - ./secrets:/run/secrets:ro,Z
@@ -39,20 +41,21 @@ services:
     build: ../../monero-commerce
     user: "0:0"
     restart: unless-stopped
-    network_mode: host
     depends_on:
       - wallet-rpc
     environment:
       GLOWSTR_COMMERCE_HOST: 127.0.0.1
       GLOWSTR_COMMERCE_PORT: "8787"
       GLOWSTR_COMMERCE_DB: /data/commerce.sqlite3
-      MONERO_WALLET_RPC: http://127.0.0.1:18083/json_rpc
+      MONERO_WALLET_RPC: http://wallet-rpc:18083/json_rpc
       MONERO_RPC_USER: glowstr
       MONERO_RPC_PASS_FILE: /run/secrets/rpc_password
       GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE: /run/secrets/admin_token
       GLOWSTR_ALLOWED_ORIGINS: https://${APP_DOMAIN},https://app.glowstr.local
       GLOWSTR_XMR_CONFIRMATIONS: ${GLOWSTR_XMR_CONFIRMATIONS}
       GLOWSTR_XMR_CROSSPOST_30D_ATOMIC: ${GLOWSTR_XMR_CROSSPOST_30D_ATOMIC:-20000000000}
+    ports:
+      - "127.0.0.1:8787:8787"
     volumes:
       - commerce-data:/data:U
       - ./secrets:/run/secrets:ro,Z
@@ -61,14 +64,13 @@ services:
     build: ../../crosspost
     user: "0:0"
     restart: unless-stopped
-    network_mode: host
     depends_on:
       - commerce
     environment:
       CROSSPOST_PUBLIC_URL: https://${APP_DOMAIN}/crosspost
       CROSSPOST_ALLOWED_PUBKEYS: ${CROSSPOST_ALLOWED_PUBKEYS}
       CROSSPOST_PREVIEW_ONLY: ${CROSSPOST_PREVIEW_ONLY:-true}
-      CROSSPOST_HOST: 127.0.0.1
+      CROSSPOST_HOST: 0.0.0.0
       CROSSPOST_PORT: "8790"
       CROSSPOST_DATA: /data
       CROSSPOST_ENCRYPTION_KEY_FILE: /run/secrets/crosspost_encryption_key
@@ -78,22 +80,28 @@ services:
       CROSSPOST_X_CLIENT_ID: ${CROSSPOST_X_CLIENT_ID:-}
       CROSSPOST_NOSTR_RELAYS: ${CROSSPOST_NOSTR_RELAYS:-wss://relay.damus.io,wss://nos.lol}
       CROSSPOST_DAILY_LIMIT: ${CROSSPOST_DAILY_LIMIT:-50}
-      CROSSPOST_COMMERCE_URL: http://127.0.0.1:8787
+      CROSSPOST_COMMERCE_URL: http://commerce:8787
       CROSSPOST_ENTITLEMENT_FEATURE: crosspost_30d
       CROSSPOST_ENTITLEMENT_TARGET: ""
       GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE: /run/secrets/admin_token
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp:size=64m,mode=1777]
+    ports:
+      - "127.0.0.1:8790:8790"
     volumes:
       - crosspost-data:/data:U
       - ./secrets:/run/secrets:ro,Z
+
   relay:
     build: ../../xmr-relay
     user: "0:0"
     restart: unless-stopped
-    network_mode: host
     depends_on:
       - commerce
     environment:
-      GLOWSTR_COMMERCE_ADMIN_URL: http://127.0.0.1:8787/v1/admin
+      GLOWSTR_COMMERCE_ADMIN_URL: http://commerce:8787/v1/admin
       GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE: /run/secrets/admin_token
       GLOWSTR_RELAY_FEATURE: relay_30d
       GLOWSTR_RELAY_TARGET: ${RELAY_DOMAIN}
@@ -101,6 +109,8 @@ services:
       GLOWSTR_COMMERCE_TIMEOUT_SECONDS: "3"
       GLOWSTR_ALLOW_LOCAL_IMPORTS: "true"
       GLOWSTR_REQUIRE_AUTHOR_MATCH: "true"
+    ports:
+      - "127.0.0.1:7777:7777"
     volumes:
       - relay-data:/app/strfry-db:U
       - ./generated/strfry.conf:/app/strfry.conf:ro,Z
@@ -109,11 +119,14 @@ services:
   caddy:
     image: docker.io/library/caddy:2-alpine
     restart: unless-stopped
-    network_mode: host
     depends_on:
       - relay
       - commerce
       - crosspost
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
       RELAY_DOMAIN: ${RELAY_DOMAIN}

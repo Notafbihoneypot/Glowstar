@@ -23,6 +23,8 @@ jobs:
         working-directory: crosspost
       - run: npm test
         working-directory: crosspost
+      - run: python3 -m py_compile monero-commerce/server.py
+      - run: bash -n deploy/podman/deploy.sh deploy/podman/status.sh
       - run: npx playwright install --with-deps chromium
         working-directory: crosspost
       - run: npm run test:browser

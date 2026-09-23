@@ -28,11 +28,19 @@ CONFIRMATIONS=max(1,int(os.getenv("GLOWSTR_XMR_CONFIRMATIONS","2")))
 ORIGINS={x.strip() for x in os.getenv("GLOWSTR_ALLOWED_ORIGINS",os.getenv("GLOWSTR_ALLOWED_ORIGIN","https://glowstr.com")).split(",") if x.strip()}
 ADMIN_TOKEN=read_secret("GLOWSTR_COMMERCE_ADMIN_TOKEN","GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE")
 ATOMIC=10**12
+def env_atomic(name,default):
+ try:
+  value=int(os.getenv(name,str(default)))
+ except ValueError:
+  raise RuntimeError(f"{name} must be an integer number of atomic XMR units")
+ if value<=0: raise RuntimeError(f"{name} must be positive")
+ return value
 FEATURES={
  "relay_30d": {"amount": 20000000000, "seconds": 30*86400, "label":"30 day paid relay"},
  "room_30d": {"amount": 10000000000, "seconds": 30*86400, "label":"30 day paid room"},
  "storage_10gb_30d": {"amount": 30000000000, "seconds":30*86400, "label":"10 GB storage / 30 days"},
  "creator_30d": {"amount": 10000000000, "seconds":30*86400, "label":"creator support / 30 days"},
+ "crosspost_30d": {"amount": env_atomic("GLOWSTR_XMR_CROSSPOST_30D_ATOMIC",20000000000), "seconds":30*86400, "label":"Glowstr Crosspost / 30 days"},
 }
 
 def db():

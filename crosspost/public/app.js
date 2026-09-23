@@ -90,7 +90,7 @@ function renderLivePreview(){
 }
 function updateCount(){const n=document.querySelectorAll('[data-destination]:checked').length;$('selected-count').textContent=n+' selected';$('review').disabled=!me||!n||busy;renderLivePreview();}
 function composePost(){const destinations=[...document.querySelectorAll('[data-destination]:checked')].map(n=>n.value),overrides={};for(const node of document.querySelectorAll('[data-override]'))if(node.value.trim()&&destinations.includes(node.dataset.override))overrides[node.dataset.override]=node.value.trim();return{text:$('post-text').value.trim(),destinations,overrides,mediaId:uploaded?.id||null,expectedIdentities:Object.fromEntries(me.connections.filter(c=>destinations.includes(c.platform)).map(c=>[c.platform,c.identity]))};}
-function switchTab(tab){for(const name of ['compose','accounts','history'])$(name).hidden=name!==tab;for(const b of document.querySelectorAll('[data-tab]')){b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-selected',String(b.dataset.tab===tab));}clearInterval(poll);if(tab==='history'&&me){history();poll=setInterval(()=>{if(!document.hidden)history(true);},5000);}}
+function switchTab(tab){for(const name of ['compose','accounts','history'])$(name).hidden=name!==tab;for(const b of document.querySelectorAll('[data-tab],[data-mobile-tab]')){const target=b.dataset.tab||b.dataset.mobileTab;b.classList.toggle('active',target===tab);b.setAttribute('aria-selected',String(target===tab));}clearInterval(poll);if(tab==='history'&&me){history();poll=setInterval(()=>{if(!document.hidden)history(true);},5000);}}
 function connectDialog(platform){
   currentPlatform=platform;const spec=specs[platform];$('account-title').textContent='Link '+names[platform];
   const hosts=platform==='mastodon'?me.mastodonHosts:platform==='activitypub'?me.activitypubHosts:null;
@@ -136,7 +136,7 @@ $('public-consent').addEventListener('change',()=>{$('publish').disabled=!$('pub
 function canCloseReview(){return !busy&&(!pending||confirm('This request may already be queued. Check Deliveries before starting another post. Close this review?'));}
 $('review-dialog').addEventListener('cancel',event=>{if(!canCloseReview())event.preventDefault();});
 for(const b of document.querySelectorAll('[data-close]'))b.addEventListener('click',()=>{if(b.dataset.close==='review-dialog'?!canCloseReview():busy)return;$(b.dataset.close).close();});
-for(const b of document.querySelectorAll('[data-tab]'))b.addEventListener('click',()=>switchTab(b.dataset.tab));
+for(const b of document.querySelectorAll('[data-tab],[data-mobile-tab]'))b.addEventListener('click',()=>switchTab(b.dataset.tab||b.dataset.mobileTab));
 window.addEventListener('beforeunload',event=>{if(pending){event.preventDefault();event.returnValue='';}});
 render();loadMe().catch(()=>{});
 try{if(window.opener?.location.origin===location.origin&&typeof window.opener.glowstrGetCrosspostDraft==='function'){$('post-text').value=window.opener.glowstrGetCrosspostDraft();$('post-text').dispatchEvent(new Event('input'));}}catch{}

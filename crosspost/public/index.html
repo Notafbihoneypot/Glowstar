@@ -1,12 +1,235 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>Glowstr · Connected identities</title><link rel="stylesheet" href="./style.css"><script src="./app.js" defer></script></head><body>
-<header><a class="brand" href="./"><b class="mark">G</b> GLOWSTR <span>/ CROSSPOST</span></a><span id="mode" class="badge">SELF-HOSTED</span></header>
-<main><section class="intro"><div><p class="eyebrow">ONE HUB. YOUR CONNECTED IDENTITIES.</p><h1>Your voice.<br><em>Across your networks.</em></h1><p class="lede">Link Bluesky, Mastodon, X, and compatible ActivityPub accounts. Choose the identities. Review the post. Publish together.</p></div><div class="session"><span id="identity">Your Nostr key connects your identities.</span><button id="login" class="primary">Connect signer ↗</button><button id="logout" hidden>Sign out</button><p id="signer-hint" class="small muted">Use a NIP-07 extension, or open from a signed-in Glowstr window.</p></div></section>
-<div id="notice" role="status" aria-live="polite" hidden></div>
-<nav aria-label="Workspace"><button data-tab="compose" class="active" aria-selected="true">01 <span>Compose</span></button><button data-tab="accounts" aria-selected="false">02 <span>Identities</span></button><button data-tab="history" aria-selected="false">03 <span>Deliveries</span></button></nav>
-<section id="compose" class="panel"><div class="compose-grid"><div class="card editor"><div class="section-heading"><h2>Your next post</h2><span class="badge">PUBLIC</span></div><label class="sr-only" for="post-text">Post text</label><textarea id="post-text" maxlength="65000" placeholder="What do you want to share?"></textarea><div class="editor-foot"><span id="length" class="small muted">0 characters</span><span class="small muted">Text + one image</span></div><details class="image-section"><summary>Add an image</summary><p class="small muted">JPG, PNG, or WebP · up to 8 MB. Prepared as a 1080 × 1080 JPEG with padding and metadata removed.</p><label for="image-file">Choose image</label><input id="image-file" type="file" accept="image/jpeg,image/png,image/webp"><label for="image-alt">Image description</label><input id="image-alt" maxlength="1000" placeholder="Describe the image for people who cannot see it"><div class="actions"><button id="prepare-image">Prepare image</button><button id="remove-image" hidden>Remove</button></div><p id="image-status" class="small muted"></p><img id="image-preview" alt="Prepared image" hidden></details></div><aside class="card"><div class="section-heading"><h2>Publish as</h2><span id="selected-count" class="small muted">0 selected</span></div><div id="destinations"></div><p class="small muted">Mastodon already uses ActivityPub. The separate ActivityPub connection is for another account on a compatible service.</p></aside></div><div class="review-bar"><p class="small muted">Cross-posting publicly associates the chosen identities.<br>Each destination keeps its own post and replies.</p><button id="review" class="primary" disabled>Review post →</button></div></section>
-<section id="accounts" class="panel" hidden><div class="section-heading"><div><h2>Your linked identities</h2><p class="muted">One account per connector, verified through its official account API.</p></div></div><div class="identity-note"><span class="badge">IDENTITY HUB</span><p>Your Nostr key groups these connections privately on this server. The verified account IDs keep deliveries attached to the accounts you chose, even when handles change.</p></div><p class="small muted">Use Connect or Reconnect to authorize each network. OAuth tokens, refresh credentials, and AT Protocol session state are encrypted on this server; you never paste a social-account password into Glowstr.</p><div id="account-list" class="account-grid"></div><div class="actions"><button id="clear-uploads" disabled>Clear unused image uploads</button><span class="small muted">Removes unpublished uploads, including abandoned drafts.</span></div></section>
-<section id="history" class="panel" hidden><div class="section-heading"><div><h2>Delivery history</h2><p class="muted">A separate result for each linked identity.</p></div><button id="refresh">Refresh</button></div><div id="history-list"><p class="empty">Sign in to view your deliveries.</p></div></section>
-<footer><span>GLOWSTR CROSSPOST · v0.2</span><span>Public publishing · Private signing</span></footer></main>
-<dialog id="account-dialog"><form id="account-form"><div class="section-heading"><h2 id="account-title">Link identity</h2><button type="button" class="close" data-close="account-dialog" aria-label="Close">×</button></div><p id="account-instructions" class="small muted"></p><div id="account-fields"></div><p><a id="account-docs" target="_blank" rel="noopener noreferrer">Official setup documentation ↗</a></p><button class="primary" type="submit">Continue to authorization ↗</button></form></dialog>
-<dialog id="review-dialog"><div class="section-heading"><div><p class="eyebrow">FINAL CHECK</p><h2>Review each identity</h2></div><button class="close" data-close="review-dialog" aria-label="Close">×</button></div><div id="versions"></div><label class="consent"><input id="public-consent" type="checkbox"><span>These posts are public. I agree to associate the selected identities and make the attached image publicly accessible.</span></label><p id="publish-note" class="small muted"></p><button id="publish" class="primary" disabled>Publish to selected identities</button></dialog>
-</body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#07101f">
+  <title>Glowstr · Crosspost Identity Hub</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+<div class="ambient ambient-a"></div>
+<div class="ambient ambient-b"></div>
+
+<header class="topbar">
+  <a class="brand" href="./" aria-label="Glowstr Crosspost home">
+    <span class="glow-mark">✦</span>
+    <span class="brand-word">Glowstr</span>
+    <span class="brand-divider">/</span>
+    <span class="brand-sub">Crosspost</span>
+  </a>
+
+  <nav class="desktop-nav" aria-label="Workspace">
+    <button data-tab="compose" class="active" aria-selected="true"><span class="nav-icon">✎</span>Compose</button>
+    <button data-tab="accounts" aria-selected="false"><span class="nav-icon">◎</span>Identities</button>
+    <button data-tab="history" aria-selected="false"><span class="nav-icon">◷</span>Deliveries</button>
+  </nav>
+
+  <div class="top-actions">
+    <span id="mode" class="badge mode-badge">SELF-HOSTED</span>
+    <button id="logout" class="ghost compact" hidden>Sign out</button>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-copy">
+      <div class="hero-badges"><span class="badge accent-badge">IDENTITY HUB</span><span class="hero-line"></span></div>
+      <h1>One hub. <span>Your connected identities.</span></h1>
+      <p>Your voice across your networks. Link Bluesky, Mastodon, X, compatible ActivityPub services, and Nostr without giving up your underlying identities.</p>
+    </div>
+    <div class="network-orbit" aria-hidden="true">
+      <div class="orbit orbit-one"></div>
+      <div class="orbit orbit-two"></div>
+      <span class="orbit-node bsky">B</span>
+      <span class="orbit-node masto">m</span>
+      <span class="orbit-node xnet">𝕏</span>
+      <span class="orbit-node ap">AP</span>
+      <span class="orbit-node nostr">N</span>
+      <span class="orbit-core">✦</span>
+    </div>
+  </section>
+
+  <div id="notice" role="status" aria-live="polite" hidden></div>
+
+  <section class="session-strip">
+    <div>
+      <span class="status-dot"></span>
+      <span id="identity">Your Nostr key connects your identities.</span>
+      <p id="signer-hint" class="small muted">Use NIP-07, or open this from a signed-in Glowstr window.</p>
+    </div>
+    <button id="login" class="primary">Connect signer ↗</button>
+  </section>
+
+  <section id="compose" class="panel workspace-panel">
+    <div class="workspace-grid">
+      <aside class="card sidebar-card linked-panel">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">CONNECTED</p>
+            <h2>Linked identities</h2>
+          </div>
+          <span id="linked-count" class="small muted">0 connected</span>
+        </div>
+        <div id="linked-summary" class="linked-summary"></div>
+        <button id="manage-identities" class="outline full">＋ Manage identities</button>
+        <div class="privacy-note">
+          <span class="privacy-icon">⌁</span>
+          <div>
+            <strong>Your accounts stay separate.</strong>
+            <p>Glowstr stores encrypted authorization material. Your social passwords are never entered here.</p>
+          </div>
+        </div>
+      </aside>
+
+      <section class="card editor-card">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">COMPOSE</p>
+            <h2>Your next post</h2>
+          </div>
+          <span class="draft-state"><span class="status-dot"></span>Local draft</span>
+        </div>
+
+        <label class="sr-only" for="post-text">Post text</label>
+        <div class="composer-shell">
+          <textarea id="post-text" maxlength="65000" placeholder="Write once. Publish where you choose."></textarea>
+          <div class="composer-toolbar">
+            <div class="tool-hints" aria-hidden="true"><span>▧</span><span>GIF</span><span>↗</span><span>☺</span></div>
+            <span id="length" class="small muted">0 characters</span>
+          </div>
+        </div>
+
+        <details class="image-section">
+          <summary>＋ Add an image</summary>
+          <p class="small muted">JPG, PNG, or WebP up to 8 MB. Glowstr normalizes it to a metadata-free 1080 × 1080 JPEG.</p>
+          <div class="image-grid">
+            <div>
+              <label for="image-file">Choose image</label>
+              <input id="image-file" type="file" accept="image/jpeg,image/png,image/webp">
+            </div>
+            <div>
+              <label for="image-alt">Image description</label>
+              <input id="image-alt" maxlength="1000" placeholder="Describe the image">
+            </div>
+          </div>
+          <div class="actions">
+            <button id="prepare-image">Prepare image</button>
+            <button id="remove-image" hidden>Remove</button>
+          </div>
+          <p id="image-status" class="small muted"></p>
+          <img id="image-preview" alt="Prepared image" hidden>
+        </details>
+
+        <div class="destination-block">
+          <div class="section-heading destination-heading">
+            <div>
+              <p class="section-kicker">ROUTING</p>
+              <h2>Publish to</h2>
+            </div>
+            <span id="selected-count" class="small muted">0 selected</span>
+          </div>
+          <div id="destinations" class="destination-grid"></div>
+        </div>
+
+        <div class="info-banner">
+          <span>✦</span>
+          <div><strong>One post, multiple identities.</strong><p>You can customize the text for each destination before publishing.</p></div>
+        </div>
+
+        <div class="review-bar">
+          <p class="small muted">Cross-posting publicly associates the identities you select. Each network keeps its own replies and engagement.</p>
+          <button id="review" class="primary large" disabled>Review post →</button>
+        </div>
+      </section>
+
+      <aside class="card preview-panel">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">LIVE PREVIEW</p>
+            <h2>Post preview</h2>
+          </div>
+          <span class="preview-pulse"></span>
+        </div>
+        <div id="live-preview" class="preview-stack">
+          <p class="empty compact-empty">Select an identity to preview its post.</p>
+        </div>
+        <div class="ready-card">
+          <p class="section-kicker">READY TO PUBLISH?</p>
+          <strong id="ready-summary">Choose your destinations</strong>
+          <div id="ready-icons" class="ready-icons"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="accounts" class="panel" hidden>
+    <div class="page-heading">
+      <div>
+        <p class="section-kicker">IDENTITY HUB</p>
+        <h2>Your linked identities</h2>
+        <p class="muted">OAuth-connected accounts remain separate, while stable account IDs keep queued deliveries bound to exactly what you reviewed.</p>
+      </div>
+      <button id="clear-uploads" disabled>Clear unused image uploads</button>
+    </div>
+    <div class="identity-note">
+      <span class="badge accent-badge">PRIVATE HUB</span>
+      <p>Your Nostr public key is the hub owner. OAuth tokens, refresh credentials, and AT Protocol session state are encrypted on this server.</p>
+    </div>
+    <div id="account-list" class="account-grid"></div>
+  </section>
+
+  <section id="history" class="panel" hidden>
+    <div class="page-heading">
+      <div>
+        <p class="section-kicker">DELIVERIES</p>
+        <h2>Delivery history</h2>
+        <p class="muted">Each destination has its own delivery status, result, and retry state.</p>
+      </div>
+      <button id="refresh">Refresh</button>
+    </div>
+    <div id="history-list"><p class="empty">Sign in to view your deliveries.</p></div>
+  </section>
+
+  <footer>
+    <span>GLOWSTR CROSSPOST · v0.2</span>
+    <span>Public publishing · Private signing · Stable identity binding</span>
+  </footer>
+</main>
+
+<nav class="mobile-nav" aria-label="Mobile workspace">
+  <button data-tab="compose" class="active" aria-selected="true"><span>✎</span>Compose</button>
+  <button data-tab="accounts" aria-selected="false"><span>◎</span>Identities</button>
+  <button data-tab="history" aria-selected="false"><span>◷</span>Deliveries</button>
+</nav>
+
+<dialog id="account-dialog">
+  <form id="account-form">
+    <div class="section-heading">
+      <div><p class="section-kicker">CONNECT ACCOUNT</p><h2 id="account-title">Link identity</h2></div>
+      <button type="button" class="close" data-close="account-dialog" aria-label="Close">×</button>
+    </div>
+    <p id="account-instructions" class="small muted"></p>
+    <div id="account-fields"></div>
+    <p><a id="account-docs" target="_blank" rel="noopener noreferrer">Official setup documentation ↗</a></p>
+    <button class="primary full" type="submit">Continue to authorization ↗</button>
+  </form>
+</dialog>
+
+<dialog id="review-dialog">
+  <div class="section-heading">
+    <div><p class="section-kicker">FINAL CHECK</p><h2>Review each identity</h2></div>
+    <button class="close" data-close="review-dialog" aria-label="Close">×</button>
+  </div>
+  <div id="versions"></div>
+  <label class="consent">
+    <input id="public-consent" type="checkbox">
+    <span>These posts are public. I agree to associate the selected identities and make any attached image publicly accessible.</span>
+  </label>
+  <p id="publish-note" class="small muted"></p>
+  <button id="publish" class="primary full large" disabled>Publish to selected identities</button>
+</dialog>
+</body>
+</html>

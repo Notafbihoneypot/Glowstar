@@ -1,7 +1,7 @@
 {$APP_DOMAIN} {
 	encode zstd gzip
 
-	# Optional connected-identity bridge; start ../../crosspost/compose.yaml.
+	# Connected-identity bridge from the unified Podman stack.
 	handle /crosspost {
 		redir /crosspost/ 308
 	}

@@ -2,6 +2,7 @@ import express from 'express';
 import { timingSafeEqual } from 'node:crypto';
 import { verifyEvent } from 'nostr-tools/pure';
 import { hash, token } from './store.mjs';
+import { Problem } from './validation.mjs';
 
 const pendingStates=new Set(['CREATING','WAITING','MEMPOOL','CONFIRMING']);
 const normalizeName=value=>String(value||'').trim().toLowerCase();
@@ -17,7 +18,7 @@ function authEvent(req,expectedURL,bodyHash){
     const tag=name=>{const rows=event.tags.filter(t=>t[0]===name);return rows.length===1&&rows[0].length===2?rows[0][1]:null;};
     if(tag('u')!==expectedURL||tag('method')!=='POST'||tag('payload')!==bodyHash)throw new Error();
     return event;
-  }catch{const error=new Error('Invalid or expired Nostr authorization');error.status=401;throw error;}
+  }catch{throw new Problem('Invalid or expired Nostr authorization',401);}
 }
 
 export function installNameRegistry(app,config,store,fetcher=fetch){
@@ -25,7 +26,7 @@ export function installNameRegistry(app,config,store,fetcher=fetch){
   if(!fed?.enabled)return {start(){},stop(){}};
   const router=express.Router(),attempts=new Map();let timer=null,running=false;
 
-  const fail=(message,status=400)=>{const error=new Error(message);error.status=status;throw error;};
+  const fail=(message,status=400)=>{throw new Problem(message,status);};
   const publicClaimURL=path=>fed.base+path;
   const allowedOrigin=req=>!req.headers.origin||fed.allowedOrigins.has(req.headers.origin);
   const cors=(req,res,next)=>{

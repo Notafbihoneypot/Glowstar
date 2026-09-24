@@ -10,7 +10,7 @@ export async function fixture(t,env={},dependencies={}){
   const config=loadConfig({CROSSPOST_ALLOWED_PUBKEYS:owner+','+other,CROSSPOST_ENCRYPTION_KEY:'ab'.repeat(32),CROSSPOST_DATA:data,CROSSPOST_PREVIEW_ONLY:'false',CROSSPOST_ACTIVITYPUB_HOSTS:'fedi.example',...env});
   const service=createService(config,{fetcher:async()=>{throw new Error('Unexpected external request');},...dependencies});
   const server=service.app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));config.base=config.origin='http://127.0.0.1:'+server.address().port;
-  t.after(async()=>{service.worker.stop();await new Promise(resolve=>server.close(resolve));service.store.close();await rm(data,{recursive:true,force:true});});
+  t.after(async()=>{service.worker.stop();service.nameWorker.stop();await new Promise(resolve=>server.close(resolve));service.store.close();await rm(data,{recursive:true,force:true});});
   async function request(path,{method='GET',body,session,headers={}}={}){
     const response=await fetch(config.base+path,{method,headers:{Origin:config.origin,...(body!==undefined?{'Content-Type':'application/json'}:{}),...(session?{Cookie:session.cookie,'X-CSRF-Token':session.csrf}:{}),...headers},body:body===undefined?undefined:typeof body==='string'?body:JSON.stringify(body)});
     return {status:response.status,headers:response.headers,value:response.headers.get('content-type')?.includes('json')?await response.json():Buffer.from(await response.arrayBuffer())};

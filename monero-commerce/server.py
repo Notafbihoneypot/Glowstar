@@ -6,8 +6,9 @@ Keep monero-wallet-rpc on loopback. Never expose wallet RPC to the browser.
 """
 from __future__ import annotations
 import base64, hashlib, json, os, secrets, sqlite3, threading, time
+from decimal import Decimal, ROUND_CEILING
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.request import build_opener, HTTPDigestAuthHandler, HTTPPasswordMgrWithDefaultRealm, Request
+from urllib.request import build_opener, HTTPDigestAuthHandler, HTTPPasswordMgrWithDefaultRealm, Request, urlopen
 
 def read_secret(env_name,file_env_name):
  path=os.getenv(file_env_name,"").strip()
@@ -31,6 +32,33 @@ WATCH_SECONDS=max(5,int(os.getenv("GLOWSTR_XMR_WATCH_SECONDS","10")))
 ORIGINS={x.strip() for x in os.getenv("GLOWSTR_ALLOWED_ORIGINS",os.getenv("GLOWSTR_ALLOWED_ORIGIN","https://glowstr.com")).split(",") if x.strip()}
 ADMIN_TOKEN=read_secret("GLOWSTR_COMMERCE_ADMIN_TOKEN","GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE")
 ATOMIC=10**12
+FED_HOUSE_USD_CENTS=max(1,int(os.getenv("GLOWSTR_FED_HOUSE_USD_CENTS","400")))
+PRICE_URL=os.getenv("GLOWSTR_XMR_USD_PRICE_URL","https://api.kraken.com/0/public/Ticker?pair=XMRUSD").strip()
+PRICE_CACHE_SECONDS=max(10,int(os.getenv("GLOWSTR_XMR_PRICE_CACHE_SECONDS","30")))
+_price_cache={"value":None,"until":0}
+
+def xmr_usd_price():
+ now=time.time()
+ if _price_cache["value"] is not None and _price_cache["until"]>now: return _price_cache["value"]
+ req=Request(PRICE_URL,headers={"User-Agent":"GlowstrCommerce/0.2","Accept":"application/json"})
+ with urlopen(req,timeout=8) as r: out=json.load(r)
+ if out.get("error"): raise RuntimeError("price source returned an error")
+ result=out.get("result") or {}
+ if not result: raise RuntimeError("price source returned no XMR/USD ticker")
+ ticker=next(iter(result.values()))
+ price=Decimal(str((ticker.get("c") or [None])[0]))
+ if not price.is_finite() or price<=0: raise RuntimeError("price source returned an invalid XMR/USD price")
+ _price_cache["value"]=price; _price_cache["until"]=now+PRICE_CACHE_SECONDS
+ return price
+
+def feature_amount(spec):
+ if spec.get("usd_cents"):
+  price=xmr_usd_price()
+  usd=Decimal(int(spec["usd_cents"]))/Decimal(100)
+  amount=int(((usd/price)*Decimal(ATOMIC)).to_integral_value(rounding=ROUND_CEILING))
+  return max(1,amount),str(price)
+ return int(spec["amount"]),None
+
 def env_atomic(name,default):
  try:
   value=int(os.getenv(name,str(default)))
@@ -44,6 +72,7 @@ FEATURES={
  "storage_10gb_30d": {"amount": 30000000000, "seconds":30*86400, "label":"10 GB storage / 30 days"},
  "creator_30d": {"amount": 10000000000, "seconds":30*86400, "label":"creator support / 30 days"},
  "crosspost_30d": {"amount": env_atomic("GLOWSTR_XMR_CROSSPOST_30D_ATOMIC",20000000000), "seconds":30*86400, "label":"Glowstr Crosspost / 30 days"},
+ "fed_house_name": {"amount":None, "usd_cents":FED_HOUSE_USD_CENTS, "seconds":0, "label":"fed.house permanent NIP-05 name", "internal":True, "strict_expiry":True},
 }
 
 def db():
@@ -82,7 +111,7 @@ def invoice_uri(address,amount,label):
 
 def refresh_invoice(c,row):
  if row["status"]=="PAID": return row
- now=int(time.time())
+ now=int(time.time()); spec=FEATURES.get(row["feature"]) or {}
  result=rpc("get_transfers",{"in":True,"pool":True,"account_index":row["account_index"],"subaddr_indices":[row["address_index"]]})
  candidates=(result.get("pool") or [])+(result.get("in") or [])
  best=None
@@ -90,6 +119,8 @@ def refresh_invoice(c,row):
   idx=tx.get("subaddr_index") or {}
   if idx.get("major")!=row["account_index"] or idx.get("minor")!=row["address_index"]: continue
   if int(tx.get("amount",0)) < row["amount"] or tx.get("double_spend_seen"): continue
+  ts=int(tx.get("timestamp",0) or 0)
+  if spec.get("strict_expiry") and (not ts or ts>row["expires_at"]): continue
   if best is None or int(tx.get("confirmations",0))>int(best.get("confirmations",0)): best=tx
  status="EXPIRED" if now>row["expires_at"] else "WAITING"; conf=0; txid=None; paid_at=None
  if best:
@@ -97,9 +128,9 @@ def refresh_invoice(c,row):
   status="PAID" if conf>=CONFIRMATIONS else ("CONFIRMING" if conf else "MEMPOOL")
   if status=="PAID": paid_at=now
  c.execute("UPDATE invoices SET status=?,confirmations=?,txid=?,paid_at=COALESCE(paid_at,?) WHERE id=?",(status,conf,txid,paid_at,row["id"]))
- if status=="PAID":
-  spec=FEATURES[row["feature"]]; current=c.execute("SELECT valid_until FROM entitlements WHERE pubkey=? AND feature=? AND target=?",(row["pubkey"],row["feature"],row["target"])).fetchone()
-  base=max(now,int(current["valid_until"]) if current else now); until=base+spec["seconds"]
+ if status=="PAID" and int(spec.get("seconds",0))>0:
+  current=c.execute("SELECT valid_until FROM entitlements WHERE pubkey=? AND feature=? AND target=?",(row["pubkey"],row["feature"],row["target"])).fetchone()
+  base=max(now,int(current["valid_until"]) if current else now); until=base+int(spec["seconds"])
   c.execute("""INSERT INTO entitlements(pubkey,feature,target,valid_until,invoice_id) VALUES(?,?,?,?,?)
    ON CONFLICT(pubkey,feature,target) DO UPDATE SET valid_until=excluded.valid_until,invoice_id=excluded.invoice_id""",(row["pubkey"],row["feature"],row["target"],until,row["id"]))
  c.commit(); return c.execute("SELECT * FROM invoices WHERE id=?",(row["id"],)).fetchone()
@@ -142,7 +173,9 @@ class H(BaseHTTPRequestHandler):
    p=self.body(); pubkey=str(p.get("pubkey","")).lower(); feature=str(p.get("feature","")); target=str(p.get("target",""))[:160]
    if not valid_pubkey(pubkey): return self.out({"error":"invalid_pubkey"},400)
    if feature not in FEATURES: return self.out({"error":"unknown_feature","features":FEATURES},400)
-   inv=secrets.token_urlsafe(18); token=secrets.token_urlsafe(32); now=int(time.time()); spec=FEATURES[feature]
+   spec=FEATURES[feature]
+   if spec.get("internal") and (not ADMIN_TOKEN or not secrets.compare_digest(self.headers.get("Authorization",""),"Bearer "+ADMIN_TOKEN)): return self.out({"error":"unauthorized"},401)
+   inv=secrets.token_urlsafe(18); token=secrets.token_urlsafe(32); now=int(time.time()); amount,quote_price=feature_amount(spec)
    c=db()
    c.execute("DELETE FROM invoices WHERE status!='PAID' AND expires_at<?",(now-7*86400,))
    if c.execute("SELECT COUNT(*) FROM invoices WHERE created_at>?",(now-3600,)).fetchone()[0]>=MAX_INVOICES_PER_HOUR:
@@ -153,8 +186,10 @@ class H(BaseHTTPRequestHandler):
    address=a.get("address") or (a.get("addresses") or [None])[0]; idx=a.get("address_index")
    if idx is None: idx=(a.get("address_indices") or [None])[0]
    if not address or idx is None: raise RuntimeError("wallet RPC did not return subaddress")
-   c.execute("INSERT INTO invoices(id,token_hash,pubkey,feature,target,amount,account_index,address_index,address,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",(inv,token_hash(token),pubkey,feature,target,spec["amount"],ACCOUNT,int(idx),address,now,now+1800)); c.commit()
-   return self.out({"id":inv,"token":token,"status":"WAITING","address":address,"amount_atomic":spec["amount"],"uri":invoice_uri(address,spec["amount"],spec["label"]),"expires_at":now+1800,"confirmations_required":CONFIRMATIONS})
+   c.execute("INSERT INTO invoices(id,token_hash,pubkey,feature,target,amount,account_index,address_index,address,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",(inv,token_hash(token),pubkey,feature,target,amount,ACCOUNT,int(idx),address,now,now+1800)); c.commit()
+   payload={"id":inv,"token":token,"status":"WAITING","address":address,"amount_atomic":amount,"uri":invoice_uri(address,amount,spec["label"]),"expires_at":now+1800,"confirmations_required":CONFIRMATIONS}
+   if spec.get("usd_cents"): payload.update({"quote_usd_cents":int(spec["usd_cents"]),"xmr_usd":quote_price})
+   return self.out(payload)
   except Exception as e:
    print("invoice error:",repr(e))
    return self.out({"error":"server_error"},500)

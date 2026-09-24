@@ -17,6 +17,13 @@ export function openStore(config) {
     CREATE TABLE IF NOT EXISTS oauth_apps(platform TEXT NOT NULL,server TEXT NOT NULL,payload TEXT NOT NULL,PRIMARY KEY(platform,server));
     CREATE TABLE IF NOT EXISTS media(id TEXT PRIMARY KEY,owner TEXT NOT NULL,alt TEXT NOT NULL,width INTEGER NOT NULL,height INTEGER NOT NULL,public INTEGER NOT NULL DEFAULT 0);
     CREATE TABLE IF NOT EXISTS posts(id TEXT PRIMARY KEY,owner TEXT NOT NULL,request_key TEXT NOT NULL,digest TEXT NOT NULL,created INTEGER NOT NULL,payload TEXT NOT NULL,UNIQUE(owner,request_key));
+    CREATE TABLE IF NOT EXISTS name_challenges(id TEXT PRIMARY KEY,name TEXT NOT NULL,expires INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS name_claims(
+      name TEXT PRIMARY KEY COLLATE NOCASE,pubkey TEXT NOT NULL,state TEXT NOT NULL,invoice_id TEXT,invoice_secret TEXT,claim_token_hash TEXT NOT NULL,
+      amount INTEGER,quote_usd_cents INTEGER,quote_xmr_usd TEXT,address TEXT,uri TEXT,confirmations_required INTEGER,reserved_at INTEGER NOT NULL,
+      expires_at INTEGER,activated_at INTEGER,updated INTEGER NOT NULL,event_id TEXT NOT NULL UNIQUE);
+    CREATE INDEX IF NOT EXISTS name_claim_state ON name_claims(state,updated);
+    CREATE INDEX IF NOT EXISTS name_claim_pubkey ON name_claims(pubkey,state);
     CREATE TABLE IF NOT EXISTS deliveries(id INTEGER PRIMARY KEY,post_id TEXT NOT NULL REFERENCES posts(id),platform TEXT NOT NULL,identity TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'queued',attempts INTEGER NOT NULL DEFAULT 0,due INTEGER NOT NULL,checkpoint TEXT NOT NULL DEFAULT '{}',result TEXT,error TEXT,UNIQUE(post_id,platform));
     CREATE INDEX IF NOT EXISTS queue ON deliveries(status,due);
     CREATE INDEX IF NOT EXISTS oauth_flow_expiry ON oauth_flows(expires);

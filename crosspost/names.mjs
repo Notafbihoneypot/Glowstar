@@ -188,7 +188,8 @@ export function installNameRegistry(app,config,store,fetcher=fetch){
       const bearer=(req.headers.authorization||'').startsWith('Bearer ')?req.headers.authorization.slice(7):'';
       if(!claimTokenOK(row,bearer))fail('Invalid claim capability',401);
       const current=await reconcileName(name),status=current?._status||null;
-      res.json(view(current,{confirmations:Number(status?.confirmations||0),confirmationsRequired:Number(status?.confirmations_required||current.confirmations_required||2)}));
+      const confirmations=current.state==='ACTIVE'?Number(current.confirmations_required||status?.confirmations||0):Number(status?.confirmations||0);
+      res.json(view(current,{confirmations,confirmationsRequired:Number(status?.confirmations_required||current.confirmations_required||2)}));
     }catch(error){next(error);}
   });
 
@@ -200,7 +201,8 @@ export function installNameRegistry(app,config,store,fetcher=fetch){
       const row=await reconcileName(name);if(!row||row.pubkey!==event.pubkey||row.state==='EXPIRED')fail('No recoverable purchase for this key',404);
       const claimToken=token();db.prepare('UPDATE name_claims SET claim_token_hash=?,updated=? WHERE name=? AND pubkey=?').run(hash(claimToken),Date.now(),name,event.pubkey);
       const current=await reconcileName(name),status=current?._status||null;
-      res.json({...view(current,{confirmations:Number(status?.confirmations||0),confirmationsRequired:Number(status?.confirmations_required||current.confirmations_required||2)}),claimToken});
+      const confirmations=current.state==='ACTIVE'?Number(current.confirmations_required||status?.confirmations||0):Number(status?.confirmations||0);
+      res.json({...view(current,{confirmations,confirmationsRequired:Number(status?.confirmations_required||current.confirmations_required||2)}),claimToken});
     }catch(error){next(error);}
   });
 

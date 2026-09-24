@@ -24,6 +24,7 @@ export function loadConfig(env = process.env) {
     const origins=list(env.FED_HOUSE_ALLOWED_ORIGINS||[base.origin,'https://app.glowstr.local',fedBase.origin].join(','));
     const pollSeconds=Number(env.FED_HOUSE_POLL_SECONDS||10);
     if(!Number.isInteger(pollSeconds)||pollSeconds<5||pollSeconds>300)throw new Error('FED_HOUSE_POLL_SECONDS must be 5–300');
+    if(!env.CROSSPOST_COMMERCE_URL||!commerceToken)throw new Error('fed.house registration requires CROSSPOST_COMMERCE_URL and the Commerce admin token');
     fedHouse={enabled:true,domain:fedHouseDomain,base:fedBase.href.replace(/\/$/,''),origin:fedBase.origin,reservedNames:new Set(reserved.map(v=>v.toLowerCase())),allowedOrigins:new Set(origins),pollMs:pollSeconds*1000};
   }
   return { base:base.href.replace(/\/$/,''), origin:base.origin, secure:base.protocol === 'https:', cookiePath:base.pathname.replace(/\/$/,'') || '/', key,

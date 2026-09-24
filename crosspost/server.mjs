@@ -11,6 +11,7 @@ import { normalizePost, inspectPost, Problem, nostrContent, validateSignedNote }
 import { createPublisher, makeAPI, verifyConnection, DeliveryError } from './adapters.mjs';
 import { createWorker } from './worker.mjs';
 import { blueskyClientMetadata, startBlueskyOAuth, finishBlueskyOAuth, startStandardOAuth, finishStandardOAuth, revokeBluesky } from './oauth.mjs';
+import { installNameRegistry } from './names.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),cookieName='glowstr_crosspost';
 const cookieValue=req=>(req.headers.cookie||'').split(';').map(v=>v.trim()).find(v=>v.startsWith(cookieName+'='))?.slice(cookieName.length+1)||'';
 
@@ -21,6 +22,7 @@ export function createService(config,dependencies={}){
   app.use((_req,res,next)=>{res.set({'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Permissions-Policy':'camera=(), microphone=(), geolocation=()',
     'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'self'"});next();});
   app.use(express.json({limit:'12mb',verify(req,_res,bytes){req.rawBody=bytes;}}));
+  const nameWorker=installNameRegistry(app,config,store,fetcher);
   const sameOrigin=(req,_res,next)=>req.headers.origin===config.origin?next():next(new Problem('Request origin does not match this service',403));
   const auth=(req,_res,next)=>{const session=db.prepare('SELECT * FROM sessions WHERE id=? AND expires>?').get(hash(cookieValue(req)),Date.now());if(!session||!config.allowed.has(session.owner))return next(new Problem('Sign in with an allowed Nostr key',401));req.session=session;next();};
   const csrf=(req,res,next)=>sameOrigin(req,res,error=>{if(error)return next(error);if(req.headers['x-csrf-token']!==req.session.csrf)return next(new Problem('Session check failed; sign in again',403));next();});
@@ -163,9 +165,9 @@ export function createService(config,dependencies={}){
   app.get('/media/:name',(req,res)=>{if(!/^[a-f0-9]{64}\.jpg$/.test(req.params.name))throw new Problem('Image not found',404);const row=db.prepare('SELECT id FROM media WHERE id=? AND public=1').get(req.params.name.slice(0,-4));if(!row)throw new Problem('Image not found',404);res.sendFile(resolve(config.data,'media',row.id+'.jpg'));});
   app.use(express.static(join(here,'public'),{dotfiles:'deny'}));app.use((_req,_res,next)=>next(new Problem('Not found',404)));
   app.use((error,_req,res,_next)=>{const status=error instanceof Problem?error.status:error instanceof DeliveryError?502:error.type==='entity.too.large'?413:error instanceof SyntaxError?400:500;res.status(status).json({error:error instanceof Problem||error instanceof DeliveryError?error.message:status===413?'Request too large':status===400?'Invalid JSON':'Server could not complete this request'});});
-  return {app,store,worker};
+  return {app,store,worker,nameWorker};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
-  process.umask(0o077);const config=loadConfig(),service=createService(config);const server=service.app.listen(config.port,config.host,()=>console.log(`Crosspost listening on ${config.host}:${config.port}; preview-only=${config.previewOnly}`));service.worker.start();
-  for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>{service.worker.stop();server.close(()=>process.exit(0));});
+  process.umask(0o077);const config=loadConfig(),service=createService(config);const server=service.app.listen(config.port,config.host,()=>console.log(`Crosspost listening on ${config.host}:${config.port}; preview-only=${config.previewOnly}; fed.house=${config.fedHouse?.enabled?'on':'off'}`));service.worker.start();service.nameWorker.start();
+  for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>{service.worker.stop();service.nameWorker.stop();server.close(()=>process.exit(0));});
 }

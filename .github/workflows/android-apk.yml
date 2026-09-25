@@ -87,7 +87,7 @@ jobs:
             gh release create "${TAG}" \
               --target "${GITHUB_SHA}" \
               --title "Glowstr Android ${VERSION}" \
-              --notes "Android debug build of Glowstr ${VERSION}. Adds offline Nostr pubkey QR generation and native camera scanning with follow confirmation, alongside direct Bluetooth note delivery and native Amber/NIP-55 signing."
+              --notes "Android debug build of Glowstr ${VERSION}. Hotfixes the QR scanner camera lifecycle crash, improves scan reliability, and replaces the old bitmap QR with a clean vector Nostr pubkey QR."
           fi
 
           gh release upload "${TAG}" "${APK}" "${SUM}" --clobber

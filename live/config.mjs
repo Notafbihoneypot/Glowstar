@@ -10,7 +10,7 @@ export function loadConfig(env=process.env){
   const publicURL=new URL(env.LIVE_PUBLIC_URL||'http://127.0.0.1:8090/live');
   if(publicURL.search||publicURL.hash)throw new Error('LIVE_PUBLIC_URL must not contain query or fragment');
   const allowed=list(env.LIVE_ALLOWED_PUBKEYS).map(x=>x.toLowerCase());
-  if(!allowed.length||allowed.some(x=>!/^[0-9a-f]{64}$/.test(x)))throw new Error('Set LIVE_ALLOWED_PUBKEYS to one or more 64-character hex Nostr pubkeys');
+  if(allowed.length!==1||allowed.some(x=>!/^[0-9a-f]{64}$/.test(x)))throw new Error('Glowstr Live MVP requires exactly one 64-character hex creator pubkey because it uses one XMR receiving wallet');
   const key=secret(env,'LIVE_ENCRYPTION_KEY');
   if(!/^[0-9a-f]{64}$/i.test(key))throw new Error('Set LIVE_ENCRYPTION_KEY to 32 bytes encoded as 64 hex characters');
   const port=Number(env.LIVE_PORT||8090);

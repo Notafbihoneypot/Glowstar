@@ -1,10 +1,8 @@
-import WebSocket from 'ws';
-
 export async function publishToRelays(relays,event,timeoutMs=4000){
   const results=await Promise.all(relays.map(url=>new Promise(resolve=>{
     let done=false;
     const finish=value=>{if(done)return;done=true;clearTimeout(timer);try{ws.close();}catch{}resolve({url,...value});};
-    const ws=new WebSocket(url);
+    const ws=new globalThis.WebSocket(url);
     const timer=setTimeout(()=>finish({ok:false,error:'timeout'}),timeoutMs);
     ws.on('open',()=>ws.send(JSON.stringify(['EVENT',event])));
     ws.on('message',raw=>{

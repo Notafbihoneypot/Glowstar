@@ -150,9 +150,15 @@ public final class AndroidBridge {
                 }
             }
 
+            // Keep each QR module an exact integer number of CSS pixels.
+            // This avoids screen/camera moire caused by fractional resampling.
+            int moduleScale = 8;
+            int pixelWidth = width * moduleScale;
+            int pixelHeight = height * moduleScale;
             String svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 "
                     + width + " " + height
-                    + "\" width=\"512\" height=\"512\" shape-rendering=\"crispEdges\">"
+                    + "\" width=\"" + pixelWidth + "\" height=\"" + pixelHeight
+                    + "\" shape-rendering=\"crispEdges\">"
                     + "<rect width=\"100%\" height=\"100%\" fill=\"white\"/>"
                     + "<path d=\"" + path + "\" fill=\"black\"/>"
                     + "</svg>";

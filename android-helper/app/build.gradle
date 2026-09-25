@@ -10,8 +10,8 @@ android {
         applicationId 'org.glowstr.meshbridge'
         minSdk 29
         targetSdk 36
-        versionCode 15
-        versionName '0.3.3'
+        versionCode 16
+        versionName '0.3.4'
     }
 
     buildTypes {
@@ -75,7 +75,7 @@ def syncGlowstrAsset = tasks.register('syncGlowstrAsset', Copy) {
       <button class="top-friends-titlebar-btn" id="nostr-qr-modal-close" type="button">X</button>
     </div>
     <div class="top8-modal-body" style="text-align:center;">
-      <img id="nostr-qr-image" alt="Nostr pubkey QR" style="display:none;width:min(82vw,340px);max-width:340px;height:auto;aspect-ratio:1/1;background:#fff;padding:0;border:12px solid #fff;border-radius:8px;margin:4px auto 14px;image-rendering:auto;" />
+      <img id="nostr-qr-image" alt="Nostr pubkey QR" style="display:none;width:auto;max-width:90vw;height:auto;aspect-ratio:1/1;background:#fff;padding:0;border:10px solid #fff;border-radius:6px;margin:4px auto 14px;image-rendering:auto;" />
       <div id="nostr-qr-profile" style="font-family:var(--font-display);font-size:1rem;color:var(--xmr-orange);margin-bottom:8px;"></div>
       <div id="nostr-qr-value" style="font-family:var(--font-mono);font-size:.82rem;color:var(--xmr-text-dim);word-break:break-all;line-height:1.5;padding:8px;border:1px solid var(--xmr-gray);background:var(--xmr-darker);"></div>
       <div id="nostr-qr-help" style="font-family:var(--font-retro);font-size:.88rem;color:var(--xmr-text-dim);line-height:1.45;margin:10px 0;"></div>
@@ -250,7 +250,9 @@ if (window.GlowstrAndroid &&
       return;
     }
     const npub = glowstrHexPubkeyToNpub(state.publicKey);
-    const payload = 'nostr:' + npub;
+    // Uppercase keeps the QR in alphanumeric mode instead of byte mode.
+    // Bech32 is valid in all-upper or all-lower case, never mixed case.
+    const payload = ('NOSTR:' + npub).toUpperCase();
     const dataUrl = window.GlowstrAndroid.makeNostrQrDataUrl(payload);
     if (!dataUrl) { showToast('Could not generate QR code'); return; }
     __glowstrQrOpenBase('MY FOLLOW QR');
@@ -262,7 +264,7 @@ if (window.GlowstrAndroid &&
       profile.display_name || profile.name || 'Your Nostr identity';
     document.getElementById('nostr-qr-value').textContent = npub;
     document.getElementById('nostr-qr-help').textContent =
-      'Standard Nostr follow QR · nostr:' + npub.slice(0,18) + '… · works offline.';
+      'Low-density Nostr follow QR · optimized for phone-to-phone scanning · works offline.';
     const copy = document.createElement('button');
     copy.className = 'btn btn-small';
     copy.textContent = 'COPY NPUB';

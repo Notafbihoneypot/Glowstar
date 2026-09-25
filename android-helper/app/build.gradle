@@ -10,8 +10,8 @@ android {
         applicationId 'org.glowstr.meshbridge'
         minSdk 29
         targetSdk 36
-        versionCode 12
-        versionName '0.3.0'
+        versionCode 13
+        versionName '0.3.1'
     }
 
     buildTypes {
@@ -99,12 +99,24 @@ def syncGlowstrAsset = tasks.register('syncGlowstrAsset', Copy) {
         if (!text.contains(oldNotificationTail)) throw new GradleException('Could not locate notification insertion point')
         text = text.replace(oldNotificationTail, newNotificationTail)
 
+        def oldMeshSend = '''async function glowstrMeshSendComposer(){if(!glowstrMeshConnected()){showToast('Connect Meshtastic, Reticulum, or Bluetooth Direct in RELAYS → LOCAL MESH first');switchView('relays');return;}if(!state.publicKey){showToast('Choose a signer first');switchView('keys');return;}if(state.signerMethod==='amber-nip55'){showToast('Direct mesh send needs an inline signer. Use Amber NIP-46, NIP-07, or a local key.');return;}const input=document.getElementById('compose-input'),content=input?.value?.trim()||'';if(!content){showToast('Write a note first');return;}const reply=glowstrCloneReplyContext(state.replyTo),tpl=glowstrBuildQueuedTemplate({content,replyTo:reply});let signed;try{signed=await signEventUniversal(tpl);if(!signed)throw new Error('Signer did not return an event');}catch(e){showToast('Mesh signing failed: '+(e.message||e));return;}const jobs=[];if(glowstrMesh.meshtastic.ready)jobs.push(['Meshtastic',glowstrMeshtasticSendEvent(signed)]);if(glowstrMesh.reticulum.ready)jobs.push(['Reticulum',glowstrReticulumSendEvent(signed)]);if(glowstrMesh.bluetooth.ready)jobs.push(['Bluetooth Direct',glowstrBluetoothSendEvent(signed)]);const res=await Promise.allSettled(jobs.map(x=>x[1]));const ok=res.filter(x=>x.status==='fulfilled').length;if(!ok){showToast('Mesh send failed: '+res.map(x=>x.reason?.message||'error').join(' · '));return;}await acceptVerifiedRelayEvent(signed,'mesh://local');const prefs=glowstrMeshSavePrefs();if(prefs.queueInternet){try{await glowstrQueueDraftRecord({content,replyTo:reply,status:'queued'});}catch(e){console.warn('Could not queue mesh note for later relay publish',e);}}glowstrClearComposerAfterLocalSave();showToast('📡 Handed to '+ok+' mesh transport'+(ok===1?'':'s')+(prefs.queueInternet?' · queued for Internet later':''));}'''
+        def newMeshSend = '''async function glowstrMeshSendComposer(){if(!glowstrMeshConnected()){showToast('Connect Meshtastic, Reticulum, or Bluetooth Direct in RELAYS → LOCAL MESH first');switchView('relays');return;}if(!state.publicKey){showToast('Choose a signer first');switchView('keys');return;}const input=document.getElementById('compose-input'),content=input?.value?.trim()||'';if(!content){showToast('Write a note first');return;}const reply=glowstrCloneReplyContext(state.replyTo),tpl=glowstrBuildQueuedTemplate({content,replyTo:reply});let signed;try{if(state.signerMethod==='amber-nip55'&&typeof window.glowstrAmberSignForMesh==='function'){signed=await window.glowstrAmberSignForMesh(tpl);}else{signed=await signEventUniversal(tpl);}if(!signed)throw new Error('Signer did not return an event');}catch(e){showToast('Mesh signing failed: '+(e.message||e));return;}const jobs=[];if(glowstrMesh.meshtastic.ready)jobs.push(['Meshtastic',glowstrMeshtasticSendEvent(signed)]);if(glowstrMesh.reticulum.ready)jobs.push(['Reticulum',glowstrReticulumSendEvent(signed)]);if(glowstrMesh.bluetooth.ready)jobs.push(['Bluetooth Direct',glowstrBluetoothSendEvent(signed)]);const res=await Promise.allSettled(jobs.map(x=>x[1]));const ok=res.filter(x=>x.status==='fulfilled').length;if(!ok){showToast('Mesh send failed: '+res.map(x=>x.reason?.message||'error').join(' · '));return;}await acceptVerifiedRelayEvent(signed,'mesh://local');const prefs=glowstrMeshSavePrefs();if(prefs.queueInternet){try{await glowstrQueueDraftRecord({content,replyTo:reply,status:'queued'});}catch(e){console.warn('Could not queue mesh note for later relay publish',e);}}glowstrClearComposerAfterLocalSave();showToast('📡 Handed to '+ok+' mesh transport'+(ok===1?'':'s')+(prefs.queueInternet?' · queued for Internet later':''));}'''
+        if (!text.contains(oldMeshSend)) throw new GradleException('Could not locate Bluetooth mesh composer')
+        text = text.replace(oldMeshSend, newMeshSend)
+
+        def oldBtSend = '''async function glowstrBluetoothSendEvent(event){if(!glowstrMesh.bluetooth.ready)throw new Error('Bluetooth Direct helper is not connected');const hops=glowstrMeshSavePrefs().btHops||5;const x=await glowstrBtFetch('/v1/send',{method:'POST',body:{event,hops},timeout:10000});const n=Math.max(0,Number(x.peers_sent)||0);glowstrMeshSetStatus('bluetooth',n?('READY · SENT TO '+n+' PEER'+(n===1?'':'S')):'READY · STORED · WAITING FOR PEER','good');return x;}'''
+        def newBtSend = '''async function glowstrBluetoothSendEvent(event){if(!glowstrMesh.bluetooth.ready)throw new Error('Bluetooth Direct helper is not connected');const x=await glowstrBtFetch('/v1/send',{method:'POST',body:{event,hops:1},timeout:10000});const n=Math.max(0,Number(x.peers_sent)||0);if(!n){glowstrMeshSetStatus('bluetooth','READY · STORED · WAITING FOR PEER','good');return x;}glowstrMeshSetStatus('bluetooth','READY · SENT · WAITING FOR ACK','good');for(let i=0;i<12;i++){await new Promise(r=>setTimeout(r,250));try{const d=await glowstrBtFetch('/v1/delivery?id='+encodeURIComponent(event.id),{timeout:2500});if(d?.delivered){const a=Math.max(1,Number(d.acks)||1);glowstrMeshSetStatus('bluetooth','READY · DELIVERED TO '+a+' PEER'+(a===1?'':'S'),'good');x.delivery=d;break;}}catch(e){}}return x;}'''
+        if (!text.contains(oldBtSend)) throw new GradleException('Could not locate Bluetooth send function')
+        text = text.replace(oldBtSend, newBtSend)
+
         def nativeAmber = '''
 // === ANDROID NATIVE NIP-55 + STORE-AND-FORWARD QUEUE ===
 if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 'function') {
   let __glowstrAmberPoll = null;
   let __glowstrAmberBusy = false;
   let __glowstrAmberMode = null;
+  let __glowstrMeshResolve = null;
+  let __glowstrMeshReject = null;
   let __glowstrQueueDrainActive = false;
   let __glowstrQueuePendingId = null;
   let __glowstrQueuePauseUntil = 0;
@@ -114,6 +126,22 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
     if (__glowstrAmberPoll) clearInterval(__glowstrAmberPoll);
     __glowstrAmberPoll = null;
   }
+
+  function __glowstrFinishMeshSigning(error, signed) {
+    const resolve = __glowstrMeshResolve;
+    const reject = __glowstrMeshReject;
+    __glowstrMeshResolve = null;
+    __glowstrMeshReject = null;
+    __glowstrAmberBusy = false;
+    __glowstrAmberMode = null;
+    document.getElementById('signing-indicator')?.classList.remove('active');
+    if (error) {
+      if (reject) reject(error instanceof Error ? error : new Error(String(error)));
+    } else if (resolve) {
+      resolve(signed);
+    }
+  }
+
 
   function __glowstrQueuePause(ms, message) {
     __glowstrQueuePauseUntil = Date.now() + Math.max(0, Number(ms) || 0);
@@ -249,6 +277,7 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
         if (attempts > 480) {
           __glowstrStopAmberPoll();
           if (mode === 'queue') __glowstrQueuePause(30000, 'Amber timed out — note remains queued');
+          else if (mode === 'mesh') __glowstrFinishMeshSigning(new Error('Amber timed out'));
           else {
             __glowstrAmberBusy = false;
             __glowstrAmberMode = null;
@@ -263,6 +292,7 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
       try { data = JSON.parse(raw); }
       catch(e) {
         if (mode === 'queue') __glowstrQueuePause(30000, 'Amber returned invalid data — note remains queued');
+        else if (mode === 'mesh') __glowstrFinishMeshSigning(new Error('Amber returned invalid Android result'));
         else { __glowstrAmberBusy = false; showToast('Amber returned invalid Android result'); }
         return;
       }
@@ -270,11 +300,13 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
       document.getElementById('signing-indicator')?.classList.remove('active');
       if (data.rejected) {
         if (mode === 'queue') __glowstrQueuePause(5 * 60 * 1000, 'Amber rejected it — note remains queued');
+        else if (mode === 'mesh') __glowstrFinishMeshSigning(new Error('Amber request rejected'));
         else { __glowstrAmberBusy = false; __glowstrAmberMode = null; showToast('Amber request rejected'); }
         return;
       }
       if (!data.ok) {
         if (mode === 'queue') __glowstrQueuePause(30000, data.error || 'Amber failed — note remains queued');
+        else if (mode === 'mesh') __glowstrFinishMeshSigning(new Error(data.error || 'Amber request failed'));
         else { __glowstrAmberBusy = false; __glowstrAmberMode = null; showToast(data.error || 'Amber request failed'); }
         return;
       }
@@ -298,6 +330,7 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
         const requested = glowstrTakeAmberPendingEvent();
         if (!requested) {
           if (mode === 'queue') __glowstrQueuePause(30000, 'Amber signing request expired — note remains queued');
+          else if (mode === 'mesh') __glowstrFinishMeshSigning(new Error('Amber signing request expired'));
           else { __glowstrAmberBusy = false; __glowstrAmberMode = null; showToast('Amber signing request expired'); }
           return;
         }
@@ -305,11 +338,14 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
           const signed = JSON.parse(String(data.event || ''));
           if (!(signed.sig && signed.id && await glowstrValidateSignerResult(requested, signed))) {
             if (mode === 'queue') __glowstrQueuePause(5 * 60 * 1000, 'Amber returned a mismatched event — note remains queued');
+            else if (mode === 'mesh') __glowstrFinishMeshSigning(new Error('Amber returned a mismatched signed event'));
             else { __glowstrAmberBusy = false; __glowstrAmberMode = null; showToast('Amber returned a mismatched signed event'); }
             return;
           }
           if (mode === 'queue') {
             await __glowstrFinishQueuedSignedEvent(signed, requested);
+          } else if (mode === 'mesh') {
+            __glowstrFinishMeshSigning(null, signed);
           } else {
             __glowstrAmberBusy = false;
             __glowstrAmberMode = null;
@@ -340,6 +376,7 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
           }
         } catch(e) {
           if (mode === 'queue') __glowstrQueuePause(30000, 'Could not process Amber result — note remains queued');
+          else if (mode === 'mesh') __glowstrFinishMeshSigning(new Error('Could not parse Amber signed event'));
           else { __glowstrAmberBusy = false; __glowstrAmberMode = null; showToast('Could not parse Amber signed event'); }
         }
       }
@@ -392,6 +429,40 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
       document.getElementById('signing-indicator')?.classList.remove('active');
       showToast('Amber signing failed: ' + (e.message || e));
     }
+  };
+
+  window.glowstrAmberSignForMesh = function(event) {
+    return new Promise((resolve, reject) => {
+      if (__glowstrAmberBusy || __glowstrQueueDrainActive) {
+        reject(new Error('Amber is already handling another request'));
+        return;
+      }
+      let requested;
+      try {
+        requested = typeof event === 'string' ? JSON.parse(event) : event;
+        if (!requested || typeof requested !== 'object') throw new Error('Invalid event');
+        requested.pubkey = state.publicKey;
+        glowstrSaveAmberPendingEvent(requested);
+      } catch(e) {
+        reject(new Error('Invalid Amber event request'));
+        return;
+      }
+      __glowstrMeshResolve = resolve;
+      __glowstrMeshReject = reject;
+      __glowstrAmberBusy = true;
+      __glowstrAmberMode = 'mesh';
+      document.getElementById('signing-indicator')?.classList.add('active');
+      try {
+        if (!window.GlowstrAndroid.amberApproveEvent(JSON.stringify(requested))) {
+          __glowstrFinishMeshSigning(new Error('Could not open Amber signer'));
+          return;
+        }
+        showToast('Offline note ready — approve it in Amber');
+        __glowstrStartAmberPoll('mesh');
+      } catch(e) {
+        __glowstrFinishMeshSigning(new Error('Amber signing failed: ' + (e.message || e)));
+      }
+    });
   };
 
   // Manual queue button becomes an explicit retry/resume control for Amber.

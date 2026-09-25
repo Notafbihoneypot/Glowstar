@@ -98,7 +98,7 @@ final class LocalHttpServer {
         if ("POST".equals(r.method) && "/v1/send".equals(r.path)) {
             JSONObject body = new JSONObject(new String(r.body, StandardCharsets.UTF_8));
             JSONObject event = body.optJSONObject("event");
-            int hops = Protocol.boundedHops(body.optInt("hops", Protocol.DEFAULT_HOPS));
+            int hops = 1;
             Protocol.validatePublicEvent(event);
             int peers = mesh.sendLocal(event, hops);
             writeJson(out, 200, new JSONObject()
@@ -106,7 +106,14 @@ final class LocalHttpServer {
                     .put("event_id", event.getString("id"))
                     .put("peers_sent", peers)
                     .put("stored", true)
-                    .put("hops", hops));
+                    .put("direct_only", true)
+                    .put("hops", hops)
+                    .put("delivery", mesh.deliverySnapshot(event.getString("id"))));
+            return;
+        }
+        if ("GET".equals(r.method) && "/v1/delivery".equals(r.path)) {
+            String eventId = r.query.get("id");
+            writeJson(out, 200, mesh.deliverySnapshot(eventId == null ? "" : eventId));
             return;
         }
         if ("POST".equals(r.method) && "/v1/rescan".equals(r.path)) {

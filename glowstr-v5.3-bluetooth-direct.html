@@ -6362,12 +6362,13 @@ function handleEvent(event, relayUrl) {
       state._cachedAuthors = null;
     }
 
-    // Only render if it matches current feed mode
-    if (glowstrFeedVisibleEvent(event)) {
+    // Only render/request metadata for notes that survive the active feed filter.
+    const visibleInFeed = glowstrFeedVisibleEvent(event);
+    if (visibleInFeed) {
       bufferOrRenderNote(event);
     }
     updateFeedCount();
-    if (!state.profiles[event.pubkey]) requestProfile(event.pubkey);
+    if (visibleInFeed && !state.profiles[event.pubkey]) requestProfile(event.pubkey);
 
     // Notifications: detect replies and mentions targeting me
     if (state.publicKey && event.pubkey !== state.publicKey) {
@@ -7056,8 +7057,8 @@ function renderNote(ev, prepend) {
 
   if (prepend) container.insertBefore(el, container.firstChild); else container.appendChild(el);
 
-  // Update sidebars periodically (throttled)
-  if (state.eventCount % 10 === 0) updateSidebars();
+  // Coalesce sidebar work during event bursts.
+  if (state.eventCount % 10 === 0) glowstrScheduleSidebars();
 }
 
 function scrollToNote(noteId) {
@@ -7068,6 +7069,14 @@ function scrollToNote(noteId) {
 
 // Cached counters (rebuilt every 15s to avoid recomputing on every updateSidebars call)
 const _statsCache = { _ts: 0, followers: {}, reactions: {}, wot: { trusted: 0, fof: 0, unknown: 0 } };
+let _glowstrSidebarTimer = 0;
+function glowstrScheduleSidebars(delay=500) {
+  if (_glowstrSidebarTimer) return;
+  _glowstrSidebarTimer = setTimeout(() => {
+    _glowstrSidebarTimer = 0;
+    if (document.getElementById('view-feed')?.classList.contains('active')) updateSidebars();
+  }, delay);
+}
 
 function updateSidebars() {
   // Left sidebar: user profile
@@ -7275,17 +7284,17 @@ function renderRelayList() {
   updateTorStatus();
 }
 
-let _glowstrFeedCountRaf = 0;
+let _glowstrFeedCountTimer = 0;
 function updateFeedCount() {
-  if (_glowstrFeedCountRaf) return;
-  _glowstrFeedCountRaf = requestAnimationFrame(() => {
-    _glowstrFeedCountRaf = 0;
+  if (_glowstrFeedCountTimer) return;
+  _glowstrFeedCountTimer = setTimeout(() => {
+    _glowstrFeedCountTimer = 0;
     const selected = glowstrSelectVisibleFeedEvents();
     const count = selected.length;
     const el = document.getElementById('feed-count');
     if (el) el.textContent = count + ' NOTES';
     glowstrUpdateFeedFilterUi();
-  });
+  }, 180);
 }
 
 function updateRelayIndicator() {
@@ -7449,6 +7458,7 @@ function clearNotifs() {
 }
 
 function showActionLegendIfFirstVisit() {
+  if (typeof glowstrUsesMobileShell === 'function' && glowstrUsesMobileShell()) return;
   try {
     if (localStorage.getItem('glowstr_action_legend_dismissed') === 'yes') return;
   } catch(e) {}
@@ -13046,7 +13056,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('boot-screen').style.display = 'none';
       document.getElementById('app').classList.add('visible');
       // Init directly — relays connect instantly
-      preloadCrypto(); checkAmberCallback(); loadSavedState(); loadBookmarks(); loadProfileCache();
+      preloadCrypto(); checkAmberCallback(); loadSavedState(); glowstrLoadFeedFilterPrefs(); loadBookmarks(); loadProfileCache();
       const relayUrls = Object.keys(state.relays).length > 0 ? Object.keys(state.relays) : DEFAULT_RELAYS;
       relayUrls.forEach(url => connectRelay(url));
       initApp();

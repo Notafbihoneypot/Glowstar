@@ -51,7 +51,13 @@ def xmr_usd_price():
  _price_cache["value"]=price; _price_cache["until"]=now+PRICE_CACHE_SECONDS
  return price
 
-def feature_amount(spec):
+def feature_amount(spec,requested=None):
+ if spec.get("dynamic_amount"):
+  try: amount=int(requested)
+  except (TypeError,ValueError): raise RuntimeError("dynamic invoice amount is required")
+  minimum=int(spec.get("min_atomic",1)); maximum=int(spec.get("max_atomic",100*ATOMIC))
+  if amount<minimum or amount>maximum: raise RuntimeError("dynamic invoice amount is outside allowed range")
+  return amount,None
  if spec.get("usd_cents"):
   price=xmr_usd_price()
   usd=Decimal(int(spec["usd_cents"]))/Decimal(100)
@@ -73,6 +79,7 @@ FEATURES={
  "creator_30d": {"amount": 10000000000, "seconds":30*86400, "label":"creator support / 30 days"},
  "crosspost_30d": {"amount": env_atomic("GLOWSTR_XMR_CROSSPOST_30D_ATOMIC",20000000000), "seconds":30*86400, "label":"Glowstr Crosspost / 30 days"},
  "fed_house_name": {"amount":None, "usd_cents":FED_HOUSE_USD_CENTS, "seconds":0, "label":"fed.house permanent NIP-05 name", "internal":True, "strict_expiry":True},
+ "live_tip": {"amount":None, "dynamic_amount":True, "min_atomic":100000000, "max_atomic":100000000000000, "seconds":0, "label":"Glowstr Live tip", "internal":True},
 }
 
 def db():
@@ -175,12 +182,12 @@ class H(BaseHTTPRequestHandler):
    if feature not in FEATURES: return self.out({"error":"unknown_feature","features":FEATURES},400)
    spec=FEATURES[feature]
    if spec.get("internal") and (not ADMIN_TOKEN or not secrets.compare_digest(self.headers.get("Authorization",""),"Bearer "+ADMIN_TOKEN)): return self.out({"error":"unauthorized"},401)
-   inv=secrets.token_urlsafe(18); token=secrets.token_urlsafe(32); now=int(time.time()); amount,quote_price=feature_amount(spec)
+   inv=secrets.token_urlsafe(18); token=secrets.token_urlsafe(32); now=int(time.time()); amount,quote_price=feature_amount(spec,p.get("amount_atomic"))
    c=db()
    c.execute("DELETE FROM invoices WHERE status!='PAID' AND expires_at<?",(now-7*86400,))
    if c.execute("SELECT COUNT(*) FROM invoices WHERE created_at>?",(now-3600,)).fetchone()[0]>=MAX_INVOICES_PER_HOUR:
     c.commit(); return self.out({"error":"invoice_rate_limited"},429)
-   if c.execute("SELECT COUNT(*) FROM invoices WHERE pubkey=? AND status!='PAID' AND expires_at>?",(pubkey,now)).fetchone()[0]>=MAX_PENDING_PER_PUBKEY:
+   if not spec.get("dynamic_amount") and c.execute("SELECT COUNT(*) FROM invoices WHERE pubkey=? AND status!='PAID' AND expires_at>?",(pubkey,now)).fetchone()[0]>=MAX_PENDING_PER_PUBKEY:
     c.commit(); return self.out({"error":"too_many_pending_invoices"},429)
    a=rpc("create_address",{"account_index":ACCOUNT,"label":"glowstr:"+inv,"count":1})
    address=a.get("address") or (a.get("addresses") or [None])[0]; idx=a.get("address_index")

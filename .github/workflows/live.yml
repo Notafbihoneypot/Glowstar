@@ -35,7 +35,14 @@ jobs:
       - name: Test Live service
         run: npm test
         working-directory: live
+      - name: Validate browser JavaScript
+        run: node --check public/app.js
+        working-directory: live
       - name: Validate Commerce
         run: python3 -m py_compile monero-commerce/server.py
+      - name: Validate MediaMTX configuration
+        run: docker run --rm -v "$PWD/deploy/live/mediamtx.yml:/mediamtx.yml:ro" docker.io/bluenviron/mediamtx:1.21.1 --validate-conf=/mediamtx.yml
+      - name: Build Live container
+        run: docker build -t glowstr-live-ci live
       - name: Validate deploy scripts
         run: bash -n deploy/glowstr-light-deploy.sh

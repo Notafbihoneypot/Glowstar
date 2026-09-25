@@ -93,30 +93,24 @@ public final class QrScanActivity extends Activity {
 
     private void finishSuccess(String text) {
         if (!finished.compareAndSet(false, true)) return;
-        writeResult(new JSONObject()
-                .put("ok", true)
-                .put("text", text));
+        writeResultString("{\"ok\":true,\"text\":" + JSONObject.quote(text) + "}");
         finish();
     }
 
     private void finishError(String message) {
         if (!finished.compareAndSet(false, true)) return;
-        writeResult(new JSONObject()
-                .put("ok", false)
-                .put("error", message));
+        writeResultString("{\"ok\":false,\"error\":" + JSONObject.quote(message) + "}");
         finish();
     }
 
     private void finishCancelled() {
         if (!finished.compareAndSet(false, true)) return;
-        writeResult(new JSONObject()
-                .put("ok", false)
-                .put("cancelled", true));
+        writeResultString("{\"ok\":false,\"cancelled\":true}");
         finish();
     }
 
-    private void writeResult(JSONObject json) {
+    private void writeResultString(String json) {
         getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .edit().putString(KEY_RESULT, json.toString()).apply();
+                .edit().putString(KEY_RESULT, json).apply();
     }
 }

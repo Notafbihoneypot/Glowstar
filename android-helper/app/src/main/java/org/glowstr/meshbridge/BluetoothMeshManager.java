@@ -27,6 +27,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.ParcelUuid;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
@@ -39,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -64,11 +66,14 @@ final class BluetoothMeshManager {
     private final Map<String, PeerConnection> peers = new ConcurrentHashMap<>();
     private final Map<String, Long> connectCooldown = new ConcurrentHashMap<>();
     private final Map<String, BluetoothGatt> pendingGatt = new ConcurrentHashMap<>();
+    private final Map<String, DeliveryState> deliveries = new ConcurrentHashMap<>();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicInteger liveSessions = new AtomicInteger(0);
     private final AtomicInteger scanEpoch = new AtomicInteger(0);
     private static final int MAX_LIVE_SESSIONS = 12;
     private static final int MAX_PENDING_GATT = 8;
+    private static final int MAX_DELIVERY_STATES = 256;
+    private static final long DELIVERY_STATE_TTL_MS = 10L * 60 * 1000;
 
     private final String nodeId;
     private BluetoothServerSocket l2capServer;
@@ -159,11 +164,84 @@ final class BluetoothMeshManager {
     int sendLocal(JSONObject event, int hops) throws Exception {
         Protocol.validatePublicEvent(event);
         int bounded = Protocol.boundedHops(hops <= 0 ? Protocol.DEFAULT_HOPS : hops);
+        String eventId = event.getString("id");
         store.upsert(event, "bluetooth-local", bounded);
+        ensureDeliveryState(eventId);
         int sent = 0;
         JSONObject envelope = Protocol.envelope(event, bounded);
-        for (PeerConnection p : peers.values()) if (p.send(envelope)) sent++;
+        for (PeerConnection p : peers.values()) {
+            noteAttempt(eventId, p.remoteNode);
+            if (p.send(envelope)) sent++;
+        }
         return sent;
+    }
+
+    JSONObject deliverySnapshot(String eventId) throws Exception {
+        if (!Protocol.isHex(eventId, 64)) throw new IOException("invalid event id");
+        pruneDeliveries();
+        DeliveryState state = deliveries.get(eventId);
+        JSONArray ackedBy = new JSONArray();
+        JSONArray targeted = new JSONArray();
+        if (state != null) {
+            for (String node : state.acked) ackedBy.put(node);
+            for (String node : state.targets) targeted.put(node);
+        }
+        int targetCount = state == null ? 0 : state.targets.size();
+        int ackCount = state == null ? 0 : state.acked.size();
+        return new JSONObject()
+                .put("ok", true)
+                .put("event_id", eventId)
+                .put("known", state != null)
+                .put("delivered", ackCount > 0)
+                .put("peers_targeted", targetCount)
+                .put("acks", ackCount)
+                .put("pending", Math.max(0, targetCount - ackCount))
+                .put("targeted_peers", targeted)
+                .put("acked_by", ackedBy)
+                .put("updated_at", state == null ? 0 : state.updatedAt);
+    }
+
+    private DeliveryState ensureDeliveryState(String eventId) {
+        pruneDeliveries();
+        DeliveryState existing = deliveries.get(eventId);
+        if (existing != null) return existing;
+        if (deliveries.size() >= MAX_DELIVERY_STATES) {
+            String oldestKey = null;
+            long oldest = Long.MAX_VALUE;
+            for (Map.Entry<String, DeliveryState> e : deliveries.entrySet()) {
+                if (e.getValue().updatedAt < oldest) {
+                    oldest = e.getValue().updatedAt;
+                    oldestKey = e.getKey();
+                }
+            }
+            if (oldestKey != null) deliveries.remove(oldestKey);
+        }
+        DeliveryState created = new DeliveryState();
+        DeliveryState raced = deliveries.putIfAbsent(eventId, created);
+        return raced == null ? created : raced;
+    }
+
+    private void noteAttempt(String eventId, String peerNode) {
+        if (!Protocol.isHex(eventId, 64) || !Protocol.isHex(peerNode, 16)) return;
+        DeliveryState state = ensureDeliveryState(eventId);
+        state.targets.add(peerNode);
+        state.updatedAt = System.currentTimeMillis();
+    }
+
+    private void recordAck(String eventId, String peerNode) {
+        if (!Protocol.isHex(eventId, 64) || !Protocol.isHex(peerNode, 16)) return;
+        DeliveryState state = ensureDeliveryState(eventId);
+        state.targets.add(peerNode);
+        state.acked.add(peerNode);
+        state.updatedAt = System.currentTimeMillis();
+        changed();
+    }
+
+    private void pruneDeliveries() {
+        long cutoff = System.currentTimeMillis() - DELIVERY_STATE_TTL_MS;
+        for (Map.Entry<String, DeliveryState> e : new ArrayList<>(deliveries.entrySet())) {
+            if (e.getValue().updatedAt < cutoff) deliveries.remove(e.getKey(), e.getValue());
+        }
     }
 
     void restartScan() {
@@ -386,7 +464,10 @@ final class BluetoothMeshManager {
             for (EventStore.Row row : store.recentForwardable(50)) {
                 if (!peer.alive.get()) break;
                 try {
-                    if (row.hops > 0) peer.send(Protocol.envelope(row.event, row.hops));
+                    if (row.hops > 0) {
+                        noteAttempt(row.eventId, peer.remoteNode);
+                        peer.send(Protocol.envelope(row.event, row.hops));
+                    }
                     sleep(35);
                 } catch (Exception ignored) {}
             }
@@ -400,8 +481,15 @@ final class BluetoothMeshManager {
 
     private void onPeerEvent(PeerConnection from, JSONObject event, int inboundHops) throws Exception {
         Protocol.validatePublicEvent(event);
+        String eventId = event.getString("id");
         int nextHops = Math.max(0, Protocol.boundedHops(inboundHops) - 1);
         int storeResult = store.upsert(event, "bluetooth-" + from.remoteNode, nextHops);
+
+        // ACK only after the event is cryptographically valid and is either persisted
+        // or already present locally. This lets the sender distinguish "written to the
+        // socket" from "accepted by the other Glowstr client".
+        from.send(Protocol.ack(eventId));
+
         if (storeResult == 0) return;
         if (nextHops > 0) {
             JSONObject env = Protocol.envelope(event, nextHops);
@@ -490,6 +578,9 @@ final class BluetoothMeshManager {
                     JSONObject ev = msg.optJSONObject("event");
                     int hops = msg.optInt("h", 0);
                     if (ev != null) onPeerEvent(this, ev, hops);
+                } else if ("ack".equals(type)) {
+                    String eventId = msg.optString("id", "");
+                    if (Protocol.isHex(eventId, 64)) recordAck(eventId, remoteNode);
                 }
             }
             close();
@@ -501,6 +592,12 @@ final class BluetoothMeshManager {
             if (counted.compareAndSet(true, false)) liveSessions.decrementAndGet();
             unregister(this);
         }
+    }
+
+    private static final class DeliveryState {
+        final Set<String> targets = ConcurrentHashMap.newKeySet();
+        final Set<String> acked = ConcurrentHashMap.newKeySet();
+        volatile long updatedAt = System.currentTimeMillis();
     }
 
     private void requirePermissions() throws IOException {

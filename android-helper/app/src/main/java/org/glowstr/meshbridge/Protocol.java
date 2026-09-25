@@ -98,6 +98,14 @@ final class Protocol {
                 .put("event", event);
     }
 
+    static JSONObject ack(String eventId) throws JSONException {
+        if (!isHex(eventId, 64)) throw new JSONException("ack event id malformed");
+        return new JSONObject()
+                .put("v", VERSION)
+                .put("t", "ack")
+                .put("id", eventId);
+    }
+
     static byte[] frame(JSONObject msg) throws JSONException {
         byte[] body = msg.toString().getBytes(StandardCharsets.UTF_8);
         if (body.length <= 0 || body.length > MAX_FRAME_BYTES) throw new JSONException("mesh frame too large");

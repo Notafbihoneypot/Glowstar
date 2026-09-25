@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 umask 077
 
-# Glowstr Crosspost + XMR lightweight one-file deployer
+# Glowstr Crosspost + Live + XMR lightweight one-file deployer
 #
 # Purpose:
 #   - No local monerod / no local blockchain
@@ -164,6 +164,7 @@ PY
 [[ -s secrets/rpc_password ]] || openssl rand -base64 36 | tr -d '\n' > secrets/rpc_password
 [[ -s secrets/wallet_password ]] || openssl rand -base64 48 | tr -d '\n' > secrets/wallet_password
 [[ -s secrets/crosspost_encryption_key ]] || openssl rand -hex 32 > secrets/crosspost_encryption_key
+[[ -s secrets/live_encryption_key ]] || openssl rand -hex 32 > secrets/live_encryption_key
 chmod 600 secrets/*
 
 case "$(uname -m)" in
@@ -205,6 +206,12 @@ CROSSPOST_ACTIVITYPUB_HOSTS=
 CROSSPOST_BLUESKY_HOSTS=bsky.social
 CROSSPOST_NOSTR_RELAYS=wss://relay.damus.io,wss://nos.lol
 CROSSPOST_DAILY_LIMIT=25
+
+LIVE_ALLOWED_PUBKEYS=$CROSSPOST_ALLOWED_PUBKEYS
+LIVE_NOSTR_RELAYS=wss://relay.damus.io,wss://nos.lol
+LIVE_TIP_MIN_ATOMIC=100000000
+LIVE_TIP_MAX_ATOMIC=100000000000000
+LIVE_TIP_POLL_SECONDS=10
 
 GLOWSTR_XMR_CONFIRMATIONS=$GLOWSTR_XMR_CONFIRMATIONS
 GLOWSTR_XMR_CROSSPOST_30D_ATOMIC=$GLOWSTR_XMR_CROSSPOST_30D_ATOMIC
@@ -302,11 +309,54 @@ services:
       - crosspost-data:/data
       - ./secrets:/run/secrets:ro,Z
 
+  live:
+    build: ../../live
+    restart: unless-stopped
+    depends_on:
+      - commerce
+    environment:
+      LIVE_PUBLIC_URL: https://${APP_DOMAIN}/live
+      LIVE_ALLOWED_PUBKEYS: ${LIVE_ALLOWED_PUBKEYS}
+      LIVE_HOST: 0.0.0.0
+      LIVE_PORT: "8090"
+      LIVE_DATA: /data
+      LIVE_ENCRYPTION_KEY_FILE: /run/secrets/live_encryption_key
+      LIVE_NOSTR_RELAYS: ${LIVE_NOSTR_RELAYS}
+      LIVE_RTMP_PUBLIC_BASE: rtmp://${APP_DOMAIN}:1935/live
+      LIVE_HLS_PUBLIC_BASE: https://${APP_DOMAIN}/hls/live
+      LIVE_COMMERCE_URL: http://commerce:8787
+      LIVE_TIP_MIN_ATOMIC: ${LIVE_TIP_MIN_ATOMIC}
+      LIVE_TIP_MAX_ATOMIC: ${LIVE_TIP_MAX_ATOMIC}
+      LIVE_TIP_POLL_SECONDS: ${LIVE_TIP_POLL_SECONDS}
+      GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE: /run/secrets/admin_token
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    volumes:
+      - live-data:/data
+      - ./secrets:/run/secrets:ro,Z
+
+  mediamtx:
+    image: docker.io/bluenviron/mediamtx:1.21.1
+    restart: unless-stopped
+    depends_on:
+      - live
+    ports:
+      - "1935:1935"
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro,Z
+
   caddy:
     image: docker.io/library/caddy:2-alpine
     restart: unless-stopped
     depends_on:
       - crosspost
+      - live
+      - mediamtx
     ports:
       - "80:80"
       - "443:443"
@@ -325,6 +375,8 @@ volumes:
     name: glowstr-light-commerce-${MONERO_NETWORK}
   crosspost-data:
     name: glowstr-light-crosspost-${MONERO_NETWORK}
+  live-data:
+    name: glowstr-light-live-${MONERO_NETWORK}
   caddy-data:
     name: glowstr-light-caddy
   caddy-config:
@@ -348,12 +400,25 @@ cat > Caddyfile <<'EOF'
     handle_path /crosspost/* {
         reverse_proxy crosspost:8790
     }
+
+    handle /live {
+        redir /live/ 308
+    }
+    handle_path /live/* {
+        reverse_proxy live:8090
+    }
+
+    handle_path /hls/* {
+        reverse_proxy mediamtx:8888
+    }
+
     respond 404
 }
 EOF
 
 say "Building verified Monero wallet image"
-podman compose build wallet-rpc commerce crosspost
+cp "$ROOT/deploy/live/mediamtx.yml" ./mediamtx.yml
+podman compose build wallet-rpc commerce crosspost live
 
 WALLET_VOLUME="glowstr-light-wallet-${NETWORK}"
 podman volume inspect "$WALLET_VOLUME" >/dev/null 2>&1 || podman volume create "$WALLET_VOLUME" >/dev/null
@@ -388,8 +453,8 @@ EOF
       --restore-height "$MONERO_RESTORE_HEIGHT"
 fi
 
-say "Starting lightweight stack"
-podman compose up -d wallet-rpc commerce crosspost caddy
+say "Starting lightweight Crosspost + Live stack"
+podman compose up -d wallet-rpc commerce crosspost live mediamtx caddy
 
 echo
 podman compose ps
@@ -399,7 +464,14 @@ cat <<EOF
 Glowstr lightweight XMR Crosspost is starting.
 
 Open:
-  https://$APP_DOMAIN/crosspost/
+  Crosspost: https://$APP_DOMAIN/crosspost/
+  Glowstr Live: https://$APP_DOMAIN/live/
+
+OBS ingest:
+  rtmp://$APP_DOMAIN:1935/live
+
+NOTE: the MVP uses plain RTMP on port 1935. For internet-facing production,
+add RTMPS/SRT encryption or restrict ingest through WireGuard/VPN.
 
 There is NO local monerod and NO local blockchain.
 The VM has only a view-only wallet: no spend key and no mnemonic seed.
@@ -411,4 +483,6 @@ Logs:
   podman compose logs -f wallet-rpc
   podman compose logs -f commerce
   podman compose logs -f crosspost
+  podman compose logs -f live
+  podman compose logs -f mediamtx
 EOF

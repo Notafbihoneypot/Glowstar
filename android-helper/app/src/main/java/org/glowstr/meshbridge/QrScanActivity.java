@@ -34,6 +34,7 @@ import com.google.zxing.MultiFormatReader;
 import com.google.zxing.NotFoundException;
 import com.google.zxing.PlanarYUVLuminanceSource;
 import com.google.zxing.Result;
+import com.google.zxing.common.GlobalHistogramBinarizer;
 import com.google.zxing.common.HybridBinarizer;
 
 import org.json.JSONObject;
@@ -422,17 +423,11 @@ public final class QrScanActivity extends Activity {
         int w = width;
         int h = height;
 
+        // QR finder patterns are rotation-aware, but some camera/YUV combinations
+        // still decode more reliably after explicit rotation. Try each orientation.
         for (int i = 0; i < 4; i++) {
-            try {
-                PlanarYUVLuminanceSource src =
-                        new PlanarYUVLuminanceSource(current, w, h, 0, 0, w, h, false);
-                BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(src));
-                Result result = reader.decodeWithState(bitmap);
-                reader.reset();
-                return result;
-            } catch (NotFoundException e) {
-                reader.reset();
-            }
+            Result result = decodeOrientation(current, w, h);
+            if (result != null) return result;
 
             if (i < 3) {
                 byte[] rotated = rotate90(current, w, h);
@@ -443,6 +438,59 @@ public final class QrScanActivity extends Activity {
             }
         }
         return null;
+    }
+
+    private Result decodeOrientation(byte[] data, int width, int height) {
+        // The UI asks the user to center the QR. Trying crops first gives ZXing
+        // larger finder patterns and less screen/background noise to analyze.
+        int crop62W = Math.max(1, width * 62 / 100);
+        int crop62H = Math.max(1, height * 62 / 100);
+        int crop62Left = Math.max(0, (width - crop62W) / 2);
+        int crop62Top = Math.max(0, (height - crop62H) / 2);
+
+        Result result = decodeRegion(data, width, height,
+                crop62Left, crop62Top, crop62W, crop62H, true);
+        if (result != null) return result;
+
+        int crop84W = Math.max(1, width * 84 / 100);
+        int crop84H = Math.max(1, height * 84 / 100);
+        int crop84Left = Math.max(0, (width - crop84W) / 2);
+        int crop84Top = Math.max(0, (height - crop84H) / 2);
+
+        result = decodeRegion(data, width, height,
+                crop84Left, crop84Top, crop84W, crop84H, true);
+        if (result != null) return result;
+
+        // Full frame handles codes not perfectly centered.
+        result = decodeRegion(data, width, height, 0, 0, width, height, true);
+        if (result != null) return result;
+
+        // Global histogram can outperform HybridBinarizer on bright phone
+        // screens, glare, moire, and uneven exposure.
+        result = decodeRegion(data, width, height,
+                crop62Left, crop62Top, crop62W, crop62H, false);
+        if (result != null) return result;
+
+        return decodeRegion(data, width, height, 0, 0, width, height, false);
+    }
+
+    private Result decodeRegion(byte[] data, int dataWidth, int dataHeight,
+                                int left, int top, int width, int height,
+                                boolean hybrid) {
+        try {
+            PlanarYUVLuminanceSource source = new PlanarYUVLuminanceSource(
+                    data, dataWidth, dataHeight, left, top, width, height, false);
+            BinaryBitmap bitmap = new BinaryBitmap(hybrid
+                    ? new HybridBinarizer(source)
+                    : new GlobalHistogramBinarizer(source));
+            return reader.decodeWithState(bitmap);
+        } catch (NotFoundException ignored) {
+            return null;
+        } catch (RuntimeException ignored) {
+            return null;
+        } finally {
+            reader.reset();
+        }
     }
 
     private static byte[] copyYPlane(Image.Plane plane, int width, int height) {

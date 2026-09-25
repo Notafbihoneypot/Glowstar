@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Glowstr Live</title>
+<meta name="description" content="Nostr-native live streaming with Monero tips.">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="./"><span class="live-dot"></span> GLOWSTR LIVE</a>
+  <div class="top-actions"><span id="identity" class="muted">viewer</span><button id="login">Connect Nostr</button><button id="logout" hidden>Sign out</button></div>
+</header>
+
+<main>
+  <section id="home-view">
+    <div class="hero">
+      <p class="eyebrow">NOSTR × MONERO × LIVE VIDEO</p>
+      <h1>Stream freely.<br><span>Get tipped in XMR.</span></h1>
+      <p>OBS-compatible live streaming using NIP-53, public Nostr chat, and native Monero tip invoices.</p>
+      <button id="open-dashboard" class="primary">Creator dashboard</button>
+    </div>
+    <div class="section-head"><div><p class="eyebrow">DISCOVER</p><h2>Live now</h2></div><button id="refresh-live">Refresh</button></div>
+    <div id="live-grid" class="stream-grid"></div>
+  </section>
+
+  <section id="dashboard-view" hidden>
+    <div class="section-head"><div><p class="eyebrow">CREATOR</p><h2>Dashboard</h2></div><button id="back-home">← Explore</button></div>
+    <div class="dashboard-grid">
+      <aside class="panel">
+        <h3>Create stream</h3>
+        <label>Title<input id="new-title" maxlength="120" placeholder="My live stream"></label>
+        <label>Summary<textarea id="new-summary" maxlength="500" placeholder="What are you streaming?"></textarea></label>
+        <label>XMR goal<input id="new-goal" inputmode="decimal" placeholder="1.0"></label>
+        <button id="create-stream" class="primary">Create stream</button>
+        <p class="small muted">The stream key is shown only when created or rotated.</p>
+      </aside>
+      <div>
+        <div id="creator-streams" class="creator-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="watch-view" hidden>
+    <button id="watch-back" class="back">← Live streams</button>
+    <div class="watch-grid">
+      <div>
+        <div class="player-wrap"><iframe id="player" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>
+        <div class="stream-title-row"><div><span id="watch-status" class="status">OFFLINE</span><h1 id="watch-title"></h1><p id="watch-summary" class="muted"></p></div></div>
+        <div class="goal-card">
+          <div class="goal-top"><strong id="tip-total">0 XMR tipped</strong><span id="goal-label"></span></div>
+          <div class="progress"><span id="goal-progress"></span></div>
+          <div class="tip-buttons"><button data-tip="1000000000">0.001 XMR</button><button data-tip="5000000000">0.005 XMR</button><button data-tip="10000000000">0.01 XMR</button><button id="custom-tip">Custom</button></div>
+          <input id="tip-message" maxlength="180" placeholder="Optional tip message">
+          <div id="invoice" class="invoice" hidden>
+            <strong id="invoice-amount"></strong>
+            <code id="invoice-address"></code>
+            <a id="invoice-wallet" class="primary-link" href="#">Open wallet ↗</a>
+            <span id="invoice-state" class="muted"></span>
+          </div>
+        </div>
+      </div>
+      <aside class="chat panel">
+        <div class="chat-head"><h3>Live chat</h3><span class="muted">NIP-53</span></div>
+        <div id="chat-list" class="chat-list"></div>
+        <div class="chat-send"><input id="chat-input" maxlength="500" placeholder="Sign a public Nostr chat message"><button id="send-chat">Send</button></div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<div id="toast"></div>
+<script src="./app.js" defer></script>
+</body>
+</html>

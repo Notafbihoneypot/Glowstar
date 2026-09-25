@@ -87,7 +87,7 @@ jobs:
             gh release create "${TAG}" \
               --target "${GITHUB_SHA}" \
               --title "Glowstr Android ${VERSION}" \
-              --notes "Android debug build of Glowstr ${VERSION}. Replaces the custom Camera2 QR scanner with JourneyApps ZXing Android Embedded for stable autofocus, orientation, framing, permission handling, and QR decoding."
+              --notes "Android debug build of Glowstr ${VERSION}. Adds adaptive relay-side Following filters, Quiet/Balanced/All noise controls, NIP-51 public mutes, mobile UI cleanup, and lower feed CPU/bandwidth use."
           fi
 
           gh release upload "${TAG}" "${APK}" "${SUM}" --clobber

@@ -43,6 +43,6 @@ jobs:
       - name: Validate MediaMTX configuration
         run: docker run --rm -v "$PWD/deploy/live/mediamtx.yml:/mediamtx.yml:ro" docker.io/bluenviron/mediamtx:1.21.1 --validate-conf=/mediamtx.yml
       - name: Build Live container
-        run: docker build -t glowstr-live-ci live
+        run: docker build -f live/Containerfile -t glowstr-live-ci live
       - name: Validate deploy scripts
         run: bash -n deploy/glowstr-light-deploy.sh

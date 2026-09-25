@@ -2,7 +2,6 @@ package org.glowstr.meshbridge;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.util.Base64;
 import android.net.Uri;
 import android.webkit.JavascriptInterface;
@@ -16,7 +15,6 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 
-import java.io.ByteArrayOutputStream;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -126,21 +124,41 @@ public final class AndroidBridge {
         if (value.length() < 8 || value.length() > 1024) return "";
         try {
             Map<EncodeHintType,Object> hints = new EnumMap<>(EncodeHintType.class);
-            hints.put(EncodeHintType.MARGIN, 2);
+            hints.put(EncodeHintType.MARGIN, 4);
             hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M);
-            BitMatrix matrix = new QRCodeWriter().encode(value, BarcodeFormat.QR_CODE, 512, 512, hints);
-            int width = matrix.getWidth(), height = matrix.getHeight();
-            int[] pixels = new int[width * height];
+
+            // Ask ZXing for the module grid at its natural size. Rendering that
+            // grid as SVG avoids fractional bitmap scaling that made the first
+            // QR look uneven on high-DPI phones.
+            BitMatrix matrix = new QRCodeWriter().encode(
+                    value, BarcodeFormat.QR_CODE, 0, 0, hints);
+            int width = matrix.getWidth();
+            int height = matrix.getHeight();
+
+            StringBuilder path = new StringBuilder(width * height / 2);
             for (int y = 0; y < height; y++) {
-                int row = y * width;
-                for (int x = 0; x < width; x++) pixels[row + x] = matrix.get(x, y) ? 0xFF000000 : 0xFFFFFFFF;
+                int x = 0;
+                while (x < width) {
+                    while (x < width && !matrix.get(x, y)) x++;
+                    if (x >= width) break;
+                    int start = x;
+                    while (x < width && matrix.get(x, y)) x++;
+                    int run = x - start;
+                    path.append('M').append(start).append(' ').append(y)
+                            .append('h').append(run)
+                            .append("v1h-").append(run).append('z');
+                }
             }
-            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-            bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)) return "";
-            bitmap.recycle();
-            return "data:image/png;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
+
+            String svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 "
+                    + width + " " + height
+                    + "\" width=\"512\" height=\"512\" shape-rendering=\"crispEdges\">"
+                    + "<rect width=\"100%\" height=\"100%\" fill=\"white\"/>"
+                    + "<path d=\"" + path + "\" fill=\"black\"/>"
+                    + "</svg>";
+            String encoded = Base64.encodeToString(
+                    svg.getBytes(java.nio.charset.StandardCharsets.UTF_8), Base64.NO_WRAP);
+            return "data:image/svg+xml;base64," + encoded;
         } catch (WriterException | RuntimeException e) {
             return "";
         }

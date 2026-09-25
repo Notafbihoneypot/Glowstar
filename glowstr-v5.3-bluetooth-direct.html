@@ -5638,11 +5638,32 @@ function glowstrSubscribeCore(ws) {
   }
   return glowstrReplaceSubscription(ws, 'core', filters);
 }
+function glowstrFeedRelayTargets() {
+  const connected = Object.entries(state.relays || {})
+    .filter(([,r]) => r?.ws?.readyState === WebSocket.OPEN)
+    .sort((a,b) => (Number(a[1].latency)||999999) - (Number(b[1].latency)||999999));
+
+  if (state.feedMode === 'tor') {
+    return new Set(connected
+      .filter(([url]) => /\.onion(?::|\/|$)/i.test(url))
+      .slice(0,2).map(([url]) => url));
+  }
+  if (state.feedMode === 'relay' && state.selectedRelayFeed) {
+    const wanted = glowstrNormalizeRelayV42(state.selectedRelayFeed);
+    const hit = connected.find(([url]) => glowstrNormalizeRelayV42(url) === wanted);
+    return new Set(hit ? [hit[0]] : []);
+  }
+  if (state.feedMode === 'mesh') return new Set();
+
+  // Following/List/Global/Monero use only the two fastest claimed core relays.
+  return new Set(connected.filter(([url]) => _glowstrCoreRelayUrls.has(url)).map(([url]) => url));
+}
 function glowstrRefreshCoreSubscriptions() {
+  const targets = glowstrFeedRelayTargets();
   Object.entries(state.relays || {}).forEach(([url, r]) => {
-    if (r?.ws?.readyState === WebSocket.OPEN && _glowstrCoreRelayUrls.has(url)) {
-      glowstrSubscribeCore(r.ws);
-    }
+    if (r?.ws?.readyState !== WebSocket.OPEN) return;
+    if (targets.has(url)) glowstrSubscribeCore(r.ws);
+    else glowstrCloseSubscription(r.ws, 'core');
   });
 }
 function subscribeUserSpecificEvents() {
@@ -5870,8 +5891,11 @@ function connectRelay(url) {
       if (_activeConnections <= 0) setLoading(false);
       renderRelayList(); updateRelayIndicator();
       saveState();
-      // Persistent traffic stays on two core relays. Heavy views query on demand.
-      if (glowstrClaimCoreRelay(url)) glowstrSubscribeCore(ws);
+      // Claim up to two fast core relays, then route the active feed subscription
+      // to the correct target(s). TOR and Selected Relay modes may deliberately
+      // use a non-core relay; Following stays scoped to core relays + authors.
+      glowstrClaimCoreRelay(url);
+      glowstrRefreshCoreSubscriptions();
       if (state.publicKey) subscribeUserSpecificEvents();
       glowstrSubscribeSocketToActiveChat(ws);
     };
@@ -5930,6 +5954,7 @@ function connectRelay(url) {
     };
     ws.onclose = () => {
       glowstrReleaseCoreRelay(url);
+      glowstrRefreshCoreSubscriptions();
       if (state.relays[url]?.status === 'connected') {
         // Was connected, now dropped — reconnect
         state.relays[url].status = 'disconnected';

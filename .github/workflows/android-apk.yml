@@ -56,12 +56,13 @@ jobs:
 
       - name: Verify and prepare APK
         run: |
+          VERSION="$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" android-helper/app/build.gradle | head -n1)"
+          APK="dist/Glowstr-Android-${VERSION}-debug.apk"
           mkdir -p dist
-          cp android-helper/app/build/outputs/apk/debug/app-debug.apk dist/Glowstr-Android-0.3.0-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/Glowstr-Android-0.3.0-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging dist/Glowstr-Android-0.3.0-debug.apk
-          cd dist
-          sha256sum Glowstr-Android-0.3.0-debug.apk > Glowstr-Android-0.3.0-debug.apk.sha256
+          cp android-helper/app/build/outputs/apk/debug/app-debug.apk "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK"
+          sha256sum "$APK" > "${APK}.sha256"
 
       - name: Upload installable APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -86,7 +87,7 @@ jobs:
             gh release create "${TAG}" \
               --target "${GITHUB_SHA}" \
               --title "Glowstr Android ${VERSION}" \
-              --notes "Android debug build of Glowstr ${VERSION}. Includes the chat stability, relay reconnect, mobile chat, and native Amber/NIP-55 improvements."
+              --notes "Android debug build of Glowstr ${VERSION}. Adds direct offline Bluetooth note delivery, receiver ACKs, one-hop store-and-forward, feed import, and native Amber/NIP-55 mesh signing."
           fi
 
           gh release upload "${TAG}" "${APK}" "${SUM}" --clobber

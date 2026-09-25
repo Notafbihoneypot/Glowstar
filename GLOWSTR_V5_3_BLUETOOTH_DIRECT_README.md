@@ -119,11 +119,18 @@ All endpoints except CORS preflight require `X-Glowstr-Token`.
 GET  /v1/status
 GET  /v1/peers
 GET  /v1/events?after=<cursor>&limit=50&wait=20000
+GET  /v1/delivery?id=<nostr-event-id>
 POST /v1/send
 POST /v1/rescan
 ```
 
 `/v1/events` supports long polling so the PWA does not spin aggressively in the background.
+
+### v0.3.1 direct-note delivery
+
+The Android APK can sign public kind-1 notes with native Amber/NIP-55 while offline and send the signed event over the existing secure L2CAP link. The receiver verifies the NIP-01 event ID and BIP-340 signature, stores the event, exposes it to the local feed, and returns an event-ID ACK.
+
+For this stabilization build, Android Bluetooth sends are intentionally **one hop**. A locally-created note is retained with one remaining hop so it can be delivered when the paired peer reconnects; the receiving phone stores it with zero remaining hops and does not forward it to a third phone.
 
 ## Privacy notes
 

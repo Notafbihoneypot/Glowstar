@@ -136,7 +136,9 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
                 }
                 JSONObject body = new JSONObject(bodyText == null || bodyText.isEmpty() ? "{}" : bodyText);
                 JSONObject event = body.optJSONObject("event");
-                int hops = Protocol.boundedHops(body.optInt("hops", Protocol.DEFAULT_HOPS));
+                // v0.3.1 is deliberately direct-only. h=1 allows sender-side store-and-forward
+                // when the paired peer reconnects, while the receiver stores h=0 and never relays it onward.
+                int hops = 1;
                 Protocol.validatePublicEvent(event);
                 int peers = mesh.sendLocal(event, hops);
                 return envelope(200, new JSONObject()
@@ -144,7 +146,14 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
                         .put("event_id", event.getString("id"))
                         .put("peers_sent", peers)
                         .put("stored", true)
-                        .put("hops", hops));
+                        .put("direct_only", true)
+                        .put("hops", hops)
+                        .put("delivery", mesh.deliverySnapshot(event.getString("id"))));
+            }
+            if ("GET".equals(m) && "/v1/delivery".equals(path)) {
+                if (mesh == null) return envelope(503, jsonError("Bluetooth mesh is not running"));
+                String eventId = uri.getQueryParameter("id");
+                return envelope(200, mesh.deliverySnapshot(eventId == null ? "" : eventId));
             }
             if ("POST".equals(m) && "/v1/rescan".equals(path)) {
                 if (mesh == null) return envelope(503, jsonError("Bluetooth mesh is not running"));

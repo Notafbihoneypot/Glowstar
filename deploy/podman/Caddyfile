@@ -1,9 +1,19 @@
 {$APP_DOMAIN} {
 	encode zstd gzip
-
-	handle_path /xmr-commerce/* {
-		reverse_proxy 127.0.0.1:8787
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
 	}
+
+	# Connected-identity bridge from the unified Podman stack.
+	handle /crosspost {
+		redir /crosspost/ 308
+	}
+	handle_path /crosspost/* {
+		reverse_proxy crosspost:8790
+	}
+
 
 	handle {
 		root * /srv
@@ -13,11 +23,19 @@
 }
 
 {$RELAY_DOMAIN} {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+	}
+	handle /xmr-commerce/v1/admin/* {
+		respond 404
+	}
 	handle_path /xmr-commerce/* {
-		reverse_proxy 127.0.0.1:8787
+		reverse_proxy commerce:8787
 	}
 
 	handle {
-		reverse_proxy 127.0.0.1:7777
+		reverse_proxy relay:7777
 	}
 }

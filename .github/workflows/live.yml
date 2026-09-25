@@ -1,0 +1,48 @@
+name: Test Glowstr Live
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "live/**"
+      - "monero-commerce/**"
+      - "deploy/live/**"
+      - "deploy/glowstr-light-deploy.sh"
+      - ".github/workflows/live.yml"
+  pull_request:
+    paths:
+      - "live/**"
+      - "monero-commerce/**"
+      - "deploy/live/**"
+      - "deploy/glowstr-light-deploy.sh"
+      - ".github/workflows/live.yml"
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Verify Node WebSocket support
+        run: node -e "if (typeof WebSocket !== 'function') process.exit(1)"
+      - name: Install Live dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+        working-directory: live
+      - name: Test Live service
+        run: npm test
+        working-directory: live
+      - name: Validate browser JavaScript
+        run: node --check public/app.js
+        working-directory: live
+      - name: Validate Commerce
+        run: python3 -m py_compile monero-commerce/server.py
+      - name: Validate MediaMTX configuration
+        run: docker run --rm -v "$PWD/deploy/live/mediamtx.yml:/mediamtx.yml:ro" docker.io/bluenviron/mediamtx:1.21.1 --validate-conf=/mediamtx.yml
+      - name: Build Live container
+        run: docker build -f live/Containerfile -t glowstr-live-ci live
+      - name: Validate deploy scripts
+        run: bash -n deploy/glowstr-light-deploy.sh

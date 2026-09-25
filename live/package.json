@@ -1,0 +1,9 @@
+{
+  "name":"glowstr-live",
+  "version":"0.1.0",
+  "private":true,
+  "type":"module",
+  "engines":{"node":">=24"},
+  "scripts":{"start":"node server.mjs","test":"node --test tests/*.test.mjs"},
+  "dependencies":{"express":"5.2.1","nostr-tools":"2.25.2"}
+}

@@ -7,7 +7,7 @@
 <title>GLOWSTR // v5.3 Bluetooth Direct</title>
 <meta name="description" content="Glowstr — a retro privacy-first Nostr PWA client">
 <meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-8DNyDKXg5nSL15LeEgpsCZKfOGhyRvTTZ18DNgpaMiQ='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-kXDTcA0wgNIXtVaZB97BjBgBhYF3t7YdYg0uE2zXw58='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkdMT1dTVFIiLCAic2hvcnRfbmFtZSI6ICJHTE9XU1RSIiwgImRlc2NyaXB0aW9uIjogIlNlZSBUaHJvdWdoIHRoZSBOb2lzZSBcdTIwMTQgUHJpdmFjeS1maXJzdCBOb3N0ciBjbGllbnQiLCAic3RhcnRfdXJsIjogIi4iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMGEwYSIsICJ0aGVtZV9jb2xvciI6ICIjRkY2NjAwIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCMmFXVjNRbTk0UFNJd0lEQWdNVGt5SURFNU1pSStDanh5WldOMElIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCbWFXeHNQU0lqTUdFd1lUQmhJaTgrQ2p4eVpXTjBJSGc5SWpnaUlIazlJamdpSUhkcFpIUm9QU0l4TnpZaUlHaGxhV2RvZEQwaU1UYzJJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlOR1JqWTJNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlOQ0l2UGdvOGRHVjRkQ0I0UFNJNU5pSWdlVDBpTVRFd0lpQm1iMjUwTFdaaGJXbHNlVDBpYlc5dWIzTndZV05sSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUJtYjI1MExYZGxhV2RvZEQwaVltOXNaQ0lnWm1sc2JEMGlJMFpHTmpZd01DSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krUnp3dmRHVjRkRDRLUEhSbGVIUWdlRDBpT1RZaUlIazlJakUxTUNJZ1ptOXVkQzFtWVcxcGJIazlJbTF2Ym05emNHRmpaU0lnWm05dWRDMXphWHBsUFNJeE5pSWdabWxzYkQwaUkyTmpOVEl3TUNJZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSStSMHhQVjFOVVVqd3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
@@ -2799,6 +2799,7 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
         <div class="offline-compose-tools">
           <button class="btn btn-small" id="offline-save-draft" type="button">SAVE DRAFT</button>
           <button class="btn btn-small" id="offline-open-manager" type="button">DRAFTS / QUEUE</button>
+          <button class="btn btn-small" id="compose-crosspost-btn" type="button" title="Open the optional connected-identity publishing service">CROSSPOST ↗</button>
           <span class="offline-queue-badge" id="offline-queue-badge">DRAFTS 0 · QUEUED 0</span>
         </div>
       </div>
@@ -3643,41 +3644,44 @@ https://another-server.example"></textarea>
 
         <!-- USERNAME REGISTRY STOREFRONT -->
         <div class="wallet-section" id="username-section">
-          <div class="wallet-section-title">★ CLAIM A USERNAME — PAY WITH XMR</div>
+          <div class="wallet-section-title">★ PERMANENT @FED.HOUSE NAME — PAY WITH XMR</div>
           <div class="wallet-section-body">
             <div style="font-family:var(--font-retro);font-size:0.9rem;color:var(--xmr-text-dim);line-height:1.5;margin-bottom:12px;">
-              Get a human-readable verified handle like <b style="color:var(--xmr-orange);">@you</b> instead of <span style="font-family:var(--font-mono);font-size:0.8rem;">npub1x8f...</span>. Works across ALL of Nostr (NIP-05 verified ✓). Pay once in Monero.
+              Register a NIP-05 name like <b style="color:var(--xmr-orange);">you@fed.house</b>. One payment, permanent registration — no renewal. The checkout is signed by your Nostr key and activates automatically after the Monero payment confirms.
             </div>
             <div class="profile-edit-row">
               <div class="profile-edit-label">Desired username</div>
               <div style="display:flex;gap:6px;align-items:stretch;">
                 <input class="profile-edit-input" id="username-input" placeholder="yourname" maxlength="30" style="flex:1;" data-glow-input="h0137" />
-                <span id="username-domain-suffix" style="display:flex;align-items:center;font-family:var(--font-mono);font-size:0.85rem;color:var(--xmr-text-dim);white-space:nowrap;">@glowstr.com</span>
+                <span id="username-domain-suffix" style="display:flex;align-items:center;font-family:var(--font-mono);font-size:0.85rem;color:var(--xmr-text-dim);white-space:nowrap;">@fed.house</span>
                 <button class="btn btn-small" data-glow-click="h0138">CHECK</button>
               </div>
               <div id="username-availability" style="font-family:var(--font-retro);font-size:0.88rem;margin-top:6px;min-height:18px;"></div>
             </div>
             <div id="username-claim-box" style="display:none;">
               <div class="market-xmr-box" style="margin:10px 0;">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <span style="font-family:var(--font-pixel);font-size:0.5rem;color:var(--xmr-orange);">PRICE</span>
-                  <span id="username-price" style="font-family:var(--font-display);font-size:1.3rem;color:var(--xmr-green);">0.05 XMR</span>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                  <span style="font-family:var(--font-pixel);font-size:0.5rem;color:var(--xmr-orange);">LIFETIME PRICE</span>
+                  <span id="username-price" style="font-family:var(--font-display);font-size:1.1rem;color:var(--xmr-green);">$4.00 USD</span>
                 </div>
-                <div style="font-family:var(--font-pixel);font-size:0.5rem;color:var(--xmr-orange);margin-top:8px;">SEND PAYMENT TO</div>
-                <div class="market-xmr-addr" id="username-xmr-addr" style="font-size:0.72rem;">—</div>
-                <div id="username-qr" style="width:120px;height:120px;background:#fff;padding:6px;margin:8px auto 0;box-sizing:border-box;"></div>
+                <div id="username-quote-note" style="font-family:var(--font-retro);font-size:0.82rem;color:var(--xmr-text-dim);margin-top:5px;">Exact XMR amount is locked when you create the invoice.</div>
+                <div style="font-family:var(--font-pixel);font-size:0.5rem;color:var(--xmr-orange);margin-top:8px;">UNIQUE INVOICE ADDRESS</div>
+                <div class="market-xmr-addr" id="username-xmr-addr" style="font-size:0.72rem;">Create an invoice first</div>
+                <div id="username-qr" style="width:120px;min-height:120px;background:#fff;padding:6px;margin:8px auto 0;box-sizing:border-box;display:flex;align-items:center;justify-content:center;color:#111;font-family:monospace;font-size:10px;text-align:center;">NO INVOICE</div>
                 <div style="display:flex;gap:6px;margin-top:8px;">
                   <button class="btn btn-small" data-glow-click="h0139" style="flex:1;">📋 COPY</button>
                   <button class="btn btn-small" data-glow-click="h0140" style="flex:1;color:var(--xmr-orange);">💸 OPEN WALLET</button>
                 </div>
+                <div id="username-payment-status" style="font-family:var(--font-retro);font-size:0.9rem;color:var(--xmr-text-dim);margin-top:10px;line-height:1.5;">No invoice yet.</div>
               </div>
               <div style="font-family:var(--font-retro);font-size:0.88rem;color:var(--xmr-text-dim);line-height:1.5;margin-bottom:8px;">
-                After paying, tap below. Your claim (username + your pubkey) is sent privately to the operator, who verifies payment and grants your name — usually within a day.
+                Your Nostr signer proves which public key owns the name. Glowstr generates a fresh Monero subaddress, watches confirmations server-side, and permanently registers the name when paid.
               </div>
-              <button class="btn" data-glow-click="h0141" style="width:100%;background:linear-gradient(180deg,var(--xmr-green),#00aa44);color:#000;font-weight:bold;">✓ I'VE PAID — SUBMIT CLAIM</button>
+              <button class="btn" data-glow-click="h0141" style="width:100%;background:linear-gradient(180deg,var(--xmr-green),#00aa44);color:#000;font-weight:bold;">₿ RESERVE + CREATE $4 XMR INVOICE</button>
+              <button class="btn btn-small" id="username-recover-btn" style="width:100%;margin-top:6px;">↻ RECOVER MY PENDING PURCHASE</button>
             </div>
             <div style="border-top:1px dashed var(--xmr-win-border-dark);margin-top:14px;padding-top:10px;">
-              <div style="font-family:var(--font-retro);font-size:0.85rem;color:var(--xmr-text-dim);">Already been granted a name? Set it on your profile:</div>
+              <div style="font-family:var(--font-retro);font-size:0.85rem;color:var(--xmr-text-dim);">Already registered? Publish the verified NIP-05 identifier to your Nostr profile:</div>
               <button class="btn btn-small" data-glow-click="h0142" style="margin-top:6px;">✓ ACTIVATE MY @USERNAME</button>
             </div>
           </div>
@@ -4073,12 +4077,10 @@ const SEARCH_RELAYS = ['wss://relay.nostr.band', 'wss://nostr.wine', 'wss://rela
 
 // ═══ USERNAME REGISTRY CONFIG (edit these to match your Netlify deployment) ═══
 const USERNAME_REGISTRY = {
-  domain: 'glowstr.com',          // your domain hosting /.well-known/nostr.json
-  enabled: true,                   // set false to hide the Claim Username feature
-  priceXmr: '0.05',                // flat price per username in XMR
-  xmrAddress: '',                  // YOUR Monero address to receive payments (set this!)
-  operatorNpub: '',                // YOUR npub — claim requests get DM'd here (set this!)
-  // The well-known URL is derived from domain:
+  domain: 'fed.house',
+  enabled: true,
+  priceUsd: '4.00',
+  apiBase: 'https://fed.house/fed-house/api',
   get wellKnownUrl() { return 'https://' + this.domain + '/.well-known/nostr.json'; },
 };
 
@@ -4326,6 +4328,18 @@ function canSignInline() {
   if (state.privateKey) return true;
   return false;
 }
+
+// The optional service is on this trusted origin. Reuse the signer without exporting keys.
+function glowstrGetCrosspostDraft() {
+  return state.replyTo ? '' : (document.getElementById('compose-input')?.value || '');
+}
+document.getElementById('compose-crosspost-btn')?.addEventListener('click', () => {
+  if (!canSignInline()) { showToast('Crosspost needs an inline signer: NIP-07, NIP-46, or a local key.'); return; }
+  if (!['http:', 'https:'].includes(location.protocol) || location.hostname === 'app.glowstr.local') {
+    showToast('Open your hosted Glowstr web app to use the optional /crosspost/ service.'); return;
+  }
+  if (!window.open(new URL('/crosspost/', location.origin).href, 'glowstr-crosspost')) showToast('Allow this site to open the cross-posting composer.');
+});
 
 // NIP-04 encrypt/decrypt routed through whatever signer is active.
 // Bunker (NIP-46) exposes nip04_encrypt / nip04_decrypt methods.
@@ -9787,6 +9801,138 @@ function disconnectWalletRpc() {
 }
 
 // ═══ USERNAME REGISTRY STOREFRONT ═══
+let usernamePaymentPoll = null;
+
+function formatUsernameAtomic(value) {
+  try {
+    const n = BigInt(value), whole = n / 1000000000000n;
+    const frac = (n % 1000000000000n).toString().padStart(12, '0').replace(/0+$/, '');
+    return whole.toString() + (frac ? '.' + frac : '');
+  } catch(e) { return '—'; }
+}
+
+async function usernameApi(path, options = {}) {
+  const response = await fetch(USERNAME_REGISTRY.apiBase + path, {
+    method: options.method || 'GET',
+    cache: 'no-store',
+    headers: options.headers || {},
+    body: options.body
+  });
+  let value = {};
+  try { value = await response.json(); } catch(e) {}
+  if (!response.ok) throw new Error(value.error || value.message || ('Request failed (' + response.status + ')'));
+  return value;
+}
+
+async function usernameSignedPost(path, name) {
+  if (!state.publicKey) throw new Error('Log in first');
+  if (!canSignInline()) throw new Error('This purchase needs an inline signer: NIP-07, NIP-46, or a local key.');
+  const challenge = await usernameApi('/challenge?name=' + encodeURIComponent(name));
+  const body = JSON.stringify({ challenge: challenge.challenge, name });
+  const digest = bytesToHex(await sha256(body));
+  const url = USERNAME_REGISTRY.apiBase + path;
+  const signed = await signEventUniversal({
+    kind: 27235,
+    created_at: Math.floor(Date.now() / 1000),
+    content: '',
+    tags: [['u', url], ['method', 'POST'], ['payload', digest]]
+  });
+  if (!signed) throw new Error('Signer did not return a signature');
+  return usernameApi(path, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Nostr ' + btoa(JSON.stringify(signed))
+    },
+    body
+  });
+}
+
+function saveUsernameClaim(claim) {
+  state.usernameClaim = claim;
+  try { sessionStorage.setItem('glowstr_username_claim', JSON.stringify({ name: claim.name, claimToken: claim.claimToken })); } catch(e) {}
+  try { localStorage.setItem('glowstr_pending_username', JSON.stringify({ name: claim.name, domain: USERNAME_REGISTRY.domain, ts: Date.now() })); } catch(e) {}
+}
+
+function loadUsernameClaim() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('glowstr_username_claim') || 'null');
+    if (saved?.name && saved?.claimToken) state.usernameClaim = saved;
+  } catch(e) {}
+}
+
+function clearUsernameClaimToken() {
+  try { sessionStorage.removeItem('glowstr_username_claim'); } catch(e) {}
+  if (state.usernameClaim) delete state.usernameClaim.claimToken;
+}
+
+function renderUsernameClaim(claim) {
+  if (!claim) return;
+  state.usernameClaim = { ...(state.usernameClaim || {}), ...claim };
+  state.pendingUsername = claim.name;
+  const box = document.getElementById('username-claim-box');
+  if (box) box.style.display = 'block';
+  const price = document.getElementById('username-price');
+  if (price) price.textContent = claim.amountAtomic ? ('$4.00 USD ≈ ' + formatUsernameAtomic(claim.amountAtomic) + ' XMR') : '$4.00 USD';
+  const note = document.getElementById('username-quote-note');
+  if (note) note.textContent = claim.amountAtomic ? 'This exact XMR amount is locked for this invoice.' : 'Exact XMR amount is locked when you create the invoice.';
+  const addr = document.getElementById('username-xmr-addr');
+  if (addr) addr.textContent = claim.address || 'Create an invoice first';
+  const qr = document.getElementById('username-qr');
+  if (qr) {
+    if (claim.uri) {
+      try { qr.innerHTML = generateQrSvg(claim.uri, 4); } catch(e) { qr.textContent = 'QR unavailable'; }
+    } else qr.textContent = 'NO INVOICE';
+  }
+  const status = document.getElementById('username-payment-status');
+  if (status) {
+    const confirmations = Number(claim.confirmations || 0), required = Number(claim.confirmationsRequired || 2);
+    if (claim.state === 'ACTIVE') {
+      status.style.color = 'var(--xmr-green)';
+      status.textContent = '✓ PAID + REGISTERED PERMANENTLY — ' + claim.identifier;
+    } else if (claim.state === 'CONFIRMING') {
+      status.style.color = 'var(--xmr-amber)';
+      status.textContent = '⟳ Payment found — ' + confirmations + ' / ' + required + ' confirmations';
+    } else if (claim.state === 'MEMPOOL') {
+      status.style.color = 'var(--xmr-amber)';
+      status.textContent = '⟳ Payment seen in mempool — waiting for confirmations';
+    } else if (claim.state === 'EXPIRED') {
+      status.style.color = 'var(--xmr-red)';
+      status.textContent = '✗ Invoice expired unpaid. Check availability and create a new invoice.';
+    } else {
+      status.style.color = 'var(--xmr-text-dim)';
+      status.textContent = claim.address ? 'WAITING — send the exact XMR amount to this unique address.' : 'No invoice yet.';
+    }
+  }
+  if (claim.state === 'ACTIVE') {
+    clearInterval(usernamePaymentPoll); usernamePaymentPoll = null;
+    try { localStorage.setItem('glowstr_pending_username', JSON.stringify({ name: claim.name, domain: USERNAME_REGISTRY.domain, ts: Date.now(), active: true })); } catch(e) {}
+    showToast('✓ ' + claim.identifier + ' is permanently registered to your Nostr key');
+  } else if (claim.state === 'EXPIRED') {
+    clearInterval(usernamePaymentPoll); usernamePaymentPoll = null; clearUsernameClaimToken();
+  }
+}
+
+async function pollUsernameClaim() {
+  const claim = state.usernameClaim;
+  if (!claim?.name || !claim?.claimToken) return;
+  try {
+    const current = await usernameApi('/claim/' + encodeURIComponent(claim.name), {
+      headers: { 'Authorization': 'Bearer ' + claim.claimToken }
+    });
+    renderUsernameClaim(current);
+  } catch(e) {
+    const status = document.getElementById('username-payment-status');
+    if (status) status.textContent = 'Status check failed: ' + e.message;
+  }
+}
+
+function startUsernameClaimPolling() {
+  clearInterval(usernamePaymentPoll);
+  pollUsernameClaim();
+  usernamePaymentPoll = setInterval(() => { if (!document.hidden) pollUsernameClaim(); }, 5000);
+}
+
 function initUsernameStorefront() {
   const section = document.getElementById('username-section');
   if (!section) return;
@@ -9794,7 +9940,17 @@ function initUsernameStorefront() {
   const suffix = document.getElementById('username-domain-suffix');
   if (suffix) suffix.textContent = '@' + USERNAME_REGISTRY.domain;
   const price = document.getElementById('username-price');
-  if (price) price.textContent = USERNAME_REGISTRY.priceXmr + ' XMR';
+  if (price && !state.usernameClaim?.amountAtomic) price.textContent = '$' + USERNAME_REGISTRY.priceUsd + ' USD';
+  const recover = document.getElementById('username-recover-btn');
+  if (recover && !recover.dataset.bound) {
+    recover.dataset.bound = '1';
+    recover.addEventListener('click', recoverUsernameClaim);
+  }
+  loadUsernameClaim();
+  if (state.usernameClaim?.claimToken) {
+    renderUsernameClaim(state.usernameClaim);
+    startUsernameClaimPolling();
+  }
 }
 
 function onUsernameInput() {
@@ -9802,7 +9958,7 @@ function onUsernameInput() {
   if (!input) return;
   input.value = input.value.toLowerCase().replace(/[^a-z0-9_\-.]/g, '');
   document.getElementById('username-availability').textContent = '';
-  document.getElementById('username-claim-box').style.display = 'none';
+  if (!state.usernameClaim || state.usernameClaim.name !== input.value) document.getElementById('username-claim-box').style.display = 'none';
 }
 
 async function checkUsernameAvailability() {
@@ -9817,108 +9973,78 @@ async function checkUsernameAvailability() {
   result.style.color = 'var(--xmr-text-dim)';
   result.textContent = '⟳ Checking ' + name + '@' + USERNAME_REGISTRY.domain + '...';
   try {
-    const url = USERNAME_REGISTRY.wellKnownUrl + '?name=' + encodeURIComponent(name);
-    const resp = await fetch(url, { cache: 'no-store' });
-    const data = await resp.json();
-    const taken = data.names && data.names[name];
-    if (taken) {
-      result.style.color = 'var(--xmr-red)';
-      result.textContent = '✗ @' + name + ' is already taken';
+    const data = await usernameApi('/names/' + encodeURIComponent(name));
+    if (!data.available) {
+      result.style.color = data.state === 'ACTIVE' ? 'var(--xmr-red)' : 'var(--xmr-amber)';
+      result.textContent = data.state === 'ACTIVE' ? ('✗ ' + data.identifier + ' is permanently registered') : ('⚠ @' + name + ' is currently reserved');
       document.getElementById('username-claim-box').style.display = 'none';
     } else {
       result.style.color = 'var(--xmr-green)';
-      result.textContent = '✓ @' + name + '@' + USERNAME_REGISTRY.domain + ' is available!';
+      result.textContent = '✓ ' + data.identifier + ' is available — $4 once, yours permanently.';
       showUsernameClaimBox(name);
     }
   } catch(e) {
-    result.style.color = 'var(--xmr-amber)';
-    result.textContent = '⚠ Could not reach registry — you can still submit a claim';
-    showUsernameClaimBox(name);
+    result.style.color = 'var(--xmr-red)';
+    result.textContent = '✗ Registry unavailable: ' + e.message;
+    document.getElementById('username-claim-box').style.display = 'none';
   }
 }
 
 function showUsernameClaimBox(name) {
   if (!state.publicKey) {
-    document.getElementById('username-availability').textContent = '⚠ Log in first to claim a username';
+    document.getElementById('username-availability').textContent = '⚠ Log in first to register a username';
     return;
   }
   state.pendingUsername = name;
   const box = document.getElementById('username-claim-box');
   box.style.display = 'block';
-  const addr = USERNAME_REGISTRY.xmrAddress;
-  document.getElementById('username-xmr-addr').textContent = addr || '(operator has not set an XMR address)';
-  const qrEl = document.getElementById('username-qr');
-  if (addr && /^[48][1-9A-HJ-NP-Za-km-z]{94,105}$/.test(addr)) {
-    try { qrEl.innerHTML = generateQrSvg('monero:' + addr + '?tx_amount=' + USERNAME_REGISTRY.priceXmr, 4); } catch(e) { qrEl.innerHTML = ''; }
-  } else {
-    qrEl.innerHTML = '';
-  }
+  if (state.usernameClaim?.name === name) renderUsernameClaim(state.usernameClaim);
+  else renderUsernameClaim({ name, identifier: name + '@' + USERNAME_REGISTRY.domain, state: 'AVAILABLE' });
 }
 
 function copyUsernamePayAddr() {
-  const addr = USERNAME_REGISTRY.xmrAddress;
-  if (!addr) { showToast('No XMR address configured'); return; }
+  const addr = state.usernameClaim?.address;
+  if (!addr) { showToast('Create the invoice first'); return; }
   navigator.clipboard?.writeText(addr);
-  showToast('XMR address copied');
+  showToast('Unique invoice address copied');
 }
 
 function openUsernameWallet() {
-  const addr = USERNAME_REGISTRY.xmrAddress;
-  if (!addr) { showToast('No XMR address configured'); return; }
-  const uri = 'monero:' + addr + '?tx_amount=' + USERNAME_REGISTRY.priceXmr + '&tx_description=' + encodeURIComponent('Glowstr username: ' + (state.pendingUsername || ''));
+  const uri = state.usernameClaim?.uri;
+  if (!uri) { showToast('Create the invoice first'); return; }
   window.open(uri, '_self');
-  showToast('Opening wallet — pay ' + USERNAME_REGISTRY.priceXmr + ' XMR');
+  showToast('Opening Monero wallet');
 }
 
 async function submitUsernameClaim() {
-  if (!state.publicKey) { showToast('Login first'); return; }
+  if (!state.publicKey) { showToast('Log in first'); return; }
   const name = state.pendingUsername;
-  if (!name) { showToast('Pick a username first'); return; }
-  if (!USERNAME_REGISTRY.operatorNpub) { showToast('Operator npub not configured — cannot send claim'); return; }
-  let operatorHex = USERNAME_REGISTRY.operatorNpub;
-  if (operatorHex.startsWith('npub1')) {
-    try { const dec = decodeBech32(operatorHex); if (dec && dec.bytes) operatorHex = bytesToHex(dec.bytes); } catch(e) {}
-  }
-  if (!/^[0-9a-f]{64}$/.test(operatorHex)) { showToast('Operator npub invalid'); return; }
-  const myNpub = (typeof hexToNpub === 'function') ? hexToNpub(state.publicKey) : state.publicKey;
-  const claimText =
-    '🎫 GLOWSTR USERNAME CLAIM\n' +
-    'Requested: ' + name + '@' + USERNAME_REGISTRY.domain + '\n' +
-    'Pubkey (hex): ' + state.publicKey + '\n' +
-    'Pubkey (npub): ' + myNpub + '\n' +
-    'Price: ' + USERNAME_REGISTRY.priceXmr + ' XMR\n' +
-    'I have sent payment. Please grant my username. 🙏';
+  if (!name) { showToast('Check an available username first'); return; }
   try {
-    let encrypted;
-    if (state.privateKey) {
-      encrypted = await nip04Encrypt(claimText, state.privateKey, operatorHex);
-    } else if (state.signerMethod === 'nip07' && window.nostr?.nip04?.encrypt) {
-      encrypted = await window.nostr.nip04.encrypt(operatorHex, claimText);
-    } else if ((state.signerMethod === 'amber-bunker' || state.signerMethod === 'nip46-qr' || state.signerMethod === 'nip46') && state.nip46) {
-      encrypted = await nip46Request('nip04_encrypt', [operatorHex, claimText], 30000);
-    }
-    if (!encrypted) { showToast('Could not encrypt claim — try a different login method'); return; }
-    const evt = { kind: 4, created_at: Math.floor(Date.now()/1000), tags: [['p', operatorHex]], content: encrypted };
-    let signed;
-    if (state.signerMethod === 'nip07' && window.nostr) {
-      evt.pubkey = state.publicKey; signed = await glowstrVerifiedNip07Sign(evt);
-    } else if ((state.signerMethod === 'amber-bunker' || state.signerMethod === 'nip46-qr' || state.signerMethod === 'nip46') && state.nip46) {
-      signed = await nip46Sign(evt);
-    } else if (state.privateKey) {
-      signed = await signNostrEvent(evt, state.privateKey);
-    }
-    if (signed) {
-      const sent = (typeof broadcastDmWithOutbox === 'function')
-        ? await broadcastDmWithOutbox(signed, operatorHex)
-        : broadcastEvent(signed);
-      try { localStorage.setItem('glowstr_pending_username', JSON.stringify({ name, domain: USERNAME_REGISTRY.domain, ts: Date.now() })); } catch(e) {}
-      showToast('🎫 Claim sent! You\'ll get @' + name + ' after payment is verified.');
-      document.getElementById('username-claim-box').style.display = 'none';
-      document.getElementById('username-availability').textContent = '✓ Claim submitted for @' + name;
-    } else {
-      showToast('Could not sign claim DM');
-    }
-  } catch(e) { showToast('Claim error: ' + e.message); }
+    showToast('Sign the $4 permanent-name checkout…');
+    const claim = await usernameSignedPost('/claim', name);
+    saveUsernameClaim(claim);
+    renderUsernameClaim(claim);
+    startUsernameClaimPolling();
+    showToast('Invoice created — pay the exact XMR amount shown');
+  } catch(e) { showToast('Username checkout: ' + e.message); }
+}
+
+async function recoverUsernameClaim() {
+  if (!state.publicKey) { showToast('Log in first'); return; }
+  let name = (document.getElementById('username-input')?.value || state.pendingUsername || '').toLowerCase().trim();
+  if (!name) {
+    try { name = JSON.parse(localStorage.getItem('glowstr_pending_username') || 'null')?.name || ''; } catch(e) {}
+  }
+  if (!name) { showToast('Enter the username you are recovering first'); return; }
+  try {
+    showToast('Sign to recover your pending purchase…');
+    const claim = await usernameSignedPost('/recover', name);
+    saveUsernameClaim(claim);
+    renderUsernameClaim(claim);
+    startUsernameClaimPolling();
+    showToast(claim.state === 'ACTIVE' ? 'Permanent registration recovered' : 'Pending invoice recovered');
+  } catch(e) { showToast('Recovery failed: ' + e.message); }
 }
 
 async function applyMyNip05() {
@@ -9937,7 +10063,7 @@ async function applyMyNip05() {
     const resp = await fetch(USERNAME_REGISTRY.wellKnownUrl + '?name=' + encodeURIComponent(name), { cache: 'no-store' });
     const data = await resp.json();
     const mapped = data.names && data.names[name];
-    if (!mapped) { showToast('Not granted yet — operator hasn\'t added @' + name); return; }
+    if (!mapped) { showToast('Not registered yet — payment may still be confirming for @' + name); return; }
     if (mapped.toLowerCase() !== state.publicKey.toLowerCase()) { showToast('@' + name + ' is registered to a different pubkey'); return; }
   } catch(e) { showToast('Could not verify with registry: ' + e.message); return; }
   const profile = state.profiles[state.publicKey] || {};
@@ -9957,7 +10083,7 @@ async function applyMyNip05() {
       broadcastEvent(signed);
       state.profiles[state.publicKey] = { ...updated, _ts: signed.created_at };
       try { localStorage.removeItem('glowstr_pending_username'); } catch(e) {}
-      showToast('✓ @' + name + ' activated! Verified ✓ will show across Nostr.');
+      showToast('✓ ' + nip05 + ' activated! Verified ✓ will show across Nostr.');
     }
   } catch(e) { showToast('Error setting NIP-05: ' + e.message); }
 }

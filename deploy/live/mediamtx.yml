@@ -1,0 +1,41 @@
+logLevel: info
+logDestinations: [stdout]
+
+# OBS / RTMP ingest. Publisher credentials are checked by Glowstr Live.
+rtmp: true
+rtmpAddress: :1935
+rtmpEncryption: "no"
+
+# Browser playback is proxied through Caddy over HTTPS.
+hls: true
+hlsAddress: :8888
+hlsEncryption: false
+hlsAllowOrigins: ["*"]
+hlsAlwaysRemux: false
+hlsVariant: lowLatency
+
+# WebRTC is intentionally disabled in the first MVP. HLS is simpler to deploy
+# reliably behind NAT; WHIP/WHEP can be enabled next.
+webrtc: false
+rtsp: false
+srt: false
+playback: false
+api: false
+metrics: false
+pprof: false
+
+# Only publishing is authenticated. Viewers receive HLS through Caddy.
+authMethod: http
+authHTTPAddress: http://live:8090/mediamtx/auth
+authHTTPExclude:
+  - action: read
+  - action: playback
+  - action: api
+  - action: metrics
+  - action: pprof
+
+pathDefaults:
+  source: publisher
+
+paths:
+  all_others:

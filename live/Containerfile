@@ -1,0 +1,11 @@
+FROM node:24-alpine
+WORKDIR /app
+COPY package.json ./
+RUN npm install --omit=dev --ignore-scripts --no-audit --no-fund
+COPY config.mjs store.mjs relay.mjs server.mjs ./
+COPY public ./public
+RUN addgroup -S glowstr && adduser -S -G glowstr glowstr && mkdir -p /data && chown -R glowstr:glowstr /data /app
+USER glowstr
+ENV LIVE_DATA=/data LIVE_HOST=0.0.0.0 LIVE_PORT=8090
+EXPOSE 8090
+CMD ["node","server.mjs"]

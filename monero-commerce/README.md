@@ -8,6 +8,7 @@ This is the first backend for Glowstr's XMR-only paid Nostr features. It creates
 - `room_30d`
 - `storage_10gb_30d`
 - `creator_30d`
+- `crosspost_30d` — 30-day Crosspost publishing pass (starter default: 0.02 XMR, configurable with `GLOWSTR_XMR_CROSSPOST_30D_ATOMIC`)
 
 Prices in `server.py` are starter values and should be changed before production.
 

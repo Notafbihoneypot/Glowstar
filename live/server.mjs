@@ -32,7 +32,7 @@ export function createService(config,dependencies={}){
     return {id:row.id,owner:row.owner,title:row.title,summary:row.summary,status:row.status,goalAtomic:row.goal_atomic,totalAtomic:total,
       created:row.created,updated:row.updated,starts:row.starts,ends:row.ends,...streamURLs(row.id),event:row.latest_event?JSON.parse(row.latest_event):null};
   };
-  const ownerStream=row=>({...publicStream(row),obs:{server:config.rtmpBase,streamKey:row.id+'?token=<hidden>',path:'live/'+row.id}});
+  const ownerStream=row=>({...publicStream(row),obs:{server:config.rtmpBase,streamKey:'<hidden>',path:'live/'+row.id}});
   const streamFor=(id)=>db.prepare('SELECT * FROM streams WHERE id=?').get(id);
   const ownedStream=(id,owner)=>{const row=db.prepare('SELECT * FROM streams WHERE id=? AND owner=?').get(id,owner);if(!row)throw new Problem('Stream not found',404);return row;};
 

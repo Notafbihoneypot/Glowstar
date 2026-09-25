@@ -87,7 +87,7 @@ jobs:
             gh release create "${TAG}" \
               --target "${GITHUB_SHA}" \
               --title "Glowstr Android ${VERSION}" \
-              --notes "Android debug build of Glowstr ${VERSION}. Adds direct offline Bluetooth note delivery, receiver ACKs, one-hop store-and-forward, feed import, and native Amber/NIP-55 mesh signing."
+              --notes "Android debug build of Glowstr ${VERSION}. Adds offline Nostr pubkey QR generation and native camera scanning with follow confirmation, alongside direct Bluetooth note delivery and native Amber/NIP-55 signing."
           fi
 
           gh release upload "${TAG}" "${APK}" "${SUM}" --clobber

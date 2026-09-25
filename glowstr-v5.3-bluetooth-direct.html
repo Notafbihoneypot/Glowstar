@@ -2331,6 +2331,80 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
 /* GLOWSTR_V5_3_BLUETOOTH_DIRECT_END */
 /* GLOWSTR_V5_2_MESH_END */
 
+/* GLOWSTR_FEED_FILTER_MOBILE_STABILIZATION_V036 */
+.feed-filter-bar {
+  display:flex; align-items:center; gap:7px; padding:8px 10px;
+  border-bottom:1px solid var(--xmr-gray); background:rgba(255,255,255,.012);
+  overflow-x:auto; scrollbar-width:none;
+}
+.feed-filter-bar::-webkit-scrollbar { display:none; }
+.feed-filter-label { font-family:var(--font-retro); font-size:.78rem; color:var(--xmr-text-dim); letter-spacing:1px; margin-right:2px; }
+.feed-filter-chip, .feed-filter-muted {
+  flex:0 0 auto; min-height:32px; padding:5px 10px; border:1px solid var(--xmr-gray-light);
+  background:var(--xmr-darker); color:var(--xmr-text-dim); font-family:var(--font-retro);
+  font-size:.76rem; cursor:pointer; border-radius:999px;
+}
+.feed-filter-chip.active { color:#111; background:var(--xmr-orange); border-color:var(--xmr-orange); font-weight:700; }
+.feed-filter-muted { color:var(--xmr-cyan); }
+.feed-filter-muted:disabled { opacity:.45; cursor:default; }
+.feed-filter-hidden { margin-left:auto; flex:0 0 auto; color:var(--xmr-text-dim); font-family:var(--font-retro); font-size:.72rem; }
+.mute-note-btn { font-family:var(--font-mono); font-size:1.05rem; }
+
+@media (max-width: 760px) {
+  html { font-size:17px; }
+  /* Fixed CRT overlays and blur were surprisingly expensive on mobile GPUs. */
+  body::before, body::after { display:none !important; }
+  .mobile-bottom-nav { backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+  .mobile-profile-bar, .mobile-stats-strip { display:none !important; }
+
+  .feed-modes {
+    overflow-x:auto; overflow-y:hidden; scrollbar-width:none; justify-content:flex-start;
+    scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch;
+  }
+  .feed-modes::-webkit-scrollbar { display:none; }
+  .feed-mode-btn {
+    flex:0 0 auto; min-width:94px; min-height:44px; padding:9px 12px;
+    scroll-snap-align:start; white-space:nowrap; font-size:.84rem;
+  }
+  .feed-mode-btn.active::after { left:18%; right:18%; }
+  .feed-presets-extra { overflow-x:auto; flex-wrap:nowrap; padding:6px 8px; scrollbar-width:none; }
+  .feed-presets-extra::-webkit-scrollbar { display:none; }
+  .feed-preset-select { min-width:150px; min-height:40px; }
+  .feed-filter-bar { padding:7px 8px; gap:6px; }
+  .feed-filter-label { display:none; }
+  .feed-filter-chip, .feed-filter-muted { min-height:38px; padding:7px 12px; font-size:.76rem; }
+  .feed-filter-hidden { margin-left:2px; }
+
+  .feed-header { min-height:44px; padding:8px 10px; gap:8px; }
+  .feed-title { font-size:.88rem; }
+  .feed-count { font-size:.72rem; }
+  #feed-pause-btn { min-height:36px; }
+
+  .note-card { padding:12px 10px; animation:none !important; }
+  .note-header { gap:8px; align-items:flex-start; }
+  .note-avatar { width:38px; height:38px; min-width:38px; }
+  .note-name { font-size:.96rem; }
+  .note-sub, .note-time { font-size:.72rem; }
+  .note-content { font-size:.96rem; line-height:1.55; overflow-wrap:anywhere; }
+  .reply-indicator { font-size:.76rem; }
+  .note-footer { gap:6px; align-items:center; }
+  .note-actions { display:flex; flex:1; justify-content:space-between; gap:2px; min-width:0; }
+  .note-action, .xmr-tip-btn { min-width:40px; min-height:40px; padding:7px; }
+  .note-action svg { width:18px; height:18px; }
+
+  .compose-box { padding:12px 10px; }
+  .compose-textarea { min-height:110px; font-size:1rem; }
+  .compose-footer { flex-wrap:wrap; gap:7px; align-items:stretch; }
+  .compose-charcount { flex:1 0 100%; }
+  .compose-footer .btn, .compose-toolbar-btn { min-height:42px; flex:1 1 44%; padding:8px 10px; }
+  #publish-btn { flex-basis:100%; }
+  .offline-compose-tools { flex-wrap:wrap; gap:7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition-duration:.01ms !important; }
+}
+
 </style>
 <meta name="glowstr-build" content="v5.3-bluetooth-direct">
 </head>
@@ -2812,6 +2886,14 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
       <div class="feed-presets-extra">
         <select class="feed-preset-select" id="feed-list-select" aria-label="Saved follow set"><option value="">SAVED LIST…</option></select>
         <select class="feed-preset-select" id="feed-relay-select" aria-label="Relay feed"><option value="">SELECT RELAY…</option></select>
+      </div>
+      <div class="feed-filter-bar" id="feed-filter-bar" aria-label="Feed noise filter">
+        <span class="feed-filter-label">FILTER</span>
+        <button class="feed-filter-chip" type="button" data-feed-noise="quiet">QUIET</button>
+        <button class="feed-filter-chip active" type="button" data-feed-noise="balanced">BALANCED</button>
+        <button class="feed-filter-chip" type="button" data-feed-noise="all">ALL</button>
+        <span class="feed-filter-hidden" id="feed-hidden-count">0 HIDDEN</span>
+        <button class="feed-filter-muted" id="feed-muted-clear" type="button" title="Clear locally muted accounts">MUTED 0</button>
       </div>
 
       <!-- MOBILE PROFILE + STATS (hidden on desktop where sidebars show) -->
@@ -4089,7 +4171,16 @@ let state = {
   rejectedEventIds: new Set(), // invalid relay events; avoids repeated expensive verification
   following: new Set(), // pubkeys we follow
   followEvent: null,    // our latest kind 3 event (for updating)
-  feedMode: 'following',   // 'following' or 'global'
+  feedMode: 'following',   // feed preset currently shown
+  feedNoiseLevel: 'balanced', // 'quiet', 'balanced', or 'all'
+  localMutedPubkeys: new Set(),
+  networkMutedPubkeys: new Set(),
+  networkMutedWords: new Set(),
+  networkMutedTags: new Set(),
+  networkMutedEvents: new Set(),
+  feedHiddenCount: 0,
+  _feedFilterRevision: 0,
+  _feedSelectionCache: null,
   replyTo: null,        // event we're replying to
   dms: [],              // kind 4 DM events
   activeDmPubkey: null, // currently open DM conversation
@@ -4519,6 +4610,7 @@ async function runBootSequence() {
   preloadCrypto();
   checkAmberCallback();
   loadSavedState();
+  glowstrLoadFeedFilterPrefs();
   loadBookmarks();
   loadProfileCache();
   const relayUrls = Object.keys(state.relays).length > 0 ? Object.keys(state.relays) : DEFAULT_RELAYS;
@@ -4556,13 +4648,12 @@ function initApp() {
     }
   }, 10000);
   setInterval(() => { if (!document.hidden && document.getElementById('view-search')?.classList.contains('active')) updateTrendingHashtags(); }, 30000);
-  // Auto-switch to global if following feed is still empty after 3s
+  // Keep Following as the quiet default. An empty follow graph gets onboarding,
+  // never an automatic jump into the public firehose.
   setTimeout(() => {
-    rerenderFeed(); updateSidebars();
-    if (state.feedMode === 'following' && state.following.size === 0 && state.events.length > 5) {
-      setFeedMode('global');
-    }
-  }, 3000);
+    rerenderFeed();
+    updateSidebars();
+  }, 1200);
   // Save profile cache periodically
   setInterval(() => { if (!document.hidden) saveProfileCache(); }, 60000);
   document.getElementById('compose-input').addEventListener('input', function() {
@@ -5494,18 +5585,71 @@ function glowstrCloseSubscription(ws, key) {
   delete ws._glowstrSubs[key];
   if (ws._glowstrSubFingerprints) delete ws._glowstrSubFingerprints[key];
 }
+function glowstrChunkPubkeys(pubkeys, size=180) {
+  const out = [];
+  const clean = [...new Set((pubkeys || []).filter(pk => /^[0-9a-f]{64}$/.test(pk || '')))];
+  for (let i = 0; i < clean.length; i += size) out.push(clean.slice(i, i + size));
+  return out;
+}
+function glowstrFeedAuthorScope() {
+  if (state.feedMode === 'following') return [...state.following];
+  if (state.feedMode === 'list') {
+    const set = state.followSets?.[state.selectedFollowSet];
+    return set?.members ? [...set.members] : [];
+  }
+  return [];
+}
+function glowstrBuildCoreFilters() {
+  const filters = [];
+  const scope = glowstrFeedAuthorScope();
+  const now = Math.floor(Date.now() / 1000);
+  const since = now - 7 * 24 * 60 * 60;
+
+  if (state.feedMode === 'following' || state.feedMode === 'list') {
+    const authors = [...scope];
+    if (state.publicKey) authors.push(state.publicKey);
+    glowstrChunkPubkeys(authors).forEach(chunk => {
+      filters.push({ kinds:[1], authors:chunk, since, limit:Math.min(80, Math.max(20, chunk.length * 2)) });
+    });
+  } else if (state.feedMode === 'monero') {
+    filters.push({ kinds:[1], '#t':['monero','xmr'], since, limit:80 });
+  } else if (state.feedMode === 'global' || state.feedMode === 'tor' || state.feedMode === 'relay') {
+    // Global is explicit opt-in. It is still live, but no longer downloaded while
+    // the user is reading Following.
+    filters.push({ kinds:[1], since, limit:80 });
+  }
+  // Mesh notes arrive through the local bridge, not a public relay subscription.
+
+  // Profile-adjacent replaceable events are useful only for the user's social
+  // graph. Avoid a global stream of moods/lists/custom app data.
+  const socialAuthors = [];
+  if (state.publicKey) socialAuthors.push(state.publicKey);
+  socialAuthors.push(...scope);
+  glowstrChunkPubkeys(socialAuthors).slice(0,2).forEach(chunk => {
+    filters.push({ kinds:[30315,30000,30078,10030], authors:chunk, limit:Math.min(120, chunk.length * 2) });
+  });
+  return filters;
+}
 function glowstrSubscribeCore(ws) {
-  return glowstrReplaceSubscription(ws, 'core', [
-    {kinds:[1], limit:120},
-    {kinds:[0], limit:100},
-    {kinds:[30315,30000,30078,10030], limit:120}
-  ]);
+  const filters = glowstrBuildCoreFilters();
+  if (!filters.length) {
+    glowstrCloseSubscription(ws, 'core');
+    return null;
+  }
+  return glowstrReplaceSubscription(ws, 'core', filters);
+}
+function glowstrRefreshCoreSubscriptions() {
+  Object.entries(state.relays || {}).forEach(([url, r]) => {
+    if (r?.ws?.readyState === WebSocket.OPEN && _glowstrCoreRelayUrls.has(url)) {
+      glowstrSubscribeCore(r.ws);
+    }
+  });
 }
 function subscribeUserSpecificEvents() {
   if (!state.publicKey || state.publicKey.length !== 64) return;
   const nip17On = !!document.getElementById('dm-nip17')?.checked;
   const filters = [
-    {kinds:[3,10002,10004,10030,10063,30000], authors:[state.publicKey], limit:16},
+    {kinds:[3,10000,10002,10004,10030,10063,30000], authors:[state.publicKey], limit:20},
     {kinds:[1,6,7,9735], '#p':[state.publicKey], limit:80}
   ];
   if (!nip17On) {
@@ -5894,6 +6038,8 @@ function handleEvent(event, relayUrl) {
         if (tag[0] === 'p' && tag[1]) state.following.add(tag[1]);
       });
       updateFollowingCount();
+      glowstrInvalidateFeedSelection();
+      glowstrRefreshCoreSubscriptions();
     }
     return;
   }
@@ -5916,6 +6062,30 @@ function handleEvent(event, relayUrl) {
           if (otherPk === state.activeDmPubkey) openDmConvo(state.activeDmPubkey);
         }
       }
+    }
+    return;
+  }
+
+  // Kind 10000: NIP-51 public mute list. Private encrypted list items are
+  // intentionally left untouched; this client only applies the public tags it can read.
+  if (event.kind === 10000 && state.publicKey && event.pubkey === state.publicKey) {
+    if (!state.muteEvent || event.created_at > state.muteEvent.created_at) {
+      state.muteEvent = event;
+      state.networkMutedPubkeys = new Set();
+      state.networkMutedWords = new Set();
+      state.networkMutedTags = new Set();
+      state.networkMutedEvents = new Set();
+      (event.tags || []).forEach(t => {
+        const type = t?.[0], value = String(t?.[1] || '').trim();
+        if (!value) return;
+        if (type === 'p' && /^[0-9a-f]{64}$/.test(value)) state.networkMutedPubkeys.add(value);
+        else if (type === 'word' && value.length <= 120) state.networkMutedWords.add(value.toLowerCase());
+        else if (type === 't' && value.length <= 80) state.networkMutedTags.add(value.toLowerCase());
+        else if (type === 'e' && /^[0-9a-f]{64}$/.test(value)) state.networkMutedEvents.add(value);
+      });
+      glowstrInvalidateFeedSelection();
+      rerenderFeed();
+      glowstrUpdateFeedFilterUi();
     }
     return;
   }
@@ -6177,6 +6347,7 @@ function handleEvent(event, relayUrl) {
     state.eventCount++;
     state.eventsById[event.id] = event;
     state.events.unshift(event);
+    glowstrInvalidateFeedSelection();
     // Cap memory: when we exceed 1000 notes, drop oldest 200 in one batch
     // (cheaper than popping one at a time on every incoming event)
     if (state.events.length > 1000) {
@@ -6192,7 +6363,7 @@ function handleEvent(event, relayUrl) {
     }
 
     // Only render if it matches current feed mode
-    if (glowstrFeedMatches(event)) {
+    if (glowstrFeedVisibleEvent(event)) {
       bufferOrRenderNote(event);
     }
     updateFeedCount();
@@ -6801,7 +6972,7 @@ function renderNote(ev, prepend) {
   glowstrQueueEngagement(ev.id);
   hideFeedEmpty();
   const container = document.getElementById('feed-container');
-  const el = document.createElement('div'); el.className = 'note-card'; el.id = 'note-' + ev.id;
+  const el = document.createElement('div'); el.className = 'note-card'; el.id = 'note-' + ev.id; el.dataset.author = ev.pubkey;
   const profile = state.profiles[ev.pubkey] || {};
   const name = profile.display_name || profile.name || ev.pubkey.slice(0, 12) + '...';
   const safeName = name.replace(/[^a-zA-Z0-9 ]/g, '').slice(0,2).toUpperCase() || '??';
@@ -6855,7 +7026,7 @@ function renderNote(ev, prepend) {
     '<div class="note-header">' +
       '<div class="note-avatar-slot"></div>' +
       '<div class="note-meta">' +
-        '<div class="note-name" data-pubkey="' + ev.pubkey + '" data-glow-action="view-profile" data-pubkey="' + ev.pubkey + '">' + escapeHtml(name) + '</div>' +
+        '<div class="note-name" data-glow-action="view-profile" data-pubkey="' + ev.pubkey + '">' + escapeHtml(name) + '</div>' +
         '<div class="note-sub">' + npub + ' ' + wot.badge + '</div>' +
       '</div>' +
       folBtn +
@@ -6869,6 +7040,7 @@ function renderNote(ev, prepend) {
         '<button class="note-action" data-glow-action="start-reply" data-event-id="' + ev.id + '" data-pubkey="' + ev.pubkey + '" title="Reply to this post" aria-label="Reply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></button>' +
         '<button class="note-action" data-glow-action="view-thread" data-event-id="' + ev.id + '" title="View full thread / conversation" aria-label="View thread"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="6" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><line x1="9" y1="9" x2="12" y2="9"/><line x1="12" y1="15" x2="15" y2="15"/></svg></button>' +
         '<button class="note-action bookmark-btn' + (isBookmarked ? ' bookmarked' : '') + '" data-glow-action="toggle-bookmark" data-event-id="' + ev.id + '" title="' + (isBookmarked ? 'Remove bookmark' : 'Bookmark this post to read later') + '" aria-label="Bookmark"><svg viewBox="0 0 24 24" fill="' + (isBookmarked ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg></button>' +
+        ((!isMe) ? '<button class="note-action mute-note-btn" data-glow-action="mute-author" data-pubkey="' + ev.pubkey + '" title="Hide posts from this account on this device" aria-label="Mute author">⊘</button>' : '') +
         ((!isMe && state.publicKey) ? '<button class="note-action" data-glow-action="open-dm" data-pubkey="' + ev.pubkey + '" title="Send a private encrypted DM to this user" aria-label="Direct message"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></button>' : '') +
         '<button class="xmr-tip-btn" data-glow-action="xmr-tip" data-pubkey="' + ev.pubkey + '" title="Tip this user with Monero (XMR)" aria-label="Tip with XMR">ɱ</button>' +
       '</div>' +
@@ -7108,9 +7280,11 @@ function updateFeedCount() {
   if (_glowstrFeedCountRaf) return;
   _glowstrFeedCountRaf = requestAnimationFrame(() => {
     _glowstrFeedCountRaf = 0;
-    const count = state.events.filter(glowstrFeedMatches).length;
+    const selected = glowstrSelectVisibleFeedEvents();
+    const count = selected.length;
     const el = document.getElementById('feed-count');
     if (el) el.textContent = count + ' NOTES';
+    glowstrUpdateFeedFilterUi();
   });
 }
 
@@ -7162,7 +7336,10 @@ function setFeedMode(mode) {
   const titles={following:'FOLLOWING FEED',global:'GLOBAL FEED',monero:'MONERO FEED',tor:'TOR-SOURCED FEED',mesh:'OFFLINE MESH FEED',list:'SAVED LIST FEED',relay:'SELECTED RELAY FEED'};
   const t=document.getElementById('feed-title'); if(t)t.textContent=titles[state.feedMode]||'FEED';
   glowstrSaveFeedPreset();
+  glowstrInvalidateFeedSelection();
+  glowstrRefreshCoreSubscriptions();
   rerenderFeed();
+  glowstrUpdateFeedFilterUi();
 }
 
 // First-time action legend banner (introduces button purposes to new users)
@@ -7404,7 +7581,7 @@ function rerenderFeed() {
   if (emptyEl) container.appendChild(emptyEl);
   if (onboardEl) container.appendChild(onboardEl);
 
-  const filtered = state.events.filter(glowstrFeedMatches);
+  const filtered = glowstrSelectVisibleFeedEvents();
 
   if (filtered.length === 0) {
     if (state.feedMode === 'following' && state.following.size === 0 && state.events.length > 0) {
@@ -7428,7 +7605,7 @@ function rerenderFeed() {
   } else {
     hideFeedEmpty();
     if (onboardEl) onboardEl.style.display = 'none';
-    filtered.slice(0, (glowstrUsesMobileShell() ? 80 : 140)).forEach(ev => renderNote(ev, false));
+    filtered.slice(0, (glowstrUsesMobileShell() ? 60 : 110)).forEach(ev => renderNote(ev, false));
   }
   updateFeedCount();
 }
@@ -7449,6 +7626,9 @@ async function toggleFollow(pubkey, btnEl) {
     if (!state.profiles[pubkey]) requestProfile(pubkey);
   }
   updateFollowingCount();
+  glowstrInvalidateFeedSelection();
+  glowstrRefreshCoreSubscriptions();
+  rerenderFeed();
   saveState(); // persist follows across refresh
 
   // Publish updated kind 3 contact list
@@ -13220,6 +13400,7 @@ function glowstrHandleDynamicAction(event) {
     case 'scroll-note': scrollToNote(el.dataset.eventId); break;
     case 'load-note-image': { glowstrLoadNoteImage(el).catch(e=>{el.textContent='⚠ '+(e.message||'Media failed');}); break; }
     case 'toggle-follow': toggleFollow(el.dataset.pubkey, el); break;
+    case 'mute-author': glowstrMuteAuthor(el.dataset.pubkey || ''); break;
     case 'view-profile': viewUserProfile(el.dataset.pubkey); break;
     case 'react-note': reactToNote(el.dataset.eventId, el.dataset.pubkey, el); break;
     case 'start-reply': startReply(el.dataset.eventId, el.dataset.pubkey); break;
@@ -13544,10 +13725,168 @@ function glowstrInitFeedPresetState(){state.followSets=state.followSets||{};stat
 function glowstrTrackEventRelay(id,url){if(!/^[0-9a-f]{64}$/.test(id||'')||!url)return;glowstrInitFeedPresetState();let a=state.eventRelays[id];if(!Array.isArray(a))a=state.eventRelays[id]=[];if(!a.includes(url)){a.push(url);if(a.length>6)a.shift();}if(Object.keys(state.eventRelays).length>1500){const keep=new Set(state.events.slice(0,1000).map(e=>e.id));for(const k of Object.keys(state.eventRelays))if(!keep.has(k))delete state.eventRelays[k];}}
 function glowstrIsMoneroEvent(ev){if(!ev)return false;const tagged=(ev.tags||[]).some(t=>t[0]==='t'&&/^(monero|xmr)$/i.test(t[1]||''));return tagged||/(^|[^a-z0-9])(monero|xmr)([^a-z0-9]|$)/i.test(ev.content||'');}
 function glowstrFeedMatches(ev){glowstrInitFeedPresetState();switch(state.feedMode){case'global':return true;case'following':return state.following.has(ev.pubkey);case'monero':return glowstrIsMoneroEvent(ev);case'tor':return (state.eventRelays[ev.id]||[]).some(u=>/\.onion(?::|\/|$)/i.test(u));case'mesh':return (state.eventRelays[ev.id]||[]).some(u=>/^mesh:\/\//i.test(u));case'list':{const set=state.followSets[state.selectedFollowSet];return !!set?.members?.has(ev.pubkey);}case'relay':return !!state.selectedRelayFeed&&(state.eventRelays[ev.id]||[]).some(u=>glowstrNormalizeRelayV42(u)===glowstrNormalizeRelayV42(state.selectedRelayFeed));default:return false;}}
+const GLOWSTR_FEED_FILTER_KEY='glowstr_feed_filter_v1';
+function glowstrInitFeedFilterState(){
+  if(state._feedFilterReady)return;
+  state._feedFilterReady=true;
+  state.localMutedPubkeys=state.localMutedPubkeys instanceof Set?state.localMutedPubkeys:new Set();
+  state.networkMutedPubkeys=state.networkMutedPubkeys instanceof Set?state.networkMutedPubkeys:new Set();
+  state.networkMutedWords=state.networkMutedWords instanceof Set?state.networkMutedWords:new Set();
+  state.networkMutedTags=state.networkMutedTags instanceof Set?state.networkMutedTags:new Set();
+  state.networkMutedEvents=state.networkMutedEvents instanceof Set?state.networkMutedEvents:new Set();
+  if(!['quiet','balanced','all'].includes(state.feedNoiseLevel))state.feedNoiseLevel='balanced';
+}
+function glowstrLoadFeedFilterPrefs(){
+  glowstrInitFeedFilterState();
+  try{
+    const x=JSON.parse(localStorage.getItem(GLOWSTR_FEED_FILTER_KEY)||'{}');
+    if(['quiet','balanced','all'].includes(x.level))state.feedNoiseLevel=x.level;
+    if(Array.isArray(x.muted))state.localMutedPubkeys=new Set(x.muted.filter(pk=>/^[0-9a-f]{64}$/.test(pk)).slice(0,2000));
+  }catch(e){}
+  glowstrInvalidateFeedSelection();
+}
+function glowstrSaveFeedFilterPrefs(){
+  glowstrInitFeedFilterState();
+  try{localStorage.setItem(GLOWSTR_FEED_FILTER_KEY,JSON.stringify({level:state.feedNoiseLevel,muted:[...state.localMutedPubkeys].slice(0,2000)}));}catch(e){}
+}
+function glowstrInvalidateFeedSelection(){
+  state._feedFilterRevision=(state._feedFilterRevision||0)+1;
+  state._feedSelectionCache=null;
+}
+function glowstrIsReplyEvent(ev){
+  return !!(ev?.tags||[]).some(t=>t?.[0]==='e'&&t?.[1]);
+}
+function glowstrEventMentionsMe(ev){
+  return !!state.publicKey&&(ev?.tags||[]).some(t=>t?.[0]==='p'&&t?.[1]===state.publicKey);
+}
+function glowstrEventMuted(ev){
+  glowstrInitFeedFilterState();
+  if(!ev)return true;
+  if(state.localMutedPubkeys.has(ev.pubkey)||state.networkMutedPubkeys.has(ev.pubkey)||state.networkMutedEvents.has(ev.id))return true;
+  const text=String(ev.content||'').toLowerCase();
+  for(const word of state.networkMutedWords){if(word&&text.includes(word))return true;}
+  const tags=(ev.tags||[]).filter(t=>t?.[0]==='t'&&t?.[1]).map(t=>String(t[1]).toLowerCase());
+  for(const tag of state.networkMutedTags){if(tags.includes(tag))return true;}
+  return false;
+}
+function glowstrLooksLowValueNoise(ev,strict=false){
+  const text=String(ev?.content||'').trim();
+  if(!text)return true;
+  const urls=text.match(/https?:\/\/\S+/gi)||[];
+  const hashtags=text.match(/(^|\s)#[\p{L}\p{N}_-]+/gu)||[];
+  if(urls.length>6||hashtags.length>12)return true;
+  const words=text.toLowerCase().replace(/https?:\/\/\S+/g,' ').match(/[\p{L}\p{N}]+/gu)||[];
+  if(words.length>=10&&new Set(words).size<=2)return true;
+  if(/(.)\1{30,}/u.test(text))return true;
+  if(strict){
+    const withoutUrls=text.replace(/https?:\/\/\S+/gi,'').trim();
+    if(urls.length>0&&withoutUrls.length<3)return true;
+  }
+  return false;
+}
+function glowstrFeedVisibleEvent(ev){
+  if(!glowstrFeedMatches(ev)||glowstrEventMuted(ev))return false;
+  glowstrInitFeedFilterState();
+  const level=state.feedNoiseLevel;
+  if(level==='all')return true;
+  const trusted=ev.pubkey===state.publicKey||state.following.has(ev.pubkey);
+  const mentionsMe=glowstrEventMentionsMe(ev);
+  const reply=glowstrIsReplyEvent(ev);
+  const discovery=['global','monero','tor','relay'].includes(state.feedMode);
+  if(level==='balanced'){
+    if(discovery&&reply&&!trusted&&!mentionsMe)return false;
+    if(!trusted&&glowstrLooksLowValueNoise(ev,false))return false;
+  }else if(level==='quiet'){
+    if(reply&&!trusted&&!mentionsMe)return false;
+    if(!trusted&&glowstrLooksLowValueNoise(ev,true))return false;
+  }
+  return true;
+}
+function glowstrSelectVisibleFeedEvents(){
+  glowstrInitFeedFilterState();
+  const key=[state._feedFilterRevision||0,state.eventCount,state.events.length,state.feedMode,state.feedNoiseLevel,state.following.size,state.localMutedPubkeys.size,state.networkMutedPubkeys.size].join('|');
+  if(state._feedSelectionCache?.key===key)return state._feedSelectionCache.events;
+  const modeEvents=state.events.filter(glowstrFeedMatches);
+  const out=[],seenContent=new Set(),perAuthor=new Map();
+  let hidden=0;
+  const level=state.feedNoiseLevel;
+  const discovery=['global','monero','tor','relay'].includes(state.feedMode);
+  const defaultCap=level==='quiet'?2:(level==='balanced'?(discovery?4:8):Infinity);
+  for(const ev of modeEvents){
+    if(!glowstrFeedVisibleEvent(ev)){hidden++;continue;}
+    const trusted=ev.pubkey===state.publicKey||state.following.has(ev.pubkey);
+    const cap=trusted?Infinity:defaultCap;
+    const n=perAuthor.get(ev.pubkey)||0;
+    if(n>=cap){hidden++;continue;}
+    const normalized=String(ev.content||'').toLowerCase().replace(/https?:\/\/\S+/g,'<url>').replace(/\s+/g,' ').trim().slice(0,500);
+    const contentKey=ev.pubkey+'|'+normalized;
+    if(level!=='all'&&normalized.length>16&&seenContent.has(contentKey)){hidden++;continue;}
+    perAuthor.set(ev.pubkey,n+1);
+    if(normalized.length>16)seenContent.add(contentKey);
+    out.push(ev);
+  }
+  state.feedHiddenCount=hidden;
+  state._feedSelectionCache={key,events:out};
+  return out;
+}
+function glowstrUpdateFeedFilterUi(){
+  glowstrInitFeedFilterState();
+  document.querySelectorAll('[data-feed-noise]').forEach(btn=>btn.classList.toggle('active',btn.dataset.feedNoise===state.feedNoiseLevel));
+  const hidden=document.getElementById('feed-hidden-count');
+  if(hidden)hidden.textContent=(state.feedHiddenCount||0)+' HIDDEN';
+  const muted=document.getElementById('feed-muted-clear');
+  if(muted){
+    muted.textContent='MUTED '+state.localMutedPubkeys.size;
+    muted.disabled=state.localMutedPubkeys.size===0;
+  }
+}
+function glowstrSetFeedNoiseLevel(level){
+  if(!['quiet','balanced','all'].includes(level))return;
+  state.feedNoiseLevel=level;
+  glowstrInvalidateFeedSelection();
+  glowstrSaveFeedFilterPrefs();
+  rerenderFeed();
+  updateFeedCount();
+  glowstrUpdateFeedFilterUi();
+}
+function glowstrMuteAuthor(pubkey){
+  glowstrInitFeedFilterState();
+  if(!/^[0-9a-f]{64}$/.test(pubkey||'')||pubkey===state.publicKey)return;
+  const p=state.profiles?.[pubkey]||{};
+  const name=p.display_name||p.name||pubkey.slice(0,12)+'…';
+  if(!window.confirm('Mute '+name+' on this device? Their notes will be hidden from feeds.'))return;
+  state.localMutedPubkeys.add(pubkey);
+  glowstrInvalidateFeedSelection();
+  glowstrSaveFeedFilterPrefs();
+  rerenderFeed();
+  updateFeedCount();
+  glowstrUpdateFeedFilterUi();
+  showToast('Muted '+name);
+}
+function glowstrClearLocalMutes(){
+  glowstrInitFeedFilterState();
+  if(!state.localMutedPubkeys.size)return;
+  if(!window.confirm('Clear all local account mutes?'))return;
+  state.localMutedPubkeys.clear();
+  glowstrInvalidateFeedSelection();
+  glowstrSaveFeedFilterPrefs();
+  rerenderFeed();
+  updateFeedCount();
+  glowstrUpdateFeedFilterUi();
+  showToast('Local mutes cleared');
+}
+function glowstrInitFeedFilterControls(){
+  glowstrLoadFeedFilterPrefs();
+  document.querySelectorAll('[data-feed-noise]').forEach(btn=>btn.addEventListener('click',()=>glowstrSetFeedNoiseLevel(btn.dataset.feedNoise)));
+  document.getElementById('feed-muted-clear')?.addEventListener('click',glowstrClearLocalMutes);
+  glowstrUpdateFeedFilterUi();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',glowstrInitFeedFilterControls,{once:true});else glowstrInitFeedFilterControls();
+
 function glowstrSaveFeedPreset(){try{localStorage.setItem(GLOWSTR_FEED_PRESET_KEY,JSON.stringify({mode:state.feedMode,set:state.selectedFollowSet,relay:state.selectedRelayFeed}));}catch(e){}}
 function glowstrLoadFeedPreset(){try{const x=JSON.parse(localStorage.getItem(GLOWSTR_FEED_PRESET_KEY)||'{}');if(['following','global','monero','tor','mesh','list','relay'].includes(x.mode))state.feedMode=x.mode;if(typeof x.set==='string')state.selectedFollowSet=x.set;if(typeof x.relay==='string')state.selectedRelayFeed=x.relay;}catch(e){}}
 function glowstrUpdateFeedPresetControls(){glowstrInitFeedPresetState();const ls=document.getElementById('feed-list-select');if(ls){const val=state.selectedFollowSet||'';ls.textContent='';const base=document.createElement('option');base.value='';base.textContent='SAVED LIST…';ls.appendChild(base);Object.values(state.followSets).sort((a,b)=>a.title.localeCompare(b.title)).forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.title+' ('+s.members.size+')';ls.appendChild(o);});ls.value=val;}const rs=document.getElementById('feed-relay-select');if(rs){const val=state.selectedRelayFeed||'';rs.textContent='';const base=document.createElement('option');base.value='';base.textContent='SELECT RELAY…';rs.appendChild(base);Object.entries(state.relays||{}).filter(([,r])=>r?.status==='connected').sort((a,b)=>(a[1].latency||9999)-(b[1].latency||9999)).forEach(([url])=>{const o=document.createElement('option');o.value=url;o.textContent=url.replace(/^wss?:\/\//,'').slice(0,42);rs.appendChild(o);});rs.value=val;}}
-function glowstrApplySavedListFeed(id){glowstrInitFeedPresetState();if(!id){if(state.feedMode==='list')setFeedMode('following');return;}state.selectedFollowSet=id;setFeedMode('list');}
+function glowstrApplySavedListFeed(id){glowstrInitFeedPresetState();if(!id){if(state.feedMode==='list')setFeedMode('following');return;}state.selectedFollowSet=id;glowstrInvalidateFeedSelection();setFeedMode('list');}
 function glowstrApplyRelayFeed(url){glowstrInitFeedPresetState();if(!url){if(state.feedMode==='relay')setFeedMode('global');return;}state.selectedRelayFeed=url;setFeedMode('relay');}
 async function glowstrPrimeMoneroFeed(){const evs=await nostrSearch([{kinds:[1],'#t':['monero','xmr'],limit:80}],3500);let added=0;for(const ev of evs){if(ev.kind===1&&!state.eventIds.has(ev.id)){handleEvent(ev,'finite:monero');added++;}}if(added)rerenderFeed();}
 function glowstrInitFeedPresets(){glowstrInitFeedPresetState();glowstrLoadFeedPreset();document.getElementById('mode-monero')?.addEventListener('click',()=>{setFeedMode('monero');glowstrPrimeMoneroFeed().catch(()=>{});});document.getElementById('mode-tor')?.addEventListener('click',()=>setFeedMode('tor'));document.getElementById('mode-mesh')?.addEventListener('click',()=>setFeedMode('mesh'));document.getElementById('feed-list-select')?.addEventListener('change',e=>glowstrApplySavedListFeed(e.target.value));document.getElementById('feed-relay-select')?.addEventListener('change',e=>glowstrApplyRelayFeed(e.target.value));glowstrUpdateFeedPresetControls();setFeedMode(state.feedMode);setInterval(()=>{if(!document.hidden)glowstrUpdateFeedPresetControls();},12000);}

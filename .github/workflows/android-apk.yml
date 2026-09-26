@@ -87,7 +87,7 @@ jobs:
             gh release create "${TAG}" \
               --target "${GITHUB_SHA}" \
               --title "Glowstr Android ${VERSION}" \
-              --notes "Android debug build of Glowstr ${VERSION}. Makes Stay logged in restore local nsec/generated signing capability using AES-GCM protected Android Keystore storage, while keeping plaintext private keys out of WebView/localStorage."
+              --notes "Android debug build of Glowstr ${VERSION}. Fixes signer migration and stale Stay-logged-in UI state: login now honors the visible checkbox, legacy public-only sessions probe Android Keystore, and missing signers expose a RECONNECT SIGNER recovery path."
           fi
 
           gh release upload "${TAG}" "${APK}" "${SUM}" --clobber

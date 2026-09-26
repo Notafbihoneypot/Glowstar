@@ -87,7 +87,7 @@ jobs:
             gh release create "${TAG}" \
               --target "${GITHUB_SHA}" \
               --title "Glowstr Android ${VERSION}" \
-              --notes "Android debug build of Glowstr ${VERSION}. Makes remembered login survive Android user/profile switches and WebView recreation using native secret-free SharedPreferences, with lifecycle flushing and safer WebView teardown."
+              --notes "Android debug build of Glowstr ${VERSION}. Makes Stay logged in restore local nsec/generated signing capability using AES-GCM protected Android Keystore storage, while keeping plaintext private keys out of WebView/localStorage."
           fi
 
           gh release upload "${TAG}" "${APK}" "${SUM}" --clobber

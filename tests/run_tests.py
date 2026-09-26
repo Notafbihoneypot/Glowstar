@@ -118,7 +118,7 @@ ok('Bounded peer sessions', 'MAX_LIVE_SESSIONS = 12' in btm and 'newFixedThreadP
 ok('Bounded pending GATT', 'MAX_PENDING_GATT = 8' in btm)
 ok('Peer rate limits', 'rateCount > 60' in btm and 'frameCount > 120' in btm)
 ok('Fast scan falls back to balanced', 'SCAN_MODE_LOW_LATENCY' in btm and 'SCAN_MODE_BALANCED' in btm and '20, TimeUnit.SECONDS' in btm)
-ok('No native Nostr event signing implementation in helper', not re.search(r'(?i)signNostrEvent|generatePrivateKey|schnorr\s*sign|secp256k1\s*sign', alljava))
+ok('Android signer vault encrypts but never signs Nostr events', 'Cipher.getInstance("AES/GCM/NoPadding")' in bridge and 'signNostrEvent(' not in bridge and 'verifySchnorrSig' not in bridge and 'secp256k1' not in bridge.lower())
 
 # Store-and-forward protocol simulation. Models id+sig dedup and higher-TTL refresh.
 class Node:

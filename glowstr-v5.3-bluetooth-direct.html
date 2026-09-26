@@ -4760,15 +4760,23 @@ const GLOWSTR_PUBLIC_STATE_KEY = 'glowstr_state';
 const GLOWSTR_SESSION_SECRET_KEY = 'glowstr_session_secrets_v2';
 
 function glowstrGetSavedPublicStateRaw() {
+  // Native Android storage is authoritative inside the APK because Activity/WebView
+  // instances may be destroyed when switching Android users/profiles or closing the app.
+  try {
+    if (window.GlowstrAndroid && typeof window.GlowstrAndroid.loadRememberedPublicState === 'function') {
+      const nativeRaw = String(window.GlowstrAndroid.loadRememberedPublicState() || '');
+      if (nativeRaw) return { raw: nativeRaw, fromLocal: true, fromNative: true };
+    }
+  } catch(e) {}
   try {
     const local = localStorage.getItem(GLOWSTR_PUBLIC_STATE_KEY);
-    if (local) return { raw: local, fromLocal: true };
+    if (local) return { raw: local, fromLocal: true, fromNative: false };
   } catch(e) {}
   try {
     const session = sessionStorage.getItem(GLOWSTR_PUBLIC_STATE_KEY);
-    if (session) return { raw: session, fromLocal: false };
+    if (session) return { raw: session, fromLocal: false, fromNative: false };
   } catch(e) {}
-  return { raw: null, fromLocal: false };
+  return { raw: null, fromLocal: false, fromNative: false };
 }
 
 function glowstrSyncPersistUi() {
@@ -4833,6 +4841,13 @@ function loadSavedState() {
       }
     } catch(e) { console.warn('Could not restore NIP-46 session:', e); }
 
+    if (saved && state.persistKey && raw) {
+      try {
+        if (window.GlowstrAndroid && typeof window.GlowstrAndroid.saveRememberedPublicState === 'function') {
+          window.GlowstrAndroid.saveRememberedPublicState(raw);
+        }
+      } catch(e) {}
+    }
     glowstrSyncPersistUi();
     if (state.publicKey) showLoggedIn();
 
@@ -4855,9 +4870,19 @@ function saveState() {
     if (state.persistKey) {
       localStorage.setItem(GLOWSTR_PUBLIC_STATE_KEY, payload);
       sessionStorage.setItem(GLOWSTR_PUBLIC_STATE_KEY, payload);
+      try {
+        if (window.GlowstrAndroid && typeof window.GlowstrAndroid.saveRememberedPublicState === 'function') {
+          window.GlowstrAndroid.saveRememberedPublicState(payload);
+        }
+      } catch(e) { console.warn('Native remembered-state save failed:', e); }
     } else {
       sessionStorage.setItem(GLOWSTR_PUBLIC_STATE_KEY, payload);
       try { localStorage.removeItem(GLOWSTR_PUBLIC_STATE_KEY); } catch(e) {}
+      try {
+        if (window.GlowstrAndroid && typeof window.GlowstrAndroid.clearRememberedPublicState === 'function') {
+          window.GlowstrAndroid.clearRememberedPublicState();
+        }
+      } catch(e) {}
     }
 
     // NIP-46 session material is never persistent across a browser/session restart.
@@ -4888,6 +4913,19 @@ function saveState() {
     } catch(e) {}
   } catch(e) { console.error('saveState error:', e); }
 }
+
+
+// Persist the already-secret-free public session before Android tears down the WebView.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && state.persistKey && state.publicKey) {
+    try { saveState(); } catch(e) {}
+  }
+});
+window.addEventListener('pagehide', () => {
+  if (state.persistKey && state.publicKey) {
+    try { saveState(); } catch(e) {}
+  }
+});
 
 // Toggle persistent login. Called from the checkbox in the login screen and the keys/identity panel.
 function setPersistKey(persist) {
@@ -5712,6 +5750,11 @@ function logout() {
   try { localStorage.removeItem(GLOWSTR_PUBLIC_STATE_KEY); } catch(e) {}
   try { sessionStorage.removeItem(GLOWSTR_PUBLIC_STATE_KEY); } catch(e) {}
   try { sessionStorage.removeItem(GLOWSTR_SESSION_SECRET_KEY); } catch(e) {}
+  try {
+    if (window.GlowstrAndroid && typeof window.GlowstrAndroid.clearRememberedPublicState === 'function') {
+      window.GlowstrAndroid.clearRememberedPublicState();
+    }
+  } catch(e) {}
   document.getElementById('keys-logged-out').style.display = 'block';
   document.getElementById('keys-logged-in').style.display = 'none';
   document.getElementById('compose-box').style.display = 'none';

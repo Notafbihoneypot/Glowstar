@@ -4759,12 +4759,31 @@ function glowstrTakeAmberPendingEvent() {
 const GLOWSTR_PUBLIC_STATE_KEY = 'glowstr_state';
 const GLOWSTR_SESSION_SECRET_KEY = 'glowstr_session_secrets_v2';
 
+function glowstrGetSavedPublicStateRaw() {
+  try {
+    const local = localStorage.getItem(GLOWSTR_PUBLIC_STATE_KEY);
+    if (local) return { raw: local, fromLocal: true };
+  } catch(e) {}
+  try {
+    const session = sessionStorage.getItem(GLOWSTR_PUBLIC_STATE_KEY);
+    if (session) return { raw: session, fromLocal: false };
+  } catch(e) {}
+  return { raw: null, fromLocal: false };
+}
+
+function glowstrSyncPersistUi() {
+  const a = document.getElementById('login-persist-checkbox');
+  const b = document.getElementById('loggedin-persist-checkbox');
+  if (a) a.checked = !!state.persistKey;
+  if (b) b.checked = !!state.persistKey;
+}
+
 function loadSavedState() {
   try {
     // PUBLIC state may be persistent. It must never contain signing secrets.
-    let raw = localStorage.getItem(GLOWSTR_PUBLIC_STATE_KEY);
-    let fromLocal = !!raw;
-    if (!raw) raw = sessionStorage.getItem(GLOWSTR_PUBLIC_STATE_KEY);
+    const stored = glowstrGetSavedPublicStateRaw();
+    const raw = stored.raw;
+    const fromLocal = stored.fromLocal;
     const saved = raw ? JSON.parse(raw) : null;
 
     if (saved) {
@@ -4814,6 +4833,7 @@ function loadSavedState() {
       }
     } catch(e) { console.warn('Could not restore NIP-46 session:', e); }
 
+    glowstrSyncPersistUi();
     if (state.publicKey) showLoggedIn();
 
     // Nuke legacy window.name key data (old versions stored it there).
@@ -4873,6 +4893,7 @@ function saveState() {
 function setPersistKey(persist) {
   state.persistKey = !!persist;
   saveState();
+  glowstrSyncPersistUi();
   if (persist) {
     showToast('★ Stay logged in: ON — public identity is remembered; signing secrets are NOT persisted');
   } else {
@@ -13073,22 +13094,29 @@ function enterGlowstr() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Returning user with saved state: skip everything, go straight to app
+  // Returning user with saved public identity: skip landing and restore immediately.
+  // IMPORTANT: localStorage survives an Android/WebView process restart; sessionStorage does not.
   try {
-    const saved = sessionStorage.getItem('glowstr_state');
-    if (saved && JSON.parse(saved).publicKey) {
+    const stored = glowstrGetSavedPublicStateRaw();
+    const saved = stored.raw ? JSON.parse(stored.raw) : null;
+    if (saved?.publicKey && /^[0-9a-f]{64}$/.test(saved.publicKey)) {
       document.getElementById('landing-page').style.display = 'none';
       document.getElementById('boot-screen').style.display = 'none';
       document.getElementById('app').classList.add('visible');
-      // Init directly — relays connect instantly
-      preloadCrypto(); checkAmberCallback(); loadSavedState(); glowstrLoadFeedFilterPrefs(); loadBookmarks(); loadProfileCache();
+      preloadCrypto();
+      checkAmberCallback();
+      loadSavedState();
+      glowstrLoadFeedFilterPrefs();
+      loadBookmarks();
+      loadProfileCache();
       const relayUrls = Object.keys(state.relays).length > 0 ? Object.keys(state.relays) : DEFAULT_RELAYS;
       relayUrls.forEach(url => connectRelay(url));
       initApp();
       return;
     }
-  } catch(e) {}
+  } catch(e) { console.warn('Persistent login bootstrap failed:', e); }
   // New user: show landing page
+  glowstrSyncPersistUi();
 });
 
 // Re-check Amber callback whenever the page becomes visible again — handles back-button from Amber

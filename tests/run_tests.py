@@ -97,6 +97,14 @@ ok('APK prefers native remembered state', 'loadRememberedPublicState' in text an
 ok('APK saves and clears native remembered state', 'saveRememberedPublicState(payload)' in text and 'clearRememberedPublicState()' in text)
 ok('Lifecycle flushes persistent public session', "document.addEventListener('visibilitychange'" in text and "window.addEventListener('pagehide'" in text)
 ok('WebView detaches before destroy', 'ViewParent parent = webView.getParent();' in mainactivity and '((ViewGroup) parent).removeView(webView);' in mainactivity)
+ok('Android Keystore local signer vault', all(x in bridge for x in ['AndroidKeyStore','KeyGenParameterSpec','AES/GCM/NoPadding','KEY_LOCAL_SIGNER','saveRememberedLocalSigner','loadRememberedLocalSigner','clearRememberedLocalSigner']))
+ok('Local signer vault uses authenticated encryption', 'cipher.updateAAD(SIGNER_AAD)' in bridge and 'new GCMParameterSpec(128, iv)' in bridge and '.setRandomizedEncryptionRequired(true)' in bridge)
+ok('Local signer vault writes only sealed ciphertext', '.putString(KEY_LOCAL_SIGNER, sealed.toString()).commit()' in bridge and '.putString(KEY_LOCAL_SIGNER, clear.toString())' not in bridge)
+ok('Local signer restore is pubkey-bound', 'if (!expected.equals(pub)) return "";' in bridge and 'if (!secret.matches("[0-9a-f]{64}")) return "";' in bridge)
+ok('Local signer restore wired into saved session', 'glowstrRestoreNativeLocalSigner(saved.signerMethod)' in text and 'loadRememberedLocalSigner(state.publicKey)' in text)
+ok('Local signer persistence follows Stay logged in', 'glowstrSaveNativeLocalSigner();' in text and 'glowstrClearNativeLocalSigner();' in text and 'protected by Android Keystore' in text)
+ok('Public WebView state still excludes raw signer key', 'privateKey: state.privateKey' not in text[text.index('function saveState()'):text.index('// Persist the already-secret-free public session')])
+ok('Read-only restored identity is not shown as healthy signer', "SIGNER REQUIRED" in text and "RECONNECT" in text and 'function glowstrSignerReady()' in text)
 ok('NIP-51 public mute list handling', "event.kind === 10000" in text and all(x in text for x in ["type === 'p'", "type === 'word'", "type === 't'", "type === 'e'"]))
 ok('Per-note local mute action', 'data-glow-action="mute-author"' in text and "case 'mute-author'" in text and 'glowstrMuteAuthor' in text)
 ok('Hidden feed events skip profile fetch', 'if (visibleInFeed && !state.profiles[event.pubkey]) requestProfile(event.pubkey);' in text)
@@ -110,7 +118,7 @@ ok('Bounded peer sessions', 'MAX_LIVE_SESSIONS = 12' in btm and 'newFixedThreadP
 ok('Bounded pending GATT', 'MAX_PENDING_GATT = 8' in btm)
 ok('Peer rate limits', 'rateCount > 60' in btm and 'frameCount > 120' in btm)
 ok('Fast scan falls back to balanced', 'SCAN_MODE_LOW_LATENCY' in btm and 'SCAN_MODE_BALANCED' in btm and '20, TimeUnit.SECONDS' in btm)
-ok('No signing/private-key implementation in helper', not re.search(r'(?i)signEvent|privateKey|secretKey|generatePrivateKey', alljava))
+ok('No native Nostr event signing implementation in helper', not re.search(r'(?i)signNostrEvent|generatePrivateKey|schnorr\s*sign|secp256k1\s*sign', alljava))
 
 # Store-and-forward protocol simulation. Models id+sig dedup and higher-TTL refresh.
 class Node:

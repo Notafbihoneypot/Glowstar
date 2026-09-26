@@ -87,7 +87,7 @@ jobs:
             gh release create "${TAG}" \
               --target "${GITHUB_SHA}" \
               --title "Glowstr Android ${VERSION}" \
-              --notes "Android debug build of Glowstr ${VERSION}. Adds adaptive relay-side Following filters, Quiet/Balanced/All noise controls, NIP-51 public mutes, mobile UI cleanup, and lower feed CPU/bandwidth use."
+              --notes "Android debug build of Glowstr ${VERSION}. Fixes persistent login after app/process restarts by restoring remembered public identity from local storage, while keeping signing secrets non-persistent."
           fi
 
           gh release upload "${TAG}" "${APK}" "${SUM}" --clobber

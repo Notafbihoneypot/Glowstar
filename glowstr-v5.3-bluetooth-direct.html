@@ -7,7 +7,7 @@
 <title>GLOWSTR // v5.3 Bluetooth Direct</title>
 <meta name="description" content="Glowstr — a retro privacy-first Nostr PWA client">
 <meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-V2SsyVYqD7YxmwXs+QWVUGfKzFbiqfCqGDBkMIFRFoM='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-Sx14bfalES/MMtgQuLRLhuWM+XGWUpQGvS7ZmkkrW1Q='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkdMT1dTVFIiLCAic2hvcnRfbmFtZSI6ICJHTE9XU1RSIiwgImRlc2NyaXB0aW9uIjogIlNlZSBUaHJvdWdoIHRoZSBOb2lzZSBcdTIwMTQgUHJpdmFjeS1maXJzdCBOb3N0ciBjbGllbnQiLCAic3RhcnRfdXJsIjogIi4iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMGEwYSIsICJ0aGVtZV9jb2xvciI6ICIjRkY2NjAwIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCMmFXVjNRbTk0UFNJd0lEQWdNVGt5SURFNU1pSStDanh5WldOMElIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCbWFXeHNQU0lqTUdFd1lUQmhJaTgrQ2p4eVpXTjBJSGc5SWpnaUlIazlJamdpSUhkcFpIUm9QU0l4TnpZaUlHaGxhV2RvZEQwaU1UYzJJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlOR1JqWTJNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlOQ0l2UGdvOGRHVjRkQ0I0UFNJNU5pSWdlVDBpTVRFd0lpQm1iMjUwTFdaaGJXbHNlVDBpYlc5dWIzTndZV05sSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUJtYjI1MExYZGxhV2RvZEQwaVltOXNaQ0lnWm1sc2JEMGlJMFpHTmpZd01DSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krUnp3dmRHVjRkRDRLUEhSbGVIUWdlRDBpT1RZaUlIazlJakUxTUNJZ1ptOXVkQzFtWVcxcGJIazlJbTF2Ym05emNHRmpaU0lnWm05dWRDMXphWHBsUFNJeE5pSWdabWxzYkQwaUkyTmpOVEl3TUNJZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSStSMHhQVjFOVVVqd3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
@@ -4759,12 +4759,31 @@ function glowstrTakeAmberPendingEvent() {
 const GLOWSTR_PUBLIC_STATE_KEY = 'glowstr_state';
 const GLOWSTR_SESSION_SECRET_KEY = 'glowstr_session_secrets_v2';
 
+function glowstrGetSavedPublicStateRaw() {
+  try {
+    const local = localStorage.getItem(GLOWSTR_PUBLIC_STATE_KEY);
+    if (local) return { raw: local, fromLocal: true };
+  } catch(e) {}
+  try {
+    const session = sessionStorage.getItem(GLOWSTR_PUBLIC_STATE_KEY);
+    if (session) return { raw: session, fromLocal: false };
+  } catch(e) {}
+  return { raw: null, fromLocal: false };
+}
+
+function glowstrSyncPersistUi() {
+  const a = document.getElementById('login-persist-checkbox');
+  const b = document.getElementById('loggedin-persist-checkbox');
+  if (a) a.checked = !!state.persistKey;
+  if (b) b.checked = !!state.persistKey;
+}
+
 function loadSavedState() {
   try {
     // PUBLIC state may be persistent. It must never contain signing secrets.
-    let raw = localStorage.getItem(GLOWSTR_PUBLIC_STATE_KEY);
-    let fromLocal = !!raw;
-    if (!raw) raw = sessionStorage.getItem(GLOWSTR_PUBLIC_STATE_KEY);
+    const stored = glowstrGetSavedPublicStateRaw();
+    const raw = stored.raw;
+    const fromLocal = stored.fromLocal;
     const saved = raw ? JSON.parse(raw) : null;
 
     if (saved) {
@@ -4814,6 +4833,7 @@ function loadSavedState() {
       }
     } catch(e) { console.warn('Could not restore NIP-46 session:', e); }
 
+    glowstrSyncPersistUi();
     if (state.publicKey) showLoggedIn();
 
     // Nuke legacy window.name key data (old versions stored it there).
@@ -4873,6 +4893,7 @@ function saveState() {
 function setPersistKey(persist) {
   state.persistKey = !!persist;
   saveState();
+  glowstrSyncPersistUi();
   if (persist) {
     showToast('★ Stay logged in: ON — public identity is remembered; signing secrets are NOT persisted');
   } else {
@@ -13073,22 +13094,29 @@ function enterGlowstr() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Returning user with saved state: skip everything, go straight to app
+  // Returning user with saved public identity: skip landing and restore immediately.
+  // IMPORTANT: localStorage survives an Android/WebView process restart; sessionStorage does not.
   try {
-    const saved = sessionStorage.getItem('glowstr_state');
-    if (saved && JSON.parse(saved).publicKey) {
+    const stored = glowstrGetSavedPublicStateRaw();
+    const saved = stored.raw ? JSON.parse(stored.raw) : null;
+    if (saved?.publicKey && /^[0-9a-f]{64}$/.test(saved.publicKey)) {
       document.getElementById('landing-page').style.display = 'none';
       document.getElementById('boot-screen').style.display = 'none';
       document.getElementById('app').classList.add('visible');
-      // Init directly — relays connect instantly
-      preloadCrypto(); checkAmberCallback(); loadSavedState(); glowstrLoadFeedFilterPrefs(); loadBookmarks(); loadProfileCache();
+      preloadCrypto();
+      checkAmberCallback();
+      loadSavedState();
+      glowstrLoadFeedFilterPrefs();
+      loadBookmarks();
+      loadProfileCache();
       const relayUrls = Object.keys(state.relays).length > 0 ? Object.keys(state.relays) : DEFAULT_RELAYS;
       relayUrls.forEach(url => connectRelay(url));
       initApp();
       return;
     }
-  } catch(e) {}
+  } catch(e) { console.warn('Persistent login bootstrap failed:', e); }
   // New user: show landing page
+  glowstrSyncPersistUi();
 });
 
 // Re-check Amber callback whenever the page becomes visible again — handles back-button from Amber

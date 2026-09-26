@@ -19,6 +19,8 @@ import java.util.EnumMap;
 import java.util.Map;
 
 public final class AndroidBridge {
+    private static final String IDENTITY_PREFS = "glowstr_identity";
+    private static final String KEY_PUBLIC_STATE = "remembered_public_state";
     private final Context context;
 
     AndroidBridge(Context context) {
@@ -87,6 +89,91 @@ public final class AndroidBridge {
             return result;
         } catch (RuntimeException e) {
             return "";
+        }
+    }
+
+    /**
+     * Persist only the secret-free public session subset in native Android storage.
+     * This intentionally excludes nsec/private keys, bunker URLs, NIP-46 client keys,
+     * tokens, encrypted secrets, and arbitrary caller-controlled fields.
+     */
+    @JavascriptInterface
+    public boolean saveRememberedPublicState(String rawJson) {
+        if (rawJson == null || rawJson.length() > 512 * 1024) return false;
+        try {
+            JSONObject in = new JSONObject(rawJson);
+            if (!in.optBoolean("persist", false)) {
+                return clearRememberedPublicState();
+            }
+
+            String publicKey = in.optString("publicKey", "").trim().toLowerCase(java.util.Locale.ROOT);
+            if (!publicKey.matches("[0-9a-f]{64}")) return false;
+
+            JSONObject out = new JSONObject();
+            out.put("publicKey", publicKey);
+            out.put("persist", true);
+
+            String signerMethod = in.optString("signerMethod", "").trim();
+            if (signerMethod.length() <= 64 &&
+                    ("amber-nip55".equals(signerMethod) ||
+                     "nip07".equals(signerMethod) ||
+                     "readonly".equals(signerMethod) ||
+                     "watch".equals(signerMethod))) {
+                out.put("signerMethod", signerMethod);
+            }
+
+            org.json.JSONArray relaysIn = in.optJSONArray("relays");
+            org.json.JSONArray relaysOut = new org.json.JSONArray();
+            if (relaysIn != null) {
+                int count = Math.min(relaysIn.length(), 64);
+                for (int i = 0; i < count; i++) {
+                    String relay = relaysIn.optString(i, "").trim();
+                    if (relay.length() <= 512 &&
+                            (relay.startsWith("wss://") || relay.startsWith("ws://"))) {
+                        relaysOut.put(relay);
+                    }
+                }
+            }
+            out.put("relays", relaysOut);
+
+            org.json.JSONArray followingIn = in.optJSONArray("following");
+            org.json.JSONArray followingOut = new org.json.JSONArray();
+            if (followingIn != null) {
+                int count = Math.min(followingIn.length(), 5000);
+                for (int i = 0; i < count; i++) {
+                    String pk = followingIn.optString(i, "").trim().toLowerCase(java.util.Locale.ROOT);
+                    if (pk.matches("[0-9a-f]{64}")) followingOut.put(pk);
+                }
+            }
+            out.put("following", followingOut);
+
+            // commit() is intentionally synchronous so a user/profile switch cannot
+            // kill the WebView before Android has durably written the remembered state.
+            return context.getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
+                    .edit().putString(KEY_PUBLIC_STATE, out.toString()).commit();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @JavascriptInterface
+    public String loadRememberedPublicState() {
+        try {
+            String value = context.getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
+                    .getString(KEY_PUBLIC_STATE, "");
+            return value == null ? "" : value;
+        } catch (RuntimeException e) {
+            return "";
+        }
+    }
+
+    @JavascriptInterface
+    public boolean clearRememberedPublicState() {
+        try {
+            return context.getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
+                    .edit().remove(KEY_PUBLIC_STATE).commit();
+        } catch (RuntimeException e) {
+            return false;
         }
     }
 

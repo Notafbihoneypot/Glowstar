@@ -7,7 +7,7 @@
 <title>GLOWSTR // v5.3 Bluetooth Direct</title>
 <meta name="description" content="Glowstr — a retro privacy-first Nostr PWA client">
 <meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-M3rKqEg77WDMwViMcbWzqD+XjOKY+yejCfouQrcDvUU='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-qcK7i6nITjvY/4Gn4NFNJHaUPEQxF4wEshqQhaxGtFQ='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkdMT1dTVFIiLCAic2hvcnRfbmFtZSI6ICJHTE9XU1RSIiwgImRlc2NyaXB0aW9uIjogIlNlZSBUaHJvdWdoIHRoZSBOb2lzZSBcdTIwMTQgUHJpdmFjeS1maXJzdCBOb3N0ciBjbGllbnQiLCAic3RhcnRfdXJsIjogIi4iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMGEwYSIsICJ0aGVtZV9jb2xvciI6ICIjRkY2NjAwIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCMmFXVjNRbTk0UFNJd0lEQWdNVGt5SURFNU1pSStDanh5WldOMElIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCbWFXeHNQU0lqTUdFd1lUQmhJaTgrQ2p4eVpXTjBJSGc5SWpnaUlIazlJamdpSUhkcFpIUm9QU0l4TnpZaUlHaGxhV2RvZEQwaU1UYzJJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlOR1JqWTJNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlOQ0l2UGdvOGRHVjRkQ0I0UFNJNU5pSWdlVDBpTVRFd0lpQm1iMjUwTFdaaGJXbHNlVDBpYlc5dWIzTndZV05sSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUJtYjI1MExYZGxhV2RvZEQwaVltOXNaQ0lnWm1sc2JEMGlJMFpHTmpZd01DSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krUnp3dmRHVjRkRDRLUEhSbGVIUWdlRDBpT1RZaUlIazlJakUxTUNJZ1ptOXVkQzFtWVcxcGJIazlJbTF2Ym05emNHRmpaU0lnWm05dWRDMXphWHBsUFNJeE5pSWdabWxzYkQwaUkyTmpOVEl3TUNJZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSStSMHhQVjFOVVVqd3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
@@ -3304,8 +3304,8 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
             <div style="flex:1;">
               <div style="color:var(--xmr-green);font-weight:bold;">★ Stay logged in on this device</div>
               <div style="color:var(--xmr-text-dim);font-size:0.85rem;margin-top:3px;line-height:1.4;">
-                When ON, Glowstr remembers only your public identity and preferences across browser restarts.
-                Raw nsec keys and signing-capability secrets are never written to persistent storage. Turn OFF on shared/public computers.
+                When ON in the Android app, Glowstr remembers your identity and keeps local signing keys encrypted by Android Keystore.
+                Raw nsec keys are never written to WebView/localStorage. Turn OFF on shared/public devices.
               </div>
             </div>
           </label>
@@ -3478,8 +3478,9 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
           </div>
           <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin-top:16px;background:rgba(0,255,102,0.04);border:1px solid var(--xmr-green);cursor:pointer;font-family:var(--font-retro);font-size:0.9rem;color:var(--xmr-text);">
             <input type="checkbox" id="loggedin-persist-checkbox" data-glow-change="h0112" style="width:16px;height:16px;cursor:pointer;" />
-            <span>★ Remember public identity across browser restarts</span>
+            <span>★ Stay logged in and restore signer on this device</span>
           </label>
+          <button class="btn" id="reconnect-signer-btn" type="button" style="display:none;width:100%;margin-top:8px;border-color:var(--xmr-amber);color:var(--xmr-amber);">RECONNECT SIGNER</button>
           <button class="btn" data-glow-click="h0113" style="width:100%;margin-top:8px;border-color:var(--xmr-red);color:var(--xmr-red);">DISCONNECT</button>
         </div>
 
@@ -4810,8 +4811,9 @@ function glowstrSaveNativeLocalSigner() {
     return false;
   }
 }
-function glowstrRestoreNativeLocalSigner(savedMethod) {
-  if (!glowstrIsLocalSignerMethod(savedMethod) || !/^[0-9a-f]{64}$/.test(state.publicKey || '')) return false;
+function glowstrRestoreNativeLocalSigner(savedMethod='') {
+  if (!/^[0-9a-f]{64}$/.test(state.publicKey || '')) return false;
+  if (savedMethod && !glowstrIsLocalSignerMethod(savedMethod)) return false;
   try {
     if (!window.GlowstrAndroid ||
         typeof window.GlowstrAndroid.loadRememberedLocalSigner !== 'function') return false;
@@ -4821,8 +4823,10 @@ function glowstrRestoreNativeLocalSigner(savedMethod) {
     const method = String(restored.signerMethod || '');
     const privateKey = String(restored.privateKey || '').toLowerCase();
     const publicKey = String(restored.publicKey || '').toLowerCase();
-    if (publicKey !== state.publicKey || method !== savedMethod ||
-        !glowstrIsLocalSignerMethod(method) || !/^[0-9a-f]{64}$/.test(privateKey)) return false;
+    if (publicKey !== state.publicKey ||
+        (savedMethod && method !== savedMethod) ||
+        !glowstrIsLocalSignerMethod(method) ||
+        !/^[0-9a-f]{64}$/.test(privateKey)) return false;
     state.privateKey = privateKey;
     state.signerMethod = method;
     return true;
@@ -4850,6 +4854,45 @@ function glowstrSignerReady() {
   return false;
 }
 
+function glowstrApplyLoginPersistChoice() {
+  const checkbox = document.getElementById('login-persist-checkbox');
+  if (checkbox) state.persistKey = !!checkbox.checked;
+  glowstrSyncPersistUi();
+  return !!state.persistKey;
+}
+function glowstrReconnectSigner() {
+  const rememberedPubkey = state.publicKey;
+  state.privateKey = null;
+  state.publicKey = null;
+  state.signerMethod = null;
+  state.bunkerUrl = null;
+  state.nip46 = null;
+  state.persistKey = true;
+
+  try { localStorage.removeItem(GLOWSTR_PUBLIC_STATE_KEY); } catch(e) {}
+  try { sessionStorage.removeItem(GLOWSTR_PUBLIC_STATE_KEY); } catch(e) {}
+  try { sessionStorage.removeItem(GLOWSTR_SESSION_SECRET_KEY); } catch(e) {}
+  try {
+    if (window.GlowstrAndroid?.clearRememberedPublicState) {
+      window.GlowstrAndroid.clearRememberedPublicState();
+    }
+  } catch(e) {}
+
+  document.getElementById('keys-logged-out').style.display = 'block';
+  document.getElementById('keys-logged-in').style.display = 'none';
+  document.getElementById('compose-box').style.display = 'none';
+  document.getElementById('header-user').classList.add('offline');
+  document.getElementById('header-user-label').textContent = 'ANON';
+  document.getElementById('stat-signer').textContent = 'NONE';
+  glowstrSyncPersistUi();
+
+  const nsecSection = document.getElementById('section-nsec');
+  if (nsecSection) nsecSection.classList.add('open');
+  showToast(rememberedPubkey
+    ? 'Reconnect the signer for ' + rememberedPubkey.slice(0,8) + '… then Stay logged in will be re-seeded securely.'
+    : 'Reconnect your signer.');
+}
+
 function loadSavedState() {
   try {
     // PUBLIC state may be persistent. It must never contain signing secrets.
@@ -4874,6 +4917,10 @@ function loadSavedState() {
         state.signerMethod = saved.signerMethod;
       } else if (glowstrIsLocalSignerMethod(saved.signerMethod)) {
         glowstrRestoreNativeLocalSigner(saved.signerMethod);
+      } else if (state.publicKey) {
+        // Migration from 0.3.8/0.3.9 public-only state: the old record may not
+        // contain signerMethod even if a valid native Keystore vault exists.
+        glowstrRestoreNativeLocalSigner('');
       }
 
       // Migrate old insecure state: delete any raw nsec / bunker token / NIP-46 secret that older versions stored.
@@ -5090,6 +5137,7 @@ function isStandalonePwa() {
 }
 
 function loginWithAmber() {
+  glowstrApplyLoginPersistChoice();
   const isAndroid = (GLOWSTR_CLIENT_CONTEXT || applyGlowstrClientContext()).platform === 'android';
   if (!isAndroid) {
     // NIP-55 is Android-only. Route desktop/iOS users to NIP-46 nostrconnect:// flow.
@@ -5600,6 +5648,7 @@ async function processAmberPaste() {
 
 // NIP-07
 async function loginWithExtension() {
+  glowstrApplyLoginPersistChoice();
   if (!window.nostr) { showToast('No NIP-07 extension found. Install Alby, nos2x, or similar.'); return; }
   try {
     const pubkey = await window.nostr.getPublicKey();
@@ -5611,6 +5660,7 @@ async function loginWithExtension() {
 
 // NSEC / PRIVATE KEY LOGIN — full signing in browser
 async function loginWithKey() {
+  glowstrApplyLoginPersistChoice();
   const input = document.getElementById('nsec-input').value.trim();
   if (!input) { showToast('Please enter a private key'); return; }
 
@@ -5655,6 +5705,7 @@ async function loginWithKey() {
 
 // GENERATE KEYS — local keypair
 async function generateKeys() {
+  glowstrApplyLoginPersistChoice();
   try {
     showToast('Generating keypair...');
     const hexKey = generatePrivateKey();
@@ -5699,6 +5750,11 @@ function showLoggedIn() {
   document.getElementById('header-user').classList.toggle('offline', !signerReady);
   document.getElementById('header-user-label').textContent = state.publicKey?.length === 64 ? state.publicKey.slice(0, 8) : 'USER';
   document.getElementById('stat-signer').textContent = signerReady ? (methodLabels[state.signerMethod] || 'CONNECTED') : 'RECONNECT';
+  const reconnectBtn = document.getElementById('reconnect-signer-btn');
+  if (reconnectBtn) {
+    reconnectBtn.style.display = signerReady ? 'none' : 'block';
+    reconnectBtn.onclick = signerReady ? null : glowstrReconnectSigner;
+  }
   const badge = document.getElementById('signer-badge');
   const isAmber = state.signerMethod?.startsWith('amber');
   const isLocal = state.signerMethod === 'nsec' || state.signerMethod === 'generated';
@@ -5853,6 +5909,7 @@ function logout() {
   document.getElementById('header-user').classList.add('offline');
   document.getElementById('header-user-label').textContent = 'ANON';
   document.getElementById('stat-signer').textContent = 'NONE';
+  glowstrSyncPersistUi();
   showToast('Disconnected. Identity cleared.');
 }
 

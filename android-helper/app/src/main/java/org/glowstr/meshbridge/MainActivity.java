@@ -17,6 +17,8 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.Toast;
 
 import java.io.InputStream;
@@ -51,6 +53,12 @@ public final class MainActivity extends Activity {
     @Override protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
         if (webView != null) {
+            // Detach before destroy. Vanadium warns (and may defer teardown work)
+            // when WebView.destroy() is called while still attached to a window.
+            ViewParent parent = webView.getParent();
+            if (parent instanceof ViewGroup) {
+                ((ViewGroup) parent).removeView(webView);
+            }
             webView.removeJavascriptInterface("GlowstrAndroid");
             webView.stopLoading();
             webView.destroy();

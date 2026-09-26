@@ -87,7 +87,7 @@ jobs:
             gh release create "${TAG}" \
               --target "${GITHUB_SHA}" \
               --title "Glowstr Android ${VERSION}" \
-              --notes "Android debug build of Glowstr ${VERSION}. Fixes signer migration and stale Stay-logged-in UI state: login now honors the visible checkbox, legacy public-only sessions probe Android Keystore, and missing signers expose a RECONNECT SIGNER recovery path."
+              --notes "Android debug build of Glowstr ${VERSION}. Fixes the mobile comment/reply button so tapping Reply opens the mobile composer with the correct NIP-10 reply context and focus behavior."
           fi
 
           gh release upload "${TAG}" "${APK}" "${SUM}" --clobber

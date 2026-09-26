@@ -7,7 +7,7 @@
 <title>GLOWSTR // v5.3 Bluetooth Direct</title>
 <meta name="description" content="Glowstr — a retro privacy-first Nostr PWA client">
 <meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-qcK7i6nITjvY/4Gn4NFNJHaUPEQxF4wEshqQhaxGtFQ='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-qSkLQm2miHJwW7PJ2X43T2GtwB0z7SN9zOZhVWLzQEs='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkdMT1dTVFIiLCAic2hvcnRfbmFtZSI6ICJHTE9XU1RSIiwgImRlc2NyaXB0aW9uIjogIlNlZSBUaHJvdWdoIHRoZSBOb2lzZSBcdTIwMTQgUHJpdmFjeS1maXJzdCBOb3N0ciBjbGllbnQiLCAic3RhcnRfdXJsIjogIi4iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMGEwYSIsICJ0aGVtZV9jb2xvciI6ICIjRkY2NjAwIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCMmFXVjNRbTk0UFNJd0lEQWdNVGt5SURFNU1pSStDanh5WldOMElIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCbWFXeHNQU0lqTUdFd1lUQmhJaTgrQ2p4eVpXTjBJSGc5SWpnaUlIazlJamdpSUhkcFpIUm9QU0l4TnpZaUlHaGxhV2RvZEQwaU1UYzJJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlOR1JqWTJNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlOQ0l2UGdvOGRHVjRkQ0I0UFNJNU5pSWdlVDBpTVRFd0lpQm1iMjUwTFdaaGJXbHNlVDBpYlc5dWIzTndZV05sSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUJtYjI1MExYZGxhV2RvZEQwaVltOXNaQ0lnWm1sc2JEMGlJMFpHTmpZd01DSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krUnp3dmRHVjRkRDRLUEhSbGVIUWdlRDBpT1RZaUlIazlJakUxTUNJZ1ptOXVkQzFtWVcxcGJIazlJbTF2Ym05emNHRmpaU0lnWm05dWRDMXphWHBsUFNJeE5pSWdabWxzYkQwaUkyTmpOVEl3TUNJZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSStSMHhQVjFOVVVqd3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
@@ -7554,23 +7554,57 @@ function updateStats() {
 // ═══ REPLY COMPOSE ═══
 function startReply(eventId, pubkey) {
   if (!state.publicKey) { showToast('Login first to reply'); switchView('keys'); return; }
-  const event = state.eventsById[eventId];
-  const profile = state.profiles[pubkey] || {};
-  const name = profile.display_name || profile.name || pubkey.slice(0,8) + '...';
 
-  state.replyTo = { id: eventId, pubkey: pubkey, rootId: event ? getRootId(event) : null };
+  const event = state.eventsById[eventId] || state.events.find(e => e.id === eventId);
+  const targetPubkey = pubkey || event?.pubkey || '';
+  if (!/^[0-9a-f]{64}$/.test(eventId || '') || !/^[0-9a-f]{64}$/.test(targetPubkey)) {
+    showToast('Could not open reply composer for this note');
+    return;
+  }
 
-  document.getElementById('reply-ctx-name').textContent = name;
-  document.getElementById('reply-context').classList.add('visible');
-  document.getElementById('compose-input').placeholder = 'Reply to ' + name + '...';
-  document.getElementById('compose-input').focus();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const profile = state.profiles[targetPubkey] || {};
+  const name = profile.display_name || profile.name || targetPubkey.slice(0,8) + '...';
+  state.replyTo = {
+    id: eventId,
+    pubkey: targetPubkey,
+    rootId: event ? (getRootId(event) || eventId) : eventId
+  };
+
+  const mobile = typeof glowstrUsesMobileShell === 'function' && glowstrUsesMobileShell();
+  if (mobile && typeof openMobileComposer === 'function') {
+    // On mobile the composer is a hidden full-screen sheet. The old reply path
+    // only focused its textarea, so tapping the comment bubble appeared to do nothing.
+    openMobileComposer();
+  } else {
+    switchView('feed');
+    const box = document.getElementById('compose-box');
+    if (box) box.style.display = 'block';
+  }
+
+  const ctxName = document.getElementById('reply-ctx-name');
+  const replyContext = document.getElementById('reply-context');
+  const input = document.getElementById('compose-input');
+  if (!ctxName || !replyContext || !input) {
+    state.replyTo = null;
+    showToast('Reply composer is unavailable');
+    return;
+  }
+
+  ctxName.textContent = name;
+  replyContext.classList.add('visible');
+  input.placeholder = 'Reply to ' + name + '...';
+
+  requestAnimationFrame(() => {
+    try { input.focus({ preventScroll: mobile }); } catch(e) { input.focus(); }
+    if (!mobile) window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 }
 
 function cancelReply() {
   state.replyTo = null;
-  document.getElementById('reply-context').classList.remove('visible');
-  document.getElementById('compose-input').placeholder = "What's on your mind, anon?...";
+  document.getElementById('reply-context')?.classList.remove('visible');
+  const input = document.getElementById('compose-input');
+  if (input) input.placeholder = "What's on your mind, anon?...";
 }
 
 // ═══ FEED MODE ═══

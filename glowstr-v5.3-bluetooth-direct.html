@@ -7554,23 +7554,57 @@ function updateStats() {
 // ═══ REPLY COMPOSE ═══
 function startReply(eventId, pubkey) {
   if (!state.publicKey) { showToast('Login first to reply'); switchView('keys'); return; }
-  const event = state.eventsById[eventId];
-  const profile = state.profiles[pubkey] || {};
-  const name = profile.display_name || profile.name || pubkey.slice(0,8) + '...';
 
-  state.replyTo = { id: eventId, pubkey: pubkey, rootId: event ? getRootId(event) : null };
+  const event = state.eventsById[eventId] || state.events.find(e => e.id === eventId);
+  const targetPubkey = pubkey || event?.pubkey || '';
+  if (!/^[0-9a-f]{64}$/.test(eventId || '') || !/^[0-9a-f]{64}$/.test(targetPubkey)) {
+    showToast('Could not open reply composer for this note');
+    return;
+  }
 
-  document.getElementById('reply-ctx-name').textContent = name;
-  document.getElementById('reply-context').classList.add('visible');
-  document.getElementById('compose-input').placeholder = 'Reply to ' + name + '...';
-  document.getElementById('compose-input').focus();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const profile = state.profiles[targetPubkey] || {};
+  const name = profile.display_name || profile.name || targetPubkey.slice(0,8) + '...';
+  state.replyTo = {
+    id: eventId,
+    pubkey: targetPubkey,
+    rootId: event ? (getRootId(event) || eventId) : eventId
+  };
+
+  const mobile = typeof glowstrUsesMobileShell === 'function' && glowstrUsesMobileShell();
+  if (mobile && typeof openMobileComposer === 'function') {
+    // On mobile the composer is a hidden full-screen sheet. The old reply path
+    // only focused its textarea, so tapping the comment bubble appeared to do nothing.
+    openMobileComposer();
+  } else {
+    switchView('feed');
+    const box = document.getElementById('compose-box');
+    if (box) box.style.display = 'block';
+  }
+
+  const ctxName = document.getElementById('reply-ctx-name');
+  const replyContext = document.getElementById('reply-context');
+  const input = document.getElementById('compose-input');
+  if (!ctxName || !replyContext || !input) {
+    state.replyTo = null;
+    showToast('Reply composer is unavailable');
+    return;
+  }
+
+  ctxName.textContent = name;
+  replyContext.classList.add('visible');
+  input.placeholder = 'Reply to ' + name + '...';
+
+  requestAnimationFrame(() => {
+    try { input.focus({ preventScroll: mobile }); } catch(e) { input.focus(); }
+    if (!mobile) window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 }
 
 function cancelReply() {
   state.replyTo = null;
-  document.getElementById('reply-context').classList.remove('visible');
-  document.getElementById('compose-input').placeholder = "What's on your mind, anon?...";
+  document.getElementById('reply-context')?.classList.remove('visible');
+  const input = document.getElementById('compose-input');
+  if (input) input.placeholder = "What's on your mind, anon?...";
 }
 
 // ═══ FEED MODE ═══

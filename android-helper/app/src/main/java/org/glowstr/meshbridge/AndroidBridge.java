@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.util.Base64;
 import android.net.Uri;
 import android.webkit.JavascriptInterface;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyProperties;
 
 import org.json.JSONObject;
 
@@ -17,10 +19,21 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.security.KeyStore;
+import java.nio.charset.StandardCharsets;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 
 public final class AndroidBridge {
     private static final String IDENTITY_PREFS = "glowstr_identity";
     private static final String KEY_PUBLIC_STATE = "remembered_public_state";
+    private static final String KEY_LOCAL_SIGNER = "remembered_local_signer";
+    private static final String KEYSTORE_ALIAS = "glowstr_local_signer_v1";
+    private static final byte[] SIGNER_AAD =
+            "Glowstr local signer v1".getBytes(StandardCharsets.UTF_8);
     private final Context context;
 
     AndroidBridge(Context context) {
@@ -117,6 +130,8 @@ public final class AndroidBridge {
             if (signerMethod.length() <= 64 &&
                     ("amber-nip55".equals(signerMethod) ||
                      "nip07".equals(signerMethod) ||
+                     "nsec".equals(signerMethod) ||
+                     "generated".equals(signerMethod) ||
                      "readonly".equals(signerMethod) ||
                      "watch".equals(signerMethod))) {
                 out.put("signerMethod", signerMethod);
@@ -173,6 +188,143 @@ public final class AndroidBridge {
             return context.getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
                     .edit().remove(KEY_PUBLIC_STATE).commit();
         } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    private SecretKey getOrCreateLocalSignerKey() throws Exception {
+        KeyStore store = KeyStore.getInstance("AndroidKeyStore");
+        store.load(null);
+        java.security.Key existing = store.getKey(KEYSTORE_ALIAS, null);
+        if (existing instanceof SecretKey) return (SecretKey) existing;
+
+        KeyGenerator generator = KeyGenerator.getInstance(
+                KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
+        KeyGenParameterSpec spec = new KeyGenParameterSpec.Builder(
+                KEYSTORE_ALIAS,
+                KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
+                .setKeySize(256)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setRandomizedEncryptionRequired(true)
+                .build();
+        generator.init(spec);
+        return generator.generateKey();
+    }
+
+    private SecretKey getExistingLocalSignerKey() throws Exception {
+        KeyStore store = KeyStore.getInstance("AndroidKeyStore");
+        store.load(null);
+        java.security.Key existing = store.getKey(KEYSTORE_ALIAS, null);
+        return existing instanceof SecretKey ? (SecretKey) existing : null;
+    }
+
+    /**
+     * Android-only "stay logged in" vault for local nsec/generated signers.
+     * The raw private key is encrypted with a non-exportable Android Keystore AES key
+     * before any bytes are written to SharedPreferences.
+     */
+    @JavascriptInterface
+    public boolean saveRememberedLocalSigner(
+            String publicKey, String signerMethod, String privateKey) {
+        String pub = publicKey == null ? "" :
+                publicKey.trim().toLowerCase(java.util.Locale.ROOT);
+        String method = signerMethod == null ? "" : signerMethod.trim();
+        String secret = privateKey == null ? "" :
+                privateKey.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!pub.matches("[0-9a-f]{64}")) return false;
+        if (!secret.matches("[0-9a-f]{64}")) return false;
+        if (!("nsec".equals(method) || "generated".equals(method))) return false;
+
+        try {
+            JSONObject clear = new JSONObject()
+                    .put("v", 1)
+                    .put("publicKey", pub)
+                    .put("signerMethod", method)
+                    .put("privateKey", secret);
+
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, getOrCreateLocalSignerKey());
+            cipher.updateAAD(SIGNER_AAD);
+            byte[] ciphertext = cipher.doFinal(
+                    clear.toString().getBytes(StandardCharsets.UTF_8));
+
+            JSONObject sealed = new JSONObject()
+                    .put("v", 1)
+                    .put("iv", Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP))
+                    .put("ct", Base64.encodeToString(ciphertext, Base64.NO_WRAP));
+
+            // Synchronous durability matters because GrapheneOS may tear down the
+            // Activity/WebView immediately when the user switches profiles/apps.
+            return context.getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
+                    .edit().putString(KEY_LOCAL_SIGNER, sealed.toString()).commit();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @JavascriptInterface
+    public String loadRememberedLocalSigner(String expectedPublicKey) {
+        String expected = expectedPublicKey == null ? "" :
+                expectedPublicKey.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!expected.matches("[0-9a-f]{64}")) return "";
+
+        try {
+            String raw = context.getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
+                    .getString(KEY_LOCAL_SIGNER, "");
+            if (raw == null || raw.isEmpty()) return "";
+
+            SecretKey key = getExistingLocalSignerKey();
+            if (key == null) return "";
+
+            JSONObject sealed = new JSONObject(raw);
+            byte[] iv = Base64.decode(sealed.optString("iv", ""), Base64.NO_WRAP);
+            byte[] ciphertext = Base64.decode(sealed.optString("ct", ""), Base64.NO_WRAP);
+            if (iv.length < 12 || ciphertext.length < 16) return "";
+
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, iv));
+            cipher.updateAAD(SIGNER_AAD);
+            String clearText = new String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8);
+            JSONObject clear = new JSONObject(clearText);
+
+            String pub = clear.optString("publicKey", "")
+                    .trim().toLowerCase(java.util.Locale.ROOT);
+            String method = clear.optString("signerMethod", "").trim();
+            String secret = clear.optString("privateKey", "")
+                    .trim().toLowerCase(java.util.Locale.ROOT);
+
+            if (!expected.equals(pub)) return "";
+            if (!secret.matches("[0-9a-f]{64}")) return "";
+            if (!("nsec".equals(method) || "generated".equals(method))) return "";
+
+            return new JSONObject()
+                    .put("publicKey", pub)
+                    .put("signerMethod", method)
+                    .put("privateKey", secret)
+                    .toString();
+        } catch (Exception e) {
+            // If the Keystore key was invalidated or ciphertext was corrupted,
+            // fail closed and require the user to provide the signer again.
+            return "";
+        }
+    }
+
+    @JavascriptInterface
+    public boolean clearRememberedLocalSigner() {
+        try {
+            return context.getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
+                    .edit().remove(KEY_LOCAL_SIGNER).commit();
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    @JavascriptInterface
+    public boolean secureLocalSignerStorageAvailable() {
+        try {
+            return getOrCreateLocalSignerKey() != null;
+        } catch (Exception e) {
             return false;
         }
     }

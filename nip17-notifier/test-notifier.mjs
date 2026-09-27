@@ -74,6 +74,7 @@ test('builds decryptable NIP-17 gift wraps for recipient and sender', () => {
   assert.equal(received.pubkey, getPublicKey(sender))
   assert.deepEqual(received.tags[0], ['p', recipientPubkey, 'wss://inbox.example'])
   assert.ok(received.tags.some(t => t[0] === 'subject' && t[1] === 'Glowstr relay renewal'))
+  assert.ok(received.tags.some(t => t[0] === 'd' && t[1] === 'glowstr-relay-renewal:1790524800'))
   assert.match(received.content, /2 confirmations/)
 })
 

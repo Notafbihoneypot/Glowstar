@@ -127,10 +127,18 @@ def db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         pubkey TEXT NOT NULL, feature TEXT NOT NULL, target TEXT NOT NULL DEFAULT '',
         valid_until INTEGER NOT NULL, created_at INTEGER NOT NULL,
-        sent_at INTEGER,
+        sent_at INTEGER, last_attempt_at INTEGER, attempts INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT NOT NULL DEFAULT '',
         UNIQUE(pubkey,feature,target,valid_until)
         )"""
     )
+    reminder_columns = {r["name"] for r in c.execute("PRAGMA table_info(reminders)")}
+    if "last_attempt_at" not in reminder_columns:
+        c.execute("ALTER TABLE reminders ADD COLUMN last_attempt_at INTEGER")
+    if "attempts" not in reminder_columns:
+        c.execute("ALTER TABLE reminders ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0")
+    if "last_error" not in reminder_columns:
+        c.execute("ALTER TABLE reminders ADD COLUMN last_error TEXT NOT NULL DEFAULT ''")
     c.commit()
     return c
 
@@ -447,10 +455,31 @@ class H(BaseHTTPRequestHandler):
                 if not self.admin():
                     return self.out({"error": "unauthorized"}, 401)
                 rid = self.path.split("/")[-2]
+                now = int(time.time())
                 c = db()
                 cur = c.execute(
-                    "UPDATE reminders SET sent_at=? WHERE id=? AND sent_at IS NULL",
-                    (int(time.time()), rid),
+                    """UPDATE reminders
+                       SET sent_at=?, last_attempt_at=?, attempts=attempts+1, last_error=''
+                       WHERE id=? AND sent_at IS NULL""",
+                    (now, now, rid),
+                )
+                c.commit()
+                c.close()
+                return self.out({"ok": cur.rowcount == 1})
+
+            if self.path.startswith("/v1/admin/reminders/") and self.path.endswith("/failed"):
+                if not self.admin():
+                    return self.out({"error": "unauthorized"}, 401)
+                rid = self.path.split("/")[-2]
+                payload = self.body()
+                err = str(payload.get("error", "delivery failed")).strip()[:240]
+                now = int(time.time())
+                c = db()
+                cur = c.execute(
+                    """UPDATE reminders
+                       SET last_attempt_at=?, attempts=attempts+1, last_error=?
+                       WHERE id=? AND sent_at IS NULL""",
+                    (now, err, rid),
                 )
                 c.commit()
                 c.close()
@@ -542,7 +571,8 @@ class H(BaseHTTPRequestHandler):
                 query = parse_qs(parsed.query)
                 pending = query.get("status", ["pending"])[0] == "pending"
                 c = db()
-                sql = """SELECT id,pubkey,feature,target,valid_until,created_at,sent_at
+                sql = """SELECT id,pubkey,feature,target,valid_until,created_at,sent_at,
+                                last_attempt_at,attempts,last_error
                          FROM reminders"""
                 if pending:
                     sql += " WHERE sent_at IS NULL"

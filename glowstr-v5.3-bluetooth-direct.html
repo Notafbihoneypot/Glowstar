@@ -6471,7 +6471,8 @@ function handleEvent(event, relayUrl) {
           if(subject==='Glowstr relay renewal'){
             const trusted=await glowstrTrustedNotifierPubkey();
             if(trusted && dm.sender===trusted){
-              addNotification('renewal',dm.sender,'',dm.content,dm.created_at);
+              const renewalKey=(dm.tags||[]).find(t=>Array.isArray(t)&&t[0]==='d'&&/^glowstr-relay-renewal:\d+$/.test(String(t[1]||'')))?.[1]||dm.id;
+              addNotification('renewal',dm.sender,renewalKey,dm.content,dm.created_at);
               showToast('ɱ Verified Glowstr relay renewal reminder received');
             }else{
               console.warn('Renewal-like NIP-17 DM was not from the trusted Glowstr notifier key');

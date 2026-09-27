@@ -127,6 +127,7 @@ export function buildNotificationWraps(secretKey, reminder, relayHint) {
     tags: [
       relayHint ? ['p', reminder.pubkey, relayHint] : ['p', reminder.pubkey],
       ['subject', 'Glowstr relay renewal'],
+      ['d', 'glowstr-relay-renewal:' + String(reminder.valid_until)],
     ],
     content: renewalMessage(reminder),
   }
@@ -181,11 +182,12 @@ async function commerceJson(url, token, options = {}) {
 }
 
 export async function discoverInboxRelays(pool, pubkey, lookupRelays, maxWait = DEFAULT_LOOKUP_WAIT_MS, allowedHosts = []) {
-  const event = await pool.get(
+  const events = await pool.querySync(
     lookupRelays,
-    { kinds: [10050], authors: [pubkey], limit: 1 },
+    { kinds: [10050], authors: [pubkey], limit: 5 },
     { maxWait },
   )
+  const event = (events || []).sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0))[0]
   if (!event) return []
 
   const relays = []

@@ -1,0 +1,61 @@
+services:
+  mock-wallet:
+    build:
+      context: ../monero-commerce
+      dockerfile: MockWallet.Containerfile
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      MOCK_WALLET_HOST: 127.0.0.1
+      MOCK_WALLET_PORT: 18084
+      MOCK_WALLET_CONF1_SECONDS: 8
+      MOCK_WALLET_CONF2_SECONDS: 18
+      MOCK_WALLET_AMOUNT_ATOMIC: 10000000000000
+    volumes:
+      - glowstr-mock-wallet:/data
+
+  commerce:
+    depends_on:
+      - mock-wallet
+    environment:
+      MONERO_WALLET_RPC: http://127.0.0.1:18084/json_rpc
+      MONERO_RPC_USER: ""
+      MONERO_RPC_PASS: ""
+      GLOWSTR_XMR_USD_OVERRIDE: "100"
+      GLOWSTR_RELAY_SECONDS: "600"
+      GLOWSTR_REMINDER_SECONDS: "300"
+      GLOWSTR_INVOICE_SECONDS: "300"
+      GLOWSTR_RECONCILE_SECONDS: "5"
+      GLOWSTR_ALLOWED_ORIGIN: https://${GLOWSTR_STAGING_SITE_DOMAIN}
+      GLOWSTR_RELAY_TARGET: ${GLOWSTR_STAGING_RELAY_DOMAIN}
+
+  relay:
+    environment:
+      GLOWSTR_RELAY_TARGET: ${GLOWSTR_STAGING_RELAY_DOMAIN}
+      GLOWSTR_ENTITLEMENT_CACHE_SECONDS: "2"
+    volumes:
+      - ./staging/strfry.conf:/app/strfry.conf:ro
+      - glowstr-relay:/app/strfry-db
+
+  notifier:
+    environment:
+      GLOWSTR_NIP17_POLL_SECONDS: "10"
+      GLOWSTR_NIP17_RETRY_SECONDS: "30"
+
+  caddy:
+    image: docker.io/library/caddy:2-alpine
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - commerce
+      - relay
+    volumes:
+      - ./staging/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./staging/site:/srv:ro
+      - glowstr-caddy-data:/data
+      - glowstr-caddy-config:/config
+
+volumes:
+  glowstr-mock-wallet: {}
+  glowstr-caddy-data: {}
+  glowstr-caddy-config: {}

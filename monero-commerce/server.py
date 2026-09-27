@@ -65,6 +65,7 @@ ORIGINS = {
 ADMIN_TOKEN = read_secret(
     "GLOWSTR_COMMERCE_ADMIN_TOKEN", "GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE"
 )
+NOTIFIER_PUBKEY = os.getenv("GLOWSTR_NIP17_PUBLIC_KEY", "").strip().lower()
 
 FEATURES = {
     "relay_365d": {
@@ -513,6 +514,12 @@ class H(BaseHTTPRequestHandler):
                 c.close()
                 rpc("get_version")
                 return self.out({"ok": True})
+            if path == "/v1/notifier":
+                configured = valid_pubkey(NOTIFIER_PUBKEY)
+                return self.out({
+                    "configured": configured,
+                    "pubkey": NOTIFIER_PUBKEY if configured else "",
+                })
             if path == "/v1/features":
                 public = {
                     k: {

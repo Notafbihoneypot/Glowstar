@@ -75,7 +75,7 @@ export async function validateRecipientRelay(raw) {
   const u = new URL(String(raw || '').trim())
   if (u.protocol !== 'wss:') throw new Error('recipient relay must use wss://')
   if (u.username || u.password) throw new Error('relay credentials in URL are not allowed')
-  const host = u.hostname.replace(/^\\[|\\]$/g, '').toLowerCase()
+  const host = u.hostname.replace(/^\[|\]$/g, '').toLowerCase()
   if (!host || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) {
     throw new Error('local relay host is not allowed')
   }

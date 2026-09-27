@@ -3120,7 +3120,7 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
 
         <div class="relay-section-title" style="margin-top:24px;color:var(--xmr-orange);border-bottom-color:var(--xmr-orange-dim);">ɱ MONERO-PAID RELAYS</div>
         <div class="info-box">
-          Paid relays fight spam — pay a small XMR fee (~$1) to whitelist your pubkey.
+          Glowstr paid write access is $10 USD equivalent in XMR for one year. Reading stays free.
           Reading is always free. Publishing requires payment.
           <strong style="color:var(--xmr-orange);">Your sats-free, private alternative to Lightning paywalls.</strong>
         </div>
@@ -3129,12 +3129,12 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
         <div class="xmr-relay-card glowstr-relay-card" id="glowstr-relay-card">
           <div class="xmr-relay-name">GLOWSTR RELAY <span class="xmr-badge">ɱ XMR WRITE</span></div>
           <div class="xmr-relay-url">wss://relay.glowstr.com/</div>
-          <div class="xmr-relay-desc">First-party Glowstr relay. Reading is free. Publishing uses NIP-42 authentication and an active Monero membership.</div>
+          <div class="xmr-relay-desc">First-party Glowstr relay. Reading is free. Publishing requires NIP-42 authentication plus a $10/year Monero membership. Access starts after 2 confirmations.</div>
           <div class="glowstr-membership-line">STATUS: <span class="glowstr-membership-status" id="glowstr-relay-membership">NOT CHECKED</span></div>
           <div class="xmr-relay-actions">
             <button class="btn-xmr" id="glowstr-relay-connect" type="button">+ CONNECT</button>
             <button class="btn-xmr" id="glowstr-relay-check" type="button">CHECK ACCESS</button>
-            <button class="btn-xmr" id="glowstr-relay-pay" type="button">PAY WITH XMR</button>
+            <button class="btn-xmr" id="glowstr-relay-pay" type="button">BUY / RENEW · $10/YR</button>
           </div>
         </div>
         <!-- GLOWSTR_V4_2_STABLE_END -->
@@ -12765,13 +12765,10 @@ function restoreNWC() {
 // ═══ XMR COMMERCE — PAID NOSTR FEATURES ═══
 const XMR_COMMERCE = {
   // Production: reverse-proxy this path to monero-commerce on 127.0.0.1:8787.
-  apiBase: 'https://relay.glowstr.com/xmr-commerce/v1',
+  apiBase: 'https://glowstr.com/xmr-commerce/v1',
   pollMs: 5000,
   features: {
-    relay_30d: { title: '⚡ PAID RELAY — 30 DAYS', target: '' },
-    room_30d: { title: '🔒 XMR ROOM — 30 DAYS', target: '' },
-    storage_10gb_30d: { title: '💾 10 GB STORAGE — 30 DAYS', target: '' },
-    creator_30d: { title: '⭐ SUPPORT CREATOR — 30 DAYS', target: '' }
+    relay_365d: { title: '⚡ GLOWSTR RELAY — 1 YEAR · $10', target: 'relay.glowstr.com' }
   }
 };
 let _xmrCommercePoll = null;
@@ -12810,7 +12807,18 @@ async function xmrCommerceCheck(id,token,feature) {
   const r=await fetch(XMR_COMMERCE.apiBase+'/invoices/'+encodeURIComponent(id),{headers:{Authorization:'Bearer '+token},cache:'no-store'});
   if(!r.ok) throw new Error('Invoice check failed ('+r.status+')');
   const inv=await r.json(); xmrCommerceRender(inv,feature);
-  if(inv.status==='PAID'||inv.status==='EXPIRED'){ if(_xmrCommercePoll) clearInterval(_xmrCommercePoll); _xmrCommercePoll=null; if(inv.status==='PAID'){xmrCommerceForget(id);showToast('✓ XMR payment confirmed — feature activated');} }
+  if(inv.status==='PAID'||inv.status==='EXPIRED'){
+    if(_xmrCommercePoll) clearInterval(_xmrCommercePoll); _xmrCommercePoll=null;
+    if(inv.status==='PAID'){
+      if(feature==='relay_365d'&&inv.access_valid_until){
+        try{localStorage.setItem('glowstr_relay_membership_until',String(inv.access_valid_until));}catch(e){}
+        const d=new Date(inv.access_valid_until*1000).toLocaleDateString();
+        if(typeof glowstrSetMembershipV42==='function')glowstrSetMembershipV42('ACTIVE · UNTIL '+d,true);
+      }
+      xmrCommerceForget(id);
+      showToast('✓ 2 confirmations — Glowstr relay access activated');
+    }
+  }
 }
 async function buyXmrFeature(feature,target='') {
   if(!state.publicKey){showToast('Login first to buy an XMR feature');switchView('keys');return;}
@@ -12824,6 +12832,14 @@ async function buyXmrFeature(feature,target='') {
     _xmrCommercePoll=setInterval(()=>xmrCommerceCheck(inv.id,inv.token,feature).catch(e=>console.warn('XMR invoice poll',e)),XMR_COMMERCE.pollMs);
   }catch(e){ if(status){status.textContent='Could not create invoice: '+(e.message||e);status.style.color='var(--xmr-red)';} }
 }
+function resumeXmrCommerceInvoices(){
+  const all=xmrCommerceSaved();
+  const entries=Object.entries(all).sort((a,b)=>(b[1]?.createdAt||0)-(a[1]?.createdAt||0));
+  const next=entries.find(([,x])=>x?.token&&x?.feature==='relay_365d');
+  if(!next)return;
+  const [id,x]=next;
+  xmrCommerceCheck(id,x.token,x.feature).catch(()=>{});
+}
 function openXmrCommerceWallet(){
   const inv=state.activeXmrInvoice; if(!inv?.uri){showToast('No active invoice');return;}
   window.location.href=inv.uri;
@@ -12833,13 +12849,12 @@ function copyXmrCommerceAddress(){
   copyToClipboard(inv.address);
 }
 function renderXmrCommercePanel(){
-  return '<div class="wallet-section"><div class="wallet-section-title">ɱ XMR-ONLY NOSTR FEATURES</div><div class="wallet-section-body">'+
-    '<div style="font-family:var(--font-retro);font-size:.9rem;color:var(--xmr-text-dim);margin-bottom:10px;">Pay directly in XMR. Every purchase uses a unique subaddress and activates access for your current Nostr pubkey after confirmations.</div>'+
+  let until='';
+  try{const u=Number(localStorage.getItem('glowstr_relay_membership_until')||0);if(u>Date.now()/1000)until=' · active until '+new Date(u*1000).toLocaleDateString();}catch(e){}
+  return '<div class="wallet-section"><div class="wallet-section-title">ɱ GLOWSTR PAID RELAY</div><div class="wallet-section-body">'+
+    '<div style="font-family:var(--font-retro);font-size:.9rem;color:var(--xmr-text-dim);margin-bottom:10px;">Public reads stay free. $10 USD equivalent in XMR buys 365 days of write access for your current Nostr pubkey. Access activates after 2 confirmations and early renewals stack from your existing expiry'+until+'.</div>'+
     '<div class="wallet-pick-grid">'+
-    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="relay_30d"><div class="wallet-pick-icon">⚡</div><span class="wallet-pick-name">PAID RELAY</span><span class="wallet-pick-platform">30 days</span></div>'+
-    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="room_30d"><div class="wallet-pick-icon">🔒</div><span class="wallet-pick-name">XMR ROOM</span><span class="wallet-pick-platform">30 days</span></div>'+
-    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="storage_10gb_30d"><div class="wallet-pick-icon">💾</div><span class="wallet-pick-name">10 GB STORAGE</span><span class="wallet-pick-platform">30 days</span></div>'+
-    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="creator_30d"><div class="wallet-pick-icon">⭐</div><span class="wallet-pick-name">SUPPORT CREATOR</span><span class="wallet-pick-platform">30 days</span></div>'+
+    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="relay_365d" data-target="relay.glowstr.com"><div class="wallet-pick-icon">⚡</div><span class="wallet-pick-name">BUY / RENEW RELAY</span><span class="wallet-pick-platform">$10 · 1 year · 2 confs</span></div>'+
     '</div></div></div>';
 }
 
@@ -13649,8 +13664,8 @@ function glowstrRenderInvoiceV42(inv){
 async function glowstrPollInvoiceV42(){if(!_glowstrInvoiceV42?.invoice_id||!_glowstrInvoiceV42?.status_token)return;try{glowstrRenderInvoiceV42(await glowstrApiV42('/api/xmr/invoice/'+encodeURIComponent(_glowstrInvoiceV42.invoice_id),{invoiceToken:_glowstrInvoiceV42.status_token}));}catch(e){}}
 async function glowstrPayRelayV42(){
   if(!state?.publicKey){showToast('Login with a signer first');switchView('keys');return;}
-  glowstrPayOpenV42(true);const s=document.getElementById('glowstr-pay-status'),d=document.getElementById('glowstr-pay-details');if(s)s.textContent='Requesting a fresh Monero subaddress…';if(d)d.hidden=true;
-  try{const inv=await glowstrApiV42('/api/xmr/invoice',{method:'POST',body:{plan:'30d'}});if(!inv.active&&!inv.status_token)throw new Error('Invoice token missing');glowstrRenderInvoiceV42(inv);if(!inv.active){if(_glowstrInvoicePollV42)clearInterval(_glowstrInvoicePollV42);_glowstrInvoicePollV42=setInterval(glowstrPollInvoiceV42,15000);}}catch(e){if(s)s.textContent='Could not create invoice: '+(e.message||'unknown error');}
+  if(typeof buyXmrFeature!=='function'){showToast('Monero commerce is not available');return;}
+  return buyXmrFeature('relay_365d','relay.glowstr.com');
 }
 function initGlowstrV42(){
   if(_glowstrV42UiReady)return;_glowstrV42UiReady=true;
@@ -13661,7 +13676,7 @@ function initGlowstrV42(){
   document.getElementById('glowstr-pay-backdrop')?.addEventListener('click',e=>{if(e.target===e.currentTarget)glowstrPayOpenV42(false);});
   document.getElementById('glowstr-pay-copy')?.addEventListener('click',()=>{const a=_glowstrInvoiceV42?.address;if(a)copyToClipboard(a);});
   document.getElementById('glowstr-pay-wallet')?.addEventListener('click',()=>{const u=_glowstrInvoiceV42?.monero_uri;if(u)location.href=u;});
-  setTimeout(glowstrAttachFirstPartyV42,500);
+  setTimeout(()=>{glowstrAttachFirstPartyV42();try{resumeXmrCommerceInvoices();}catch(e){}},500);
   setInterval(()=>{if(!document.hidden)glowstrAttachFirstPartyV42();},3000);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initGlowstrV42,{once:true});else initGlowstrV42();

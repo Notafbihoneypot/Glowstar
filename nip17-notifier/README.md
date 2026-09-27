@@ -9,7 +9,7 @@ This service consumes the private renewal-reminder queue from Glowstr Monero Com
 - The outer gift wrap uses a fresh random key and randomized timestamp.
 - The notifier discovers the recipient's **kind 10050** DM inbox relay list.
 - It does **not** fall back to arbitrary relays when no kind 10050 event is found.
-- Recipient-supplied relay URLs are treated as untrusted: only public `wss://` destinations are accepted, and private/reserved DNS/IP targets are rejected.
+- Recipient-supplied relay URLs are treated as untrusted: only public `wss://` destinations are accepted, private/reserved DNS/IP targets are rejected, and production can restrict destinations to an operator allowlist.
 - A sender-addressed gift wrap is kept in a private local archive; it can also be published to operator-configured sender inbox relays.
 
 ## Configuration
@@ -19,6 +19,7 @@ Required:
 - `GLOWSTR_NIP17_SECRET_FILE` — file containing a dedicated 64-hex Nostr secret or nsec.
 - `GLOWSTR_COMMERCE_ADMIN_TOKEN` or `GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE`.
 - `GLOWSTR_NIP17_LOOKUP_RELAYS` — comma-separated public relays used only to discover kind 10050 events.
+- `GLOWSTR_NIP17_ALLOWED_RELAY_HOSTS` — comma-separated host allowlist for recipient inbox destinations. If omitted, the notifier derives the allowlist from the lookup-relay hosts.
 
 Optional:
 
@@ -49,3 +50,10 @@ node -e "import('nostr-tools/pure').then(({generateSecretKey})=>console.log(Buff
 Write the output to a root-readable secret file and mount it read-only into the notifier container. Never commit it to Git.
 
 The notifier logs its **npub** at startup so the operator can publish profile metadata/NIP-05 for an identifiable Glowstr service account if desired.
+
+
+## Network boundary
+
+A member controls the relay URLs published in their kind 10050 event, so those URLs must never be treated as trusted server configuration. The notifier validates DNS/IP destinations and enforces the operator-approved host list before opening a WebSocket.
+
+For a production host, also enforce outbound firewall rules so the notifier container/process cannot reach RFC1918, link-local, loopback, cloud metadata, or other management networks even if application validation regresses.

@@ -40,8 +40,12 @@ jobs:
       - name: Test Monero commerce lifecycle
         run: |
           cd monero-commerce
-          python3 -m py_compile server.py
+          python3 -m py_compile server.py mock_wallet.py
           python3 -m unittest -v test_server.py
+
+      - name: Check staging deploy script
+        run: |
+          bash -n xmr-relay/setup-staging.sh
 
       - name: Test NIP-17 renewal notifier
         run: |

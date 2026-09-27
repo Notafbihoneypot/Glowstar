@@ -118,6 +118,11 @@ class CommerceTests(unittest.TestCase):
                VALUES(?,?,?,?,?)""",
             ("a" * 64, "relay_365d", "relay.glowstr.com", existing, "old"),
         )
+        c.execute(
+            """INSERT INTO reminders(pubkey,feature,target,valid_until,created_at)
+               VALUES(?,?,?,?,?)""",
+            ("a" * 64, "relay_365d", "relay.glowstr.com", existing, int(time.time())),
+        )
         c.commit()
         old_rpc = commerce.rpc
         commerce.rpc = lambda method, params=None: {
@@ -135,6 +140,9 @@ class CommerceTests(unittest.TestCase):
             commerce.refresh_invoice(c, row)
             ent = c.execute("SELECT * FROM entitlements").fetchone()
             self.assertEqual(ent["valid_until"], existing + 365 * 86400)
+            reminder = c.execute("SELECT * FROM reminders").fetchone()
+            self.assertIsNotNone(reminder["cancelled_at"])
+            self.assertIn("superseded", reminder["last_error"])
         finally:
             commerce.rpc = old_rpc
             c.close()

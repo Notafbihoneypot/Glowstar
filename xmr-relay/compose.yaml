@@ -39,6 +39,27 @@ services:
     volumes:
       - glowstr-relay:/app/strfry-db
 
+  notifier:
+    profiles: ["notifications"]
+    build: ../nip17-notifier
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - commerce
+    environment:
+      GLOWSTR_COMMERCE_ADMIN_URL: http://127.0.0.1:8787/v1/admin
+      GLOWSTR_COMMERCE_ADMIN_TOKEN: ${GLOWSTR_COMMERCE_ADMIN_TOKEN:?set GLOWSTR_COMMERCE_ADMIN_TOKEN}
+      GLOWSTR_NIP17_SECRET_FILE: /run/secrets/glowstr-nip17-secret
+      GLOWSTR_NIP17_LOOKUP_RELAYS: ${GLOWSTR_NIP17_LOOKUP_RELAYS:-wss://nos.lol,wss://relay.nostr.band}
+      GLOWSTR_NIP17_SENDER_RELAYS: ${GLOWSTR_NIP17_SENDER_RELAYS:-}
+      GLOWSTR_NIP17_POLL_SECONDS: ${GLOWSTR_NIP17_POLL_SECONDS:-300}
+      GLOWSTR_NIP17_RETRY_SECONDS: ${GLOWSTR_NIP17_RETRY_SECONDS:-21600}
+      GLOWSTR_NIP17_BATCH_SIZE: ${GLOWSTR_NIP17_BATCH_SIZE:-25}
+    volumes:
+      - ${GLOWSTR_NIP17_SECRET_PATH:-./secrets/notifier.key}:/run/secrets/glowstr-nip17-secret:ro
+      - glowstr-notifier:/data
+
 volumes:
   glowstr-commerce: {}
   glowstr-relay: {}
+  glowstr-notifier: {}

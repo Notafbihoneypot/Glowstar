@@ -71,13 +71,17 @@ export function isBlockedAddress(address) {
   return true
 }
 
-export async function validateRecipientRelay(raw) {
+export async function validateRecipientRelay(raw, allowedHosts = []) {
   const u = new URL(String(raw || '').trim())
   if (u.protocol !== 'wss:') throw new Error('recipient relay must use wss://')
   if (u.username || u.password) throw new Error('relay credentials in URL are not allowed')
   const host = u.hostname.replace(/^\[|\]$/g, '').toLowerCase()
   if (!host || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) {
     throw new Error('local relay host is not allowed')
+  }
+  const approved = (allowedHosts || []).map(x => String(x).toLowerCase()).filter(Boolean)
+  if (approved.length && !approved.includes(host)) {
+    throw new Error('recipient relay host is not operator-approved')
   }
   if (isIP(host)) {
     if (isBlockedAddress(host)) throw new Error('private/reserved relay address is not allowed')
@@ -176,7 +180,7 @@ async function commerceJson(url, token, options = {}) {
   }
 }
 
-export async function discoverInboxRelays(pool, pubkey, lookupRelays, maxWait = DEFAULT_LOOKUP_WAIT_MS) {
+export async function discoverInboxRelays(pool, pubkey, lookupRelays, maxWait = DEFAULT_LOOKUP_WAIT_MS, allowedHosts = []) {
   const event = await pool.get(
     lookupRelays,
     { kinds: [10050], authors: [pubkey], limit: 1 },
@@ -187,7 +191,7 @@ export async function discoverInboxRelays(pool, pubkey, lookupRelays, maxWait = 
   const relays = []
   for (const raw of relayTagsFromEvent(event).slice(0, 8)) {
     try {
-      const safe = await validateRecipientRelay(raw)
+      const safe = await validateRecipientRelay(raw, allowedHosts)
       if (!relays.includes(safe)) relays.push(safe)
     } catch (err) {
       console.warn('Ignoring unsafe NIP-17 inbox relay:', String(err?.message || err))
@@ -218,6 +222,7 @@ export async function deliverReminder(ctx, reminder) {
     reminder.pubkey,
     ctx.lookupRelays,
     ctx.lookupWaitMs,
+    ctx.allowedRelayHosts,
   )
   if (!relays.length) throw new Error('no NIP-17 kind:10050 inbox relay list found')
 
@@ -293,6 +298,13 @@ async function main() {
   const secretKey = parseSecretKey(secretRaw)
   const lookupRelays = listEnv('GLOWSTR_NIP17_LOOKUP_RELAYS')
   if (!lookupRelays.length) throw new Error('GLOWSTR_NIP17_LOOKUP_RELAYS is required')
+  const configuredAllowedHosts = listEnv('GLOWSTR_NIP17_ALLOWED_RELAY_HOSTS')
+    .map(x => x.toLowerCase())
+  const allowedRelayHosts = configuredAllowedHosts.length
+    ? configuredAllowedHosts
+    : [...new Set(lookupRelays.map(x => {
+        try { return new URL(x).hostname.replace(/^\[|\]$/g, '').toLowerCase() } catch { return '' }
+      }).filter(Boolean))]
 
   const ctx = {
     secretKey,
@@ -301,6 +313,7 @@ async function main() {
       process.env.GLOWSTR_COMMERCE_ADMIN_URL || 'http://127.0.0.1:8787/v1/admin',
     ).replace(/\/$/, ''),
     lookupRelays,
+    allowedRelayHosts,
     senderRelays: listEnv('GLOWSTR_NIP17_SENDER_RELAYS'),
     archivePath: String(process.env.GLOWSTR_NIP17_ARCHIVE || '/data/sender-wraps.jsonl'),
     pollSeconds: envInt('GLOWSTR_NIP17_POLL_SECONDS', DEFAULT_POLL_SECONDS),
@@ -313,7 +326,7 @@ async function main() {
 
   const pubkey = getPublicKey(secretKey)
   const npub = nip19.npubEncode(pubkey)
-  console.log(`Glowstr NIP-17 notifier started as ${npub}; lookup relays=${lookupRelays.length}`)
+  console.log(`Glowstr NIP-17 notifier started as ${npub}; lookup relays=${lookupRelays.length}; approved inbox hosts=${allowedRelayHosts.length}`)
 
   const stop = () => {
     ctx.pool.destroy()

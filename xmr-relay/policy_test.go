@@ -25,7 +25,7 @@ func testAuthorizer(t *testing.T, entitlements []entitlement) *authorizer {
 	return newAuthorizer(config{
 		AdminURL:           srv.URL,
 		AdminToken:         "secret",
-		Feature:            "relay_30d",
+		Feature:            "relay_365d",
 		CacheTTL:           time.Second,
 		HTTPTimeout:        time.Second,
 		AllowLocalImports:  true,
@@ -38,7 +38,7 @@ func baseReq() policyRequest {
 }
 
 func TestPaidAuthenticatedAuthorAccepted(t *testing.T) {
-	a := testAuthorizer(t, []entitlement{{Feature: "relay_30d", ValidUntil: time.Now().Add(time.Hour).Unix()}})
+	a := testAuthorizer(t, []entitlement{{Feature: "relay_365d", ValidUntil: time.Now().Add(time.Hour).Unix()}})
 	if got := a.decide(baseReq()); got.Action != "accept" {
 		t.Fatalf("got %#v", got)
 	}
@@ -55,7 +55,7 @@ func TestNoAuthRequestsNIP42(t *testing.T) {
 }
 
 func TestAuthorMismatchRejected(t *testing.T) {
-	a := testAuthorizer(t, []entitlement{{Feature: "relay_30d", ValidUntil: time.Now().Add(time.Hour).Unix()}})
+	a := testAuthorizer(t, []entitlement{{Feature: "relay_365d", ValidUntil: time.Now().Add(time.Hour).Unix()}})
 	req := baseReq()
 	req.Event.PubKey = otherPub
 	got := a.decide(req)
@@ -67,7 +67,7 @@ func TestAuthorMismatchRejected(t *testing.T) {
 func TestUnpaidRejected(t *testing.T) {
 	a := testAuthorizer(t, nil)
 	got := a.decide(baseReq())
-	if got.Action != "reject" || !strings.Contains(got.Msg, "XMR relay access required") {
+	if got.Action != "reject" || !strings.Contains(got.Msg, "annual relay membership required") {
 		t.Fatalf("got %#v", got)
 	}
 }
@@ -83,7 +83,7 @@ func TestLocalImportAllowed(t *testing.T) {
 }
 
 func TestExpiredEntitlementRejected(t *testing.T) {
-	a := testAuthorizer(t, []entitlement{{Feature: "relay_30d", ValidUntil: time.Now().Add(-time.Hour).Unix()}})
+	a := testAuthorizer(t, []entitlement{{Feature: "relay_365d", ValidUntil: time.Now().Add(-time.Hour).Unix()}})
 	if got := a.decide(baseReq()); got.Action != "reject" {
 		t.Fatalf("got %#v", got)
 	}

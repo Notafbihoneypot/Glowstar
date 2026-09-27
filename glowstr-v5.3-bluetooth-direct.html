@@ -13026,6 +13026,7 @@ async function publishRelayList() {
     if(!state.nip65)state.nip65={};const myList={};tags.forEach(t=>myList[t[1]]='both');myList._ts=Math.floor(Date.now()/1000);state.nip65[state.publicKey]=myList;
     showToast('NIP-65 relay list published to '+(sent+extraSent)+' relay(s)');
   }catch(e){showToast('NIP-65 error: '+e.message);}
+}
 
 const GLOWSTR_NIP17_DISCOVERY_RELAYS = ['wss://nos.lol','wss://relay.nostr.band'];
 
@@ -13100,8 +13101,6 @@ async function publishDmInboxList(){
     if(status){status.textContent='PUBLISH FAILED · '+String(e.message||e).slice(0,120);status.style.color='var(--xmr-red)';}
     showToast('NIP-17 inbox publish failed');
   }
-}
-
 }
 
 // HELPERS

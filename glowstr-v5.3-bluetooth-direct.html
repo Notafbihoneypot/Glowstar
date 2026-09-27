@@ -3252,6 +3252,21 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
           Publishing a relay list (kind 10002) makes you discoverable.
         </div>
         <button class="btn btn-small" data-glow-click="h0093" id="publish-nip65-btn" style="width:100%;">PUBLISH MY RELAY LIST (NIP-65)</button>
+
+        <div class="relay-section-title" style="margin-top:24px;color:var(--xmr-purple);border-bottom-color:var(--xmr-purple);">🎁 NIP-17 PRIVATE INBOX</div>
+        <div class="info-box">
+          NIP-17 senders need your public <strong>kind 10050</strong> inbox list to know where to place encrypted gift-wrap messages.
+          The relay addresses are public, but the message sender and content stay inside NIP-44/NIP-59 encryption.
+          Glowstr uses this inbox for your encrypted 30-day relay-renewal reminder.
+        </div>
+        <div class="relay-add-box" style="display:flex;gap:8px;align-items:stretch;">
+          <input class="relay-input" id="nip17-inbox-relays" autocomplete="off" spellcheck="false"
+            placeholder="wss://nos.lol, wss://relay.nostr.band" style="flex:1;" />
+          <button class="btn btn-small" id="publish-nip17-inbox-btn" type="button">PUBLISH INBOX</button>
+        </div>
+        <div id="nip17-inbox-status" style="font-family:var(--font-retro);font-size:.86rem;color:var(--xmr-text-dim);margin-top:7px;line-height:1.35;">
+          Sign in to check your NIP-17 inbox list.
+        </div>
       </div>
     </div>
 
@@ -6451,6 +6466,11 @@ function handleEvent(event, relayUrl) {
             content: dm.content, created_at: dm.created_at,
             tags: [['p', state.publicKey]], _nip17: true
           });
+          const subject=(dm.tags||[]).find(t=>Array.isArray(t)&&t[0]==='subject')?.[1]||'';
+          if(subject==='Glowstr relay renewal'){
+            addNotification('renewal',dm.sender,'',dm.content,dm.created_at);
+            showToast('ɱ Glowstr relay renewal reminder received');
+          }
           if (typeof updateDmSidebar === 'function') updateDmSidebar();
           if (state.activeDmPubkey === dm.sender) renderDmConvo(dm.sender);
         }
@@ -7679,10 +7699,11 @@ function renderNotifications() {
     list.innerHTML = '<div class="notif-empty"><p style="font-size:1.05rem;">No notifications yet.</p><p style="margin-top:8px;font-size:0.9rem;">Likes, replies, mentions, reposts, and zaps on your posts will appear here.</p></div>';
     return;
   }
-  const iconFor = { like: '♥', reply: '↩', repost: '🔁', zap: '⚡', mention: '@', follow: '👤' };
+  const iconFor = { like: '♥', reply: '↩', repost: '🔁', zap: '⚡', mention: '@', follow: '👤', renewal: 'ɱ' };
   const verbFor = {
     like: 'liked your post', reply: 'replied to you', repost: 'reposted your note',
     zap: 'zapped you', mention: 'mentioned you', follow: 'followed you',
+    renewal: 'sent a private relay renewal reminder',
   };
   list.innerHTML = state.notifications.map(n => {
     const profile = state.profiles[n.actorPubkey];
@@ -7690,8 +7711,8 @@ function renderNotifications() {
     const name = profile?.display_name || profile?.name || n.actorPubkey.slice(0, 12) + '...';
     const unread = n.created_at > state.notifReadTs;
     const zapAmount = n.type === 'zap' && n.context ? ' (' + n.context + ' sats)' : '';
-    const contextHtml = (n.type === 'reply' || n.type === 'mention') && n.context
-      ? '<div class="notif-context">' + escapeHtml(n.context.slice(0, 140)) + '</div>'
+    const contextHtml = (n.type === 'reply' || n.type === 'mention' || n.type === 'renewal') && n.context
+      ? '<div class="notif-context">' + escapeHtml(n.context.slice(0, 180)) + '</div>'
       : '';
     return '<div class="notif-item' + (unread ? ' unread' : '') + '" data-glow-action="open-notif" data-event-id="' + escapeHtml(n.targetEventId || '') + '" data-pubkey="' + n.actorPubkey + '" data-notif-type="' + escapeHtml(n.type) + '">' +
       '<div class="notif-icon ' + n.type + '">' + (iconFor[n.type] || '•') + '</div>' +
@@ -7706,6 +7727,7 @@ function renderNotifications() {
 }
 
 function openNotifTarget(eventId, actorPubkey, type) {
+  if(type==='renewal'){switchView('wallet');return;}
   if (type === 'follow' || !eventId) { viewUserProfile(actorPubkey); return; }
   if (typeof viewThread === 'function') { viewThread(eventId); }
   else {
@@ -9038,7 +9060,7 @@ async function decryptNip17(giftWrapEvent) {
     const addressedToUs = rumor.tags.some(t => Array.isArray(t) && t[0] === 'p' && t[1] === state.publicKey);
     if (!addressedToUs) return null;
 
-    return { sender: seal.pubkey, content: rumor.content, created_at: rumor.created_at, id: rumor.id };
+    return { sender: seal.pubkey, content: rumor.content, created_at: rumor.created_at, id: rumor.id, tags: rumor.tags };
   } catch(e) {
     console.warn('NIP-17 decrypt rejected:', e?.message || e);
     return null;
@@ -12817,6 +12839,7 @@ async function xmrCommerceCheck(id,token,feature) {
       }
       xmrCommerceForget(id);
       showToast('✓ 2 confirmations — Glowstr relay access activated');
+      fetchDmRelayList(state.publicKey).then(r=>{if(!r.length)showToast('Publish your NIP-17 inbox in RELAYS to receive the 30-day renewal reminder');}).catch(()=>{});
     }
   }
 }
@@ -13003,6 +13026,82 @@ async function publishRelayList() {
     if(!state.nip65)state.nip65={};const myList={};tags.forEach(t=>myList[t[1]]='both');myList._ts=Math.floor(Date.now()/1000);state.nip65[state.publicKey]=myList;
     showToast('NIP-65 relay list published to '+(sent+extraSent)+' relay(s)');
   }catch(e){showToast('NIP-65 error: '+e.message);}
+
+const GLOWSTR_NIP17_DISCOVERY_RELAYS = ['wss://nos.lol','wss://relay.nostr.band'];
+
+function glowstrParseDmInboxRelays(raw){
+  const out=[];
+  for(const piece of String(raw||'').split(/[\s,]+/)){
+    if(!piece)continue;
+    try{
+      const u=new URL(piece);
+      if(u.protocol!=='wss:'||!u.hostname||u.username||u.password||u.hash)continue;
+      const url=u.toString();
+      if(!out.includes(url))out.push(url);
+      if(out.length>=3)break;
+    }catch(e){}
+  }
+  return out;
+}
+
+async function glowstrLoadDmInboxUi(){
+  const input=document.getElementById('nip17-inbox-relays');
+  const status=document.getElementById('nip17-inbox-status');
+  if(!input||!status)return;
+  if(!state.publicKey){
+    status.textContent='Sign in to check your NIP-17 inbox list.';
+    return;
+  }
+  status.textContent='Checking your published kind 10050 inbox list…';
+  try{
+    const existing=await fetchDmRelayList(state.publicKey);
+    if(existing.length){
+      input.value=existing.join(', ');
+      status.textContent='ACTIVE · '+existing.length+' NIP-17 inbox relay'+(existing.length===1?'':'s')+' published.';
+      status.style.color='var(--xmr-green)';
+      return;
+    }
+  }catch(e){}
+  if(!input.value.trim())input.value=GLOWSTR_NIP17_DISCOVERY_RELAYS.join(', ');
+  status.textContent='NOT PUBLISHED · Publish an inbox list to receive NIP-17 DMs and Glowstr renewal reminders.';
+  status.style.color='var(--xmr-amber)';
+}
+
+async function publishDmInboxList(){
+  if(!state.publicKey){showToast('Login first');switchView('keys');return;}
+  const input=document.getElementById('nip17-inbox-relays');
+  const status=document.getElementById('nip17-inbox-status');
+  const relays=glowstrParseDmInboxRelays(input?.value||'');
+  if(!relays.length){
+    showToast('Add at least one public wss:// inbox relay');
+    if(status){status.textContent='Use one to three public wss:// relay URLs.';status.style.color='var(--xmr-red)';}
+    return;
+  }
+  if(status){status.textContent='Signing kind 10050 inbox list…';status.style.color='var(--xmr-text-dim)';}
+  try{
+    const signed=await signEventUniversal({
+      kind:10050,
+      created_at:Math.floor(Date.now()/1000),
+      tags:relays.map(url=>['relay',url]),
+      content:''
+    });
+    if(!signed)throw new Error('Signer did not return a signed event');
+    const sent=broadcastEvent(signed);
+    const discovery=[...new Set([...GLOWSTR_NIP17_DISCOVERY_RELAYS,...relays])];
+    const extra=await broadcastToRelays(signed,discovery,5000);
+    if(!sent&&!extra)throw new Error('No relay accepted the inbox list');
+    try{localStorage.setItem('glowstr_nip17_inbox_relays',JSON.stringify(relays));}catch(e){}
+    if(fetchDmRelayList._cache)fetchDmRelayList._cache.delete(state.publicKey);
+    input.value=relays.join(', ');
+    if(status){status.textContent='ACTIVE · Published to '+(sent+extra)+' relay connection'+((sent+extra)===1?'':'s')+'.';status.style.color='var(--xmr-green)';}
+    showToast('✓ NIP-17 inbox published — encrypted renewal reminders enabled');
+    setTimeout(()=>refreshNip17InboxSubscriptions().catch(()=>{}),250);
+  }catch(e){
+    if(status){status.textContent='PUBLISH FAILED · '+String(e.message||e).slice(0,120);status.style.color='var(--xmr-red)';}
+    showToast('NIP-17 inbox publish failed');
+  }
+}
+
 }
 
 // HELPERS
@@ -13015,6 +13114,7 @@ function switchView(name) {
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active',t.dataset.viewTarget===name));
   const viewEl=document.getElementById('view-'+name); if(viewEl)viewEl.classList.add('active');
+  if(name==='relays')setTimeout(()=>glowstrLoadDmInboxUi().catch(()=>{}),0);
   if(name==='wallet'){
     loadWalletState(); initUsernameStorefront();
     setTimeout(()=>{if(_xmrCache.data)renderXmrData(_xmrCache.data);const activeRange=document.querySelector('.xmr-panel-actions button.active')?.dataset.range||1;const prices=_xmrCache.chart[activeRange];if(prices)drawXmrChart(prices);else loadXmrChart(activeRange);},50);
@@ -13681,6 +13781,7 @@ function initGlowstrV42(){
   document.getElementById('glowstr-relay-connect')?.addEventListener('click',glowstrConnectFirstPartyV42);
   document.getElementById('glowstr-relay-check')?.addEventListener('click',glowstrCheckMembershipV42);
   document.getElementById('glowstr-relay-pay')?.addEventListener('click',glowstrPayRelayV42);
+  document.getElementById('publish-nip17-inbox-btn')?.addEventListener('click',publishDmInboxList);
   document.getElementById('glowstr-pay-close')?.addEventListener('click',()=>glowstrPayOpenV42(false));
   document.getElementById('glowstr-pay-backdrop')?.addEventListener('click',e=>{if(e.target===e.currentTarget)glowstrPayOpenV42(false);});
   document.getElementById('glowstr-pay-copy')?.addEventListener('click',()=>{const a=_glowstrInvoiceV42?.address;if(a)copyToClipboard(a);});

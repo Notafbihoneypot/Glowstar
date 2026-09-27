@@ -127,12 +127,14 @@ def db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         pubkey TEXT NOT NULL, feature TEXT NOT NULL, target TEXT NOT NULL DEFAULT '',
         valid_until INTEGER NOT NULL, created_at INTEGER NOT NULL,
-        sent_at INTEGER, last_attempt_at INTEGER, attempts INTEGER NOT NULL DEFAULT 0,
-        last_error TEXT NOT NULL DEFAULT '',
+        sent_at INTEGER, cancelled_at INTEGER, last_attempt_at INTEGER,
+        attempts INTEGER NOT NULL DEFAULT 0, last_error TEXT NOT NULL DEFAULT '',
         UNIQUE(pubkey,feature,target,valid_until)
         )"""
     )
     reminder_columns = {r["name"] for r in c.execute("PRAGMA table_info(reminders)")}
+    if "cancelled_at" not in reminder_columns:
+        c.execute("ALTER TABLE reminders ADD COLUMN cancelled_at INTEGER")
     if "last_attempt_at" not in reminder_columns:
         c.execute("ALTER TABLE reminders ADD COLUMN last_attempt_at INTEGER")
     if "attempts" not in reminder_columns:
@@ -288,6 +290,13 @@ def refresh_invoice(c, row):
                ON CONFLICT(pubkey,feature,target)
                DO UPDATE SET valid_until=excluded.valid_until,invoice_id=excluded.invoice_id""",
             (row["pubkey"], row["feature"], row["target"], until, row["id"]),
+        )
+        c.execute(
+            """UPDATE reminders
+               SET cancelled_at=?, last_error='superseded by confirmed renewal'
+               WHERE pubkey=? AND feature=? AND target=?
+                 AND sent_at IS NULL AND cancelled_at IS NULL AND valid_until<>?""",
+            (now, row["pubkey"], row["feature"], row["target"], until),
         )
     c.commit()
     return c.execute("SELECT * FROM invoices WHERE id=?", (row["id"],)).fetchone()
@@ -460,7 +469,7 @@ class H(BaseHTTPRequestHandler):
                 cur = c.execute(
                     """UPDATE reminders
                        SET sent_at=?, last_attempt_at=?, attempts=attempts+1, last_error=''
-                       WHERE id=? AND sent_at IS NULL""",
+                       WHERE id=? AND sent_at IS NULL AND cancelled_at IS NULL""",
                     (now, now, rid),
                 )
                 c.commit()
@@ -478,7 +487,7 @@ class H(BaseHTTPRequestHandler):
                 cur = c.execute(
                     """UPDATE reminders
                        SET last_attempt_at=?, attempts=attempts+1, last_error=?
-                       WHERE id=? AND sent_at IS NULL""",
+                       WHERE id=? AND sent_at IS NULL AND cancelled_at IS NULL""",
                     (now, err, rid),
                 )
                 c.commit()
@@ -572,10 +581,10 @@ class H(BaseHTTPRequestHandler):
                 pending = query.get("status", ["pending"])[0] == "pending"
                 c = db()
                 sql = """SELECT id,pubkey,feature,target,valid_until,created_at,sent_at,
-                                last_attempt_at,attempts,last_error
+                                cancelled_at,last_attempt_at,attempts,last_error
                          FROM reminders"""
                 if pending:
-                    sql += " WHERE sent_at IS NULL"
+                    sql += " WHERE sent_at IS NULL AND cancelled_at IS NULL"
                 sql += " ORDER BY created_at ASC LIMIT 500"
                 rows = c.execute(sql).fetchall()
                 c.close()

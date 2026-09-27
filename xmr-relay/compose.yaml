@@ -51,10 +51,18 @@ services:
       GLOWSTR_COMMERCE_ADMIN_TOKEN: ${GLOWSTR_COMMERCE_ADMIN_TOKEN:?set GLOWSTR_COMMERCE_ADMIN_TOKEN}
       GLOWSTR_NIP17_SECRET_FILE: /run/secrets/glowstr-nip17-secret
       GLOWSTR_NIP17_LOOKUP_RELAYS: ${GLOWSTR_NIP17_LOOKUP_RELAYS:-wss://nos.lol,wss://relay.nostr.band}
+      GLOWSTR_NIP17_ALLOWED_RELAY_HOSTS: ${GLOWSTR_NIP17_ALLOWED_RELAY_HOSTS:-nos.lol,relay.nostr.band}
       GLOWSTR_NIP17_SENDER_RELAYS: ${GLOWSTR_NIP17_SENDER_RELAYS:-}
       GLOWSTR_NIP17_POLL_SECONDS: ${GLOWSTR_NIP17_POLL_SECONDS:-300}
       GLOWSTR_NIP17_RETRY_SECONDS: ${GLOWSTR_NIP17_RETRY_SECONDS:-21600}
       GLOWSTR_NIP17_BATCH_SIZE: ${GLOWSTR_NIP17_BATCH_SIZE:-25}
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
     volumes:
       - ${GLOWSTR_NIP17_SECRET_PATH:-./secrets/notifier.key}:/run/secrets/glowstr-nip17-secret:ro
       - glowstr-notifier:/data

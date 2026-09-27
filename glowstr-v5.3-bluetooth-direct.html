@@ -13624,7 +13624,7 @@ function glowstrHandleRelayFrameV42(ws,data){
     if(data[2]===true){ws._glowstrAuthedV42=true;glowstrSetMembershipV42('NIP-42 AUTHENTICATED');glowstrRetryPendingV42(ws);}else glowstrSetMembershipV42('AUTH REJECTED');
     return;
   }
-  if(data[0]==='OK' && data[2]===true && _glowstrPendingPublishesV42.has(data[1])) _glowstrPendingPublishesV42.delete(data[1]);
+  if(data[0]==='OK' && data[2]===true && _glowstrPendingPublishesV42.has(data[1])){_glowstrPendingPublishesV42.delete(data[1]);glowstrSetMembershipV42('ACTIVE',true);}
   const reason=(data[0]==='OK'&&data[2]===false?data[3]:data[0]==='CLOSED'?data[2]:'')||'';
   if(typeof reason==='string' && reason.startsWith('restricted:')) glowstrSetMembershipV42('XMR MEMBERSHIP REQUIRED');
 }
@@ -13652,7 +13652,16 @@ async function glowstrApiV42(path,{method='GET',body=null,invoiceToken=null,auth
   try{return await glowstrReadJsonV42(await fetch(url,{method,headers,body:text||undefined,credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',signal:c.signal}));}finally{clearTimeout(timer);}
 }
 async function glowstrCheckMembershipV42(){
-  try{glowstrSetMembershipV42('CHECKING…');const x=await glowstrApiV42('/api/xmr/membership');if(x.active){const d=x.expires_at?new Date(x.expires_at*1000).toLocaleDateString():'';glowstrSetMembershipV42('ACTIVE'+(d?' · UNTIL '+d:''),true);return true;}glowstrSetMembershipV42('NO ACTIVE MEMBERSHIP');return false;}catch(e){glowstrSetMembershipV42('CHECK FAILED');showToast(e.message||'Membership check failed');return false;}
+  let until=0;
+  try{until=Number(localStorage.getItem('glowstr_relay_membership_until')||0);}catch(e){}
+  if(until>Date.now()/1000){glowstrSetMembershipV42('ACTIVE · UNTIL '+new Date(until*1000).toLocaleDateString(),true);return true;}
+  try{
+    const pending=Object.values(xmrCommerceSaved()).some(x=>x?.feature==='relay_365d'&&x?.token);
+    if(pending){glowstrSetMembershipV42('PAYMENT / CONFIRMATIONS PENDING');resumeXmrCommerceInvoices();return false;}
+  }catch(e){}
+  glowstrSetMembershipV42('WILL VERIFY ON NEXT WRITE');
+  glowstrConnectFirstPartyV42();
+  return false;
 }
 function glowstrPayOpenV42(open){const b=document.getElementById('glowstr-pay-backdrop');if(!b)return;b.classList.toggle('open',!!open);b.setAttribute('aria-hidden',open?'false':'true');if(!open&&_glowstrInvoicePollV42){clearInterval(_glowstrInvoicePollV42);_glowstrInvoicePollV42=null;}}
 function glowstrRenderInvoiceV42(inv){

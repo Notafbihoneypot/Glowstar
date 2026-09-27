@@ -325,8 +325,12 @@ async function main() {
   }
 
   const pubkey = getPublicKey(secretKey)
+  const expectedPubkey = String(process.env.GLOWSTR_NIP17_EXPECTED_PUBKEY || '').trim().toLowerCase()
+  if (expectedPubkey && expectedPubkey !== pubkey) {
+    throw new Error('GLOWSTR_NIP17_EXPECTED_PUBKEY does not match the configured notifier secret')
+  }
   const npub = nip19.npubEncode(pubkey)
-  console.log(`Glowstr NIP-17 notifier started as ${npub}; lookup relays=${lookupRelays.length}; approved inbox hosts=${allowedRelayHosts.length}`)
+  console.log(`Glowstr NIP-17 notifier started as ${npub} (${pubkey}); lookup relays=${lookupRelays.length}; approved inbox hosts=${allowedRelayHosts.length}`)
 
   const stop = () => {
     ctx.pool.destroy()

@@ -1,52 +1,80 @@
 # Glowstr Monero Commerce
 
-This is the first backend for Glowstr's XMR-only paid Nostr features. It creates a **fresh Monero subaddress per invoice**, watches that exact subaddress, tracks mempool/confirmations, and grants a time-limited entitlement to the buyer's Nostr pubkey.
+Glowstr Commerce powers the annual XMR-paid Nostr relay membership.
 
-## Included features
+## Annual relay product
 
-- `relay_30d`
-- `room_30d`
-- `storage_10gb_30d`
-- `creator_30d`
+`relay_365d` costs **$10 USD equivalent in XMR** for 365 days of relay write access.
 
-Prices in `server.py` are starter values and should be changed before production.
+At invoice creation Commerce:
 
-## Security model
+1. obtains the current XMR/USD price,
+2. calculates the atomic XMR amount without float arithmetic,
+3. locks that amount to the invoice,
+4. creates a fresh Monero subaddress,
+5. returns a Monero URI and random invoice capability token.
 
-The Android/PWA client never receives wallet RPC credentials, wallet files, view keys, spend keys, or transaction history. `monero-wallet-rpc` stays on loopback. The commerce API gets only the minimum RPC access it needs. Use `--rpc-login` and put the commerce API behind HTTPS/reverse-proxy authentication/rate limiting.
+By default, two confirmations are required.
 
-For production, use a dedicated receiving wallet and strongly consider a view-only design for internet-facing payment detection. Spending belongs in a separate wallet/security boundary.
+## Server-side reconciliation
 
-Invoice status uses a random bearer capability. The public Nostr network does **not** receive invoice subaddresses, transaction IDs, or the invoice-to-pubkey association.
+Payment recognition does not depend on the phone or PWA remaining open. A background worker checks outstanding invoice subaddresses with `monero-wallet-rpc` and moves invoices through:
 
-## Run
+`WAITING -> MEMPOOL -> CONFIRMING -> PAID`
 
-```sh
-export MONERO_WALLET_RPC=http://127.0.0.1:18083/json_rpc
-export MONERO_RPC_USER=glowstr
-export MONERO_RPC_PASS='change-me'
-export GLOWSTR_COMMERCE_ADMIN_TOKEN='long-random-secret'
-export GLOWSTR_ALLOWED_ORIGIN=https://glowstr.com
-export GLOWSTR_COMMERCE_DB=/var/lib/glowstr-commerce/commerce.sqlite3
-python3 server.py
-```
+Only non-double-spent incoming value with the required confirmations counts toward access. Multiple payments to the invoice subaddress may satisfy the total. Once paid, the entitlement is granted automatically.
 
-Default API bind is `127.0.0.1:8787`. Put a TLS reverse proxy in front of it rather than binding it directly to the public Internet.
+Renewals stack from the current `valid_until` when access is still active, so renewing early never loses remaining days.
+
+## Expiry
+
+When `valid_until` passes, the relay policy stops accepting network writes for that Nostr pubkey. Public reads remain unaffected. Once a renewal reaches the confirmation threshold, access becomes active again.
+
+## Renewal reminders
+
+Within the final 30 days of an annual entitlement, Commerce inserts one reminder into a private admin queue. A separate NIP-17 notifier should consume that queue and mark each reminder sent.
+
+This split is deliberate: the Monero service does not need to hold a Nostr service private key.
 
 ## API
+
+### Create invoice
 
 `POST /v1/invoices`
 
 ```json
-{"pubkey":"<64 hex chars>","feature":"relay_30d","target":""}
+{"pubkey":"<64 hex chars>","feature":"relay_365d","target":"relay.glowstr.com"}
 ```
 
-Returns the unique subaddress, Monero URI, invoice capability token and expiry.
+The response contains the locked XMR amount, price used, fresh subaddress, Monero URI, invoice token, expiry, and confirmation requirement.
 
-`GET /v1/invoices/<id>` with `Authorization: Bearer <invoice token>` returns `WAITING`, `MEMPOOL`, `CONFIRMING`, `PAID`, or `EXPIRED`.
+### Invoice status
 
-`GET /v1/admin/entitlements/<pubkey>` with the admin bearer token is intended for the paid relay/room/storage service to check access. Do not expose the admin token to Glowstr clients.
+`GET /v1/invoices/<id>`
 
-## Next integration
+Use `Authorization: Bearer <invoice token>`.
 
-The existing Glowstr client already has XMR profile/post tip buttons and Monero URI/deeplink support. The next UI patch should call this service for paid relay/room/storage purchases and store only the invoice id/token locally until payment completes.
+The response includes `WAITING`, `MEMPOOL`, `CONFIRMING`, `PAID`, or `EXPIRED`, plus `access_valid_until` once the membership exists.
+
+### Entitlements
+
+`GET /v1/admin/entitlements/<pubkey>`
+
+Requires the Commerce admin bearer token.
+
+### Reminder queue
+
+`GET /v1/admin/reminders?status=pending`
+
+`POST /v1/admin/reminders/<id>/sent`
+
+Both require the admin bearer token.
+
+## Security model
+
+- Keep `monero-wallet-rpc` on loopback/private networking with RPC authentication.
+- Prefer a dedicated receiving wallet and separate spending boundary.
+- The browser/APK never receives wallet credentials, wallet files, view/spend keys, transaction history, or the Commerce admin token.
+- Invoice capability tokens are stored hashed.
+- Public server errors are generic.
+- Add reverse-proxy rate limiting in addition to the service's basic invoice throttles.

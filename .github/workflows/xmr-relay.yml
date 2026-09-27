@@ -48,3 +48,19 @@ jobs:
           cd nip17-notifier
           npm install --ignore-scripts --no-audit --no-fund
           npm test
+
+      - name: Check Glowstr inline JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          import re, subprocess
+          from pathlib import Path
+          html = Path("glowstr-v5.3-bluetooth-direct.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>", html, re.S | re.I)
+          if not scripts:
+              raise SystemExit("no inline scripts found")
+          for i, script in enumerate(scripts):
+              path = Path(f"/tmp/glowstr-inline-{i}.js")
+              path.write_text(script, encoding="utf-8")
+              subprocess.run(["node", "--check", str(path)], check=True)
+          print(f"checked {len(scripts)} inline script(s)")
+          PY

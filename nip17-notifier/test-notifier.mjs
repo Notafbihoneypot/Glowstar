@@ -11,6 +11,7 @@ import {
   relayTagsFromEvent,
   renewalMessage,
   shouldRetry,
+  validateRecipientRelay,
 } from './notifier.mjs'
 
 test('parses 64 hex service key', () => {
@@ -25,6 +26,13 @@ test('blocks local and private addresses', () => {
   assert.equal(isBlockedAddress('192.168.50.1'), true)
   assert.equal(isBlockedAddress('::1'), true)
   assert.equal(isBlockedAddress('8.8.8.8'), false)
+})
+
+test('rejects recipient inbox hosts outside the operator allowlist', async () => {
+  await assert.rejects(
+    validateRecipientRelay('wss://attacker.example/', ['nos.lol', 'relay.nostr.band']),
+    /operator-approved/,
+  )
 })
 
 test('deduplicates kind 10050 relay tags', () => {

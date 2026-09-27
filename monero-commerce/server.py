@@ -213,6 +213,10 @@ def transfer_matches_invoice(tx, row):
 def refresh_invoice(c, row):
     if row["status"] == "PAID":
         return row
+    if row["feature"] not in FEATURES:
+        c.execute("UPDATE invoices SET status='EXPIRED' WHERE id=?", (row["id"],))
+        c.commit()
+        return c.execute("SELECT * FROM invoices WHERE id=?", (row["id"],)).fetchone()
 
     now = int(time.time())
     result = rpc(

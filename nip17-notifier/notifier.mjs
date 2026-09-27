@@ -8,7 +8,7 @@ import { BlockList, isIP } from 'node:net'
 import { SimplePool } from 'nostr-tools/pool'
 import * as nip19 from 'nostr-tools/nip19'
 import * as nip59 from 'nostr-tools/nip59'
-import { finalizeEvent, generateSecretKey, getPublicKey } from 'nostr-tools/pure'
+import { finalizeEvent, getPublicKey } from 'nostr-tools/pure'
 
 const DEFAULT_POLL_SECONDS = 300
 const DEFAULT_RETRY_SECONDS = 21600
@@ -75,7 +75,7 @@ export async function validateRecipientRelay(raw) {
   const u = new URL(String(raw || '').trim())
   if (u.protocol !== 'wss:') throw new Error('recipient relay must use wss://')
   if (u.username || u.password) throw new Error('relay credentials in URL are not allowed')
-  const host = u.hostname.toLowerCase()
+  const host = u.hostname.replace(/^\\[|\\]$/g, '').toLowerCase()
   if (!host || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) {
     throw new Error('local relay host is not allowed')
   }

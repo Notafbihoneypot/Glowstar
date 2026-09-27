@@ -113,7 +113,7 @@ func loadConfig() config {
 	return config{
 		AdminURL:           strings.TrimRight(strings.TrimSpace(valueOr(os.Getenv("GLOWSTR_COMMERCE_ADMIN_URL"), "http://commerce:8787/v1/admin")), "/"),
 		AdminToken:         secretValue("GLOWSTR_COMMERCE_ADMIN_TOKEN", "GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE"),
-		Feature:            strings.TrimSpace(valueOr(os.Getenv("GLOWSTR_RELAY_FEATURE"), "relay_30d")),
+		Feature:            strings.TrimSpace(valueOr(os.Getenv("GLOWSTR_RELAY_FEATURE"), "relay_365d")),
 		Target:             strings.TrimSpace(os.Getenv("GLOWSTR_RELAY_TARGET")),
 		CacheTTL:           time.Duration(envInt("GLOWSTR_ENTITLEMENT_CACHE_SECONDS", 20)) * time.Second,
 		HTTPTimeout:        time.Duration(envInt("GLOWSTR_COMMERCE_TIMEOUT_SECONDS", 3)) * time.Second,
@@ -197,7 +197,7 @@ func (a *authorizer) decide(req policyRequest) policyResponse {
 	}
 	if !allowed {
 		res.Action = "reject"
-		res.Msg = "restricted: XMR relay access required; purchase relay_30d in Glowstr"
+		res.Msg = "restricted: Glowstr annual relay membership required; renew or purchase access in Glowstr"
 		return res
 	}
 

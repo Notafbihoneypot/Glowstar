@@ -26,7 +26,6 @@ from urllib.request import (
 
 ATOMIC = 10**12
 YEAR_SECONDS = 365 * 86400
-REMINDER_SECONDS = 30 * 86400
 
 
 def read_secret(env_name, file_env_name):
@@ -54,6 +53,8 @@ PRICE_URL = os.getenv(
 ).strip()
 PRICE_OVERRIDE = os.getenv("GLOWSTR_XMR_USD_OVERRIDE", "").strip()
 RELAY_USD_CENTS = max(1, int(os.getenv("GLOWSTR_RELAY_USD_CENTS", "1000")))
+RELAY_SECONDS = max(60, int(os.getenv("GLOWSTR_RELAY_SECONDS", str(YEAR_SECONDS))))
+REMINDER_SECONDS = max(60, int(os.getenv("GLOWSTR_REMINDER_SECONDS", str(30 * 86400))))
 ORIGINS = {
     x.strip()
     for x in os.getenv(
@@ -70,7 +71,7 @@ NOTIFIER_PUBKEY = os.getenv("GLOWSTR_NIP17_PUBLIC_KEY", "").strip().lower()
 FEATURES = {
     "relay_365d": {
         "usd_cents": RELAY_USD_CENTS,
-        "seconds": YEAR_SECONDS,
+        "seconds": RELAY_SECONDS,
         "label": "Glowstr relay - 1 year",
     }
 }

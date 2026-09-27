@@ -7,11 +7,13 @@ on:
     paths:
       - "xmr-relay/**"
       - "monero-commerce/**"
+      - "nip17-notifier/**"
       - ".github/workflows/xmr-relay.yml"
   pull_request:
     paths:
       - "xmr-relay/**"
       - "monero-commerce/**"
+      - "nip17-notifier/**"
       - ".github/workflows/xmr-relay.yml"
 
 permissions:
@@ -25,6 +27,11 @@ jobs:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
       - name: Test XMR relay write policy
         run: |
           cd xmr-relay
@@ -35,3 +42,9 @@ jobs:
           cd monero-commerce
           python3 -m py_compile server.py
           python3 -m unittest -v test_server.py
+
+      - name: Test NIP-17 renewal notifier
+        run: |
+          cd nip17-notifier
+          npm install --ignore-scripts --no-audit --no-fund
+          npm test

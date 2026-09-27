@@ -32,9 +32,11 @@ When `valid_until` passes, the relay policy stops accepting network writes for t
 
 ## Renewal reminders
 
-Within the final 30 days of an annual entitlement, Commerce inserts one reminder into a private admin queue. A separate NIP-17 notifier should consume that queue and mark each reminder sent.
+Within the final 30 days of an annual entitlement, Commerce inserts one reminder into a private admin queue. The separate Glowstr NIP-17 notifier consumes that queue and records successful or failed delivery attempts.
 
-This split is deliberate: the Monero service does not need to hold a Nostr service private key.
+The notifier only marks a reminder sent after at least one relay from the member's published `kind:10050` DM inbox list accepts the NIP-59 gift wrap. Failed or not-yet-configured inboxes remain pending for later retry.
+
+This split is deliberate: the Monero service never holds the Nostr notification private key.
 
 ## API
 
@@ -68,7 +70,9 @@ Requires the Commerce admin bearer token.
 
 `POST /v1/admin/reminders/<id>/sent`
 
-Both require the admin bearer token.
+`POST /v1/admin/reminders/<id>/failed`
+
+All require the admin bearer token. Delivery rows track `attempts`, `last_attempt_at`, and `last_error` so the notifier can retry without repeatedly hammering a member's inbox relays.
 
 ## Security model
 

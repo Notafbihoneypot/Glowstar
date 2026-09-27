@@ -30,5 +30,8 @@ jobs:
           cd xmr-relay
           go test policy.go policy_test.go
 
-      - name: Validate Monero commerce service
-        run: python3 -m py_compile monero-commerce/server.py
+      - name: Test Monero commerce lifecycle
+        run: |
+          cd monero-commerce
+          python3 -m py_compile server.py
+          python3 -m unittest -v test_server.py

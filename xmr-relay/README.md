@@ -2,6 +2,17 @@
 
 A public-read, Monero-paid-write Nostr relay for Glowstr.
 
+## Membership
+
+- Reads are public.
+- Writes require NIP-42 authentication.
+- Annual write access costs **$10 USD equivalent in XMR**.
+- Each invoice gets a fresh Monero subaddress and locks the XMR amount at invoice creation.
+- Access activates only after **2 confirmations** by default.
+- An active renewal adds 365 days to the existing expiry instead of discarding remaining time.
+- If access expires before a renewal reaches the confirmation threshold, writes are denied until payment is confirmed.
+- Thirty days before expiry, Commerce queues a renewal reminder for a dedicated NIP-17 notification worker.
+
 ## Architecture
 
 ```text
@@ -15,53 +26,65 @@ Glowstr XMR policy
    |  private admin HTTP
    v
 Monero Commerce :8787
-   |
+   |        |
+   |        +--> renewal reminder queue --> NIP-17 notifier
    v
 monero-wallet-rpc :18083
 ```
 
-Reads are public. A network write is accepted only when all of these are true:
+A network write is accepted only when all of these are true:
 
 1. The connection completed NIP-42 authentication.
 2. By default, the authenticated pubkey matches the event author.
-3. That pubkey has an unexpired `relay_30d` entitlement from the Monero Commerce service.
+3. That pubkey has an unexpired `relay_365d` entitlement.
 
-The write policy fails closed if the commerce service is unavailable. `Import` and `Stored` sources can be allowed for operator maintenance; network `IP4`, `IP6`, `Stream`, and `Sync` writes stay gated.
+The policy fails closed if Commerce is unavailable. Local `Import` and `Stored` sources can remain allowed for operator maintenance.
 
-## Why this design
+## Payment flow
 
-strfry already verifies normal Nostr events and exposes the NIP-42 authenticated pubkey to write-policy plugins. The plugin therefore does not handle Nostr secret keys or duplicate signature verification. The Monero wallet RPC stays outside the relay container.
+1. Glowstr requests a `relay_365d` invoice.
+2. Commerce fetches XMR/USD, converts $10 to atomic XMR, and stores that locked amount.
+3. Commerce creates a fresh wallet subaddress.
+4. A background reconciler monitors unpaid invoices even when the client closes.
+5. At 0 confirmations the invoice is `MEMPOOL`; below the threshold it is `CONFIRMING`.
+6. At 2 confirmations, Commerce grants or extends the entitlement by 365 days.
+7. The relay write-policy sees the active entitlement and accepts authenticated writes.
+
+Invoice polling is still supported for UI status, but it is no longer required for payment recognition.
+
+## Renewal reminders
+
+When an annual entitlement enters its final 30 days, Commerce creates one pending reminder row keyed to that exact expiry. The admin reminder API is intentionally separate from Monero payment handling so a dedicated notifier can sign/encrypt a NIP-17 DM without placing a Nostr service private key in Commerce.
+
+- `GET /v1/admin/reminders?status=pending`
+- `POST /v1/admin/reminders/<id>/sent`
 
 ## Deploy with Podman
 
-Copy `.env.example` to `.env` and set a strong random admin token plus your `monero-wallet-rpc` credentials. Keep `monero-wallet-rpc` bound to `127.0.0.1:18083`; it does not need a LAN or public bind.
+Copy `.env.example` to `.env`, set a strong admin token and wallet RPC credentials, then:
 
 ```sh
 podman compose up -d --build
 ```
 
-The Podman services use host networking so Commerce can reach `monero-wallet-rpc` on host loopback without exposing wallet RPC. Commerce binds only to `127.0.0.1:8787`, strfry binds only to `127.0.0.1:7777`, and Caddy is the only public listener. `Caddyfile.example` shows the intended routing.
+Commerce and strfry bind to host loopback; Caddy is the only intended public listener. Keep `monero-wallet-rpc` on loopback and use RPC authentication.
 
-`strfry.conf` is configured for `wss://relay.glowstr.com/`. If the public relay hostname changes, update `relay.auth.serviceUrl` before building. NIP-42 authentication requires that URL to match the public relay URL.
+## Important environment
 
-## Payment flow
-
-Glowstr creates `relay_30d` invoices through `/xmr-commerce/v1/invoices`. The Commerce service creates a fresh Monero subaddress, tracks payment/confirmations, then stores the entitlement against the buyer's Nostr pubkey. The relay policy checks only the internal entitlement API; wallet RPC credentials and invoice transaction data never go to strfry or the client.
-
-## Policy environment
-
-- `GLOWSTR_COMMERCE_ADMIN_URL` — internal admin API base; default `http://commerce:8787/v1/admin`.
-- `GLOWSTR_COMMERCE_ADMIN_TOKEN` — required shared secret; never expose to clients.
-- `GLOWSTR_RELAY_FEATURE` — entitlement name; default `relay_30d`.
-- `GLOWSTR_RELAY_TARGET` — optional relay target, default `relay.glowstr.com`.
-- `GLOWSTR_ENTITLEMENT_CACHE_SECONDS` — positive/negative authorization cache; default 20 seconds.
-- `GLOWSTR_REQUIRE_AUTHOR_MATCH` — default `true`; prevents one paid authenticated key from publishing events authored by unrelated pubkeys.
-- `GLOWSTR_ALLOW_LOCAL_IMPORTS` — default `true`; allows operator `Import`/`Stored` maintenance paths.
+- `GLOWSTR_RELAY_FEATURE=relay_365d`
+- `GLOWSTR_RELAY_USD_CENTS=1000`
+- `GLOWSTR_XMR_CONFIRMATIONS=2`
+- `GLOWSTR_XMR_USD_URL` — default Kraken public XMR/USD ticker
+- `GLOWSTR_XMR_USD_OVERRIDE` — staging/test fixed price only
+- `GLOWSTR_RECONCILE_SECONDS=20`
+- `GLOWSTR_INVOICE_SECONDS=1800`
+- `GLOWSTR_LATE_PAYMENT_GRACE_SECONDS=300`
 
 ## Security notes
 
-- Keep `monero-wallet-rpc` on loopback/private networking and enable RPC authentication.
-- Keep the Commerce admin endpoint private; only the write-policy plugin should have its bearer token.
-- Keep `GLOWSTR_REQUIRE_AUTHOR_MATCH=true` unless you deliberately need delegated/bot publishing.
-- Rate-limit the public TLS endpoint at the reverse proxy as well as using strfry's request/event limits.
-- Back up the strfry LMDB and Commerce SQLite database separately; neither backup needs the Monero spend key.
+- Keep wallet RPC and Commerce admin APIs private.
+- Keep `GLOWSTR_REQUIRE_AUTHOR_MATCH=true` unless delegated publishing is explicitly required.
+- Invoice creation has application-level IP/pubkey throttling; also rate-limit at Caddy/firewall level.
+- Commerce uses SQLite WAL and a busy timeout for concurrent reconciliation/API access.
+- Public 500 responses do not expose wallet-RPC exception details.
+- Back up the relay LMDB and Commerce SQLite database separately.

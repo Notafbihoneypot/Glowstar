@@ -39,17 +39,19 @@ The user creates a fresh renewal invoice inside Glowstr after opening the notifi
 
 ## Key generation
 
-Use a dedicated service key, not a personal Nostr key.
-
-After installing the notifier dependencies:
+Use a dedicated service key, not a personal Nostr key. The included helper creates the secret file with mode `0600` and prints only the public identity you need for deployment:
 
 ```sh
-node -e "import('nostr-tools/pure').then(({generateSecretKey})=>console.log(Buffer.from(generateSecretKey()).toString('hex')))"
+cd nip17-notifier
+npm install --ignore-scripts --no-audit --no-fund
+npm run keygen -- ../xmr-relay/secrets/notifier.key
 ```
 
-Write the output to a root-readable secret file and mount it read-only into the notifier container. Never commit it to Git.
+Copy the printed **public hex key** into `GLOWSTR_NIP17_PUBLIC_KEY` in `xmr-relay/.env`. Commerce exposes only that public key over HTTPS, and the Glowstr client uses it to verify that a renewal-themed NIP-17 message really came from the configured notifier account.
 
-The notifier logs its **npub** at startup so the operator can publish profile metadata/NIP-05 for an identifiable Glowstr service account if desired.
+Never commit `secrets/notifier.key`. The notifier also validates at startup that the configured public key matches the mounted secret, preventing an accidental trust-pin mismatch.
+
+The notifier logs its **npub** and public hex key at startup so the operator can publish profile metadata/NIP-05 for an identifiable Glowstr service account if desired.
 
 
 ## Network boundary

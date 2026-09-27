@@ -5,7 +5,7 @@ COPY package.json ./
 RUN npm install --omit=dev --ignore-scripts --no-audit --no-fund \
     && npm cache clean --force
 
-COPY notifier.mjs ./
+COPY notifier.mjs keygen.mjs ./
 
 RUN mkdir -p /data && chown -R node:node /app /data
 USER node

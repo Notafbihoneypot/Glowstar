@@ -4168,6 +4168,7 @@ const DEFAULT_RELAYS = ['wss://relay.damus.io','wss://nos.lol','wss://relay.nost
 const PAID_RELAYS = new Set(['wss://nostr.wine', 'wss://inbox.nostr.wine', 'wss://filter.nostr.wine', 'wss://eden.nostr.land', 'wss://nostr.land']);
 // NIP-50 search-capable relays — used as fallback if connected relays don't return results
 const SEARCH_RELAYS = ['wss://relay.nostr.band', 'wss://nostr.wine', 'wss://relay.noswhere.com', 'wss://search.nos.today'];
+const GLOWSTR_NOTIFIER_TRUST_URL = 'https://glowstr.com/xmr-commerce/v1/notifier';
 
 // ═══ USERNAME REGISTRY CONFIG (edit these to match your Netlify deployment) ═══
 const USERNAME_REGISTRY = {
@@ -6455,7 +6456,7 @@ function handleEvent(event, relayUrl) {
   if (event.kind === 1059 && state.publicKey) {
     const pTag = (event.tags || []).find(t => t[0] === 'p');
     if (pTag && pTag[1] === state.publicKey) {
-      decryptNip17(event).then(dm => {
+      decryptNip17(event).then(async dm => {
         if (!dm) return;
         // Store like a NIP-04 DM
         state.dms = state.dms || [];
@@ -6468,8 +6469,13 @@ function handleEvent(event, relayUrl) {
           });
           const subject=(dm.tags||[]).find(t=>Array.isArray(t)&&t[0]==='subject')?.[1]||'';
           if(subject==='Glowstr relay renewal'){
-            addNotification('renewal',dm.sender,'',dm.content,dm.created_at);
-            showToast('ɱ Glowstr relay renewal reminder received');
+            const trusted=await glowstrTrustedNotifierPubkey();
+            if(trusted && dm.sender===trusted){
+              addNotification('renewal',dm.sender,'',dm.content,dm.created_at);
+              showToast('ɱ Verified Glowstr relay renewal reminder received');
+            }else{
+              console.warn('Renewal-like NIP-17 DM was not from the trusted Glowstr notifier key');
+            }
           }
           if (typeof updateDmSidebar === 'function') updateDmSidebar();
           if (state.activeDmPubkey === dm.sender) renderDmConvo(dm.sender);
@@ -8980,6 +8986,23 @@ async function checkImageExif() {
     } catch(e) { console.warn('Could not strip EXIF from', url, e.message); }
   }
   showToast('✓ ' + stripped + '/' + imgUrls.length + ' images verified clean (canvas re-render)');
+}
+
+let _glowstrNotifierTrustCache={pubkey:'',at:0};
+async function glowstrTrustedNotifierPubkey(){
+  const now=Date.now();
+  if(now-_glowstrNotifierTrustCache.at<10*60*1000)return _glowstrNotifierTrustCache.pubkey;
+  try{
+    const c=new AbortController(),timer=setTimeout(()=>c.abort(),8000);
+    const r=await fetch(GLOWSTR_NOTIFIER_TRUST_URL,{cache:'no-store',credentials:'omit',redirect:'error',referrerPolicy:'no-referrer',signal:c.signal});
+    clearTimeout(timer);
+    const j=await r.json();
+    const pub=String(j?.pubkey||'').toLowerCase();
+    _glowstrNotifierTrustCache={pubkey:(r.ok&&j?.configured&&/^[0-9a-f]{64}$/.test(pub))?pub:'',at:now};
+  }catch(e){
+    _glowstrNotifierTrustCache={pubkey:'',at:now};
+  }
+  return _glowstrNotifierTrustCache.pubkey;
 }
 
 const _glowstrDmInboxSockets = new Map();

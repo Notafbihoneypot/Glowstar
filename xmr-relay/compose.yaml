@@ -26,19 +26,35 @@ services:
     build: .
     restart: unless-stopped
     network_mode: host
+    volumes:
+      - glowstr-relay:/app/strfry-db
+
+  relay-gate:
+    build: ../relay-gate
+    restart: unless-stopped
+    network_mode: host
     depends_on:
       - commerce
+      - relay
     environment:
+      GLOWSTR_GATE_HOST: 127.0.0.1
+      GLOWSTR_GATE_PORT: 7778
+      GLOWSTR_GATE_PUBLIC_RELAY: wss://${GLOWSTR_RELAY_TARGET:-relay.glowstr.com}/
+      GLOWSTR_GATE_UPSTREAM: ws://127.0.0.1:7777
       GLOWSTR_COMMERCE_ADMIN_URL: http://127.0.0.1:8787/v1/admin
       GLOWSTR_COMMERCE_ADMIN_TOKEN: ${GLOWSTR_COMMERCE_ADMIN_TOKEN:?set GLOWSTR_COMMERCE_ADMIN_TOKEN}
       GLOWSTR_RELAY_FEATURE: relay_365d
       GLOWSTR_RELAY_TARGET: ${GLOWSTR_RELAY_TARGET:-relay.glowstr.com}
-      GLOWSTR_ENTITLEMENT_CACHE_SECONDS: ${GLOWSTR_ENTITLEMENT_CACHE_SECONDS:-20}
-      GLOWSTR_COMMERCE_TIMEOUT_SECONDS: ${GLOWSTR_COMMERCE_TIMEOUT_SECONDS:-3}
-      GLOWSTR_ALLOW_LOCAL_IMPORTS: ${GLOWSTR_ALLOW_LOCAL_IMPORTS:-true}
-      GLOWSTR_REQUIRE_AUTHOR_MATCH: ${GLOWSTR_REQUIRE_AUTHOR_MATCH:-true}
-    volumes:
-      - glowstr-relay:/app/strfry-db
+      GLOWSTR_ENTITLEMENT_CACHE_SECONDS: ${GLOWSTR_ENTITLEMENT_CACHE_SECONDS:-15}
+      GLOWSTR_GATE_MAX_AUTH_KEYS: ${GLOWSTR_GATE_MAX_AUTH_KEYS:-64}
+      GLOWSTR_ALLOW_PRIVACY_WRAPPERS: ${GLOWSTR_ALLOW_PRIVACY_WRAPPERS:-true}
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
 
   notifier:
     profiles: ["notifications"]

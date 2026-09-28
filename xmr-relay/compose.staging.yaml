@@ -30,9 +30,6 @@ services:
       GLOWSTR_RELAY_TARGET: ${GLOWSTR_STAGING_RELAY_DOMAIN}
 
   relay:
-    environment:
-      GLOWSTR_RELAY_TARGET: ${GLOWSTR_STAGING_RELAY_DOMAIN}
-      GLOWSTR_ENTITLEMENT_CACHE_SECONDS: "2"
     volumes:
       - ./staging/strfry.conf:/app/strfry.conf:ro
       - glowstr-relay:/app/strfry-db
@@ -42,6 +39,47 @@ services:
       GLOWSTR_NIP17_POLL_SECONDS: "10"
       GLOWSTR_NIP17_RETRY_SECONDS: "30"
 
+  relay-gate:
+    environment:
+      GLOWSTR_GATE_PUBLIC_RELAY: wss://${GLOWSTR_STAGING_RELAY_DOMAIN}/
+      GLOWSTR_RELAY_TARGET: ${GLOWSTR_STAGING_RELAY_DOMAIN}
+      GLOWSTR_ENTITLEMENT_CACHE_SECONDS: "2"
+      GLOWSTR_GATE_MAX_AUTH_KEYS: "64"
+      GLOWSTR_ALLOW_PRIVACY_WRAPPERS: "true"
+
+  livekit:
+    image: docker.io/livekit/livekit-server:v1.13.7
+    restart: unless-stopped
+    network_mode: host
+    command: ["--config", "/etc/livekit.yaml"]
+    volumes:
+      - ./staging/livekit.yaml:/etc/livekit.yaml:ro
+
+  armada-voice:
+    build: ../armada-voice
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - livekit
+    environment:
+      ARMADA_VOICE_HOST: 127.0.0.1
+      ARMADA_VOICE_PORT: 8086
+      ARMADA_VOICE_PUBLIC_ORIGIN: https://${GLOWSTR_STAGING_VOICE_DOMAIN}
+      ARMADA_VOICE_CORS_ORIGIN: "*"
+      ARMADA_VOICE_TOKEN_TTL_SECONDS: "3600"
+      ARMADA_VOICE_IP_LIMIT_PER_MINUTE: "60"
+      ARMADA_VOICE_ROOM_LIMIT_PER_MINUTE: "120"
+      LIVEKIT_PUBLIC_URL: wss://${GLOWSTR_STAGING_VOICE_DOMAIN}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?set LIVEKIT_API_SECRET}
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+
   caddy:
     image: docker.io/library/caddy:2-alpine
     restart: unless-stopped
@@ -49,6 +87,9 @@ services:
     depends_on:
       - commerce
       - relay
+      - relay-gate
+      - armada-voice
+      - livekit
     volumes:
       - ./staging/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./staging/site:/srv:ro

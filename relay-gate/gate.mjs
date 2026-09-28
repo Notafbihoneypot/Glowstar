@@ -168,6 +168,7 @@ async function main() {
   const allowPrivacyWrappers = !['0', 'false', 'no', 'off'].includes(
     String(process.env.GLOWSTR_ALLOW_PRIVACY_WRAPPERS || 'true').toLowerCase(),
   )
+  const maxAuthKeys = envInt('GLOWSTR_GATE_MAX_AUTH_KEYS', 64, 2, 256)
   if (!adminToken) throw new Error('GLOWSTR_COMMERCE_ADMIN_TOKEN[_FILE] is required')
 
   const entitlements = new EntitlementCache({
@@ -247,6 +248,10 @@ async function main() {
         if (!result.ok) {
           if (event?.id && /^[0-9a-f]{64}$/.test(event.id)) sendJson(client, ['OK', event.id, false, 'restricted: ' + result.error])
           else sendJson(client, ['NOTICE', 'restricted: ' + result.error])
+          return
+        }
+        if (!authed.has(result.pubkey) && authed.size >= maxAuthKeys) {
+          sendJson(client, ['OK', event.id, false, 'rate-limited: too many authenticated identities'])
           return
         }
         authed.add(result.pubkey)

@@ -1,0 +1,14 @@
+{
+  "name": "glowstr-armada-voice",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test-server.mjs"
+  },
+  "dependencies": {
+    "livekit-server-sdk": "2.19.1",
+    "nostr-tools": "2.25.2"
+  }
+}

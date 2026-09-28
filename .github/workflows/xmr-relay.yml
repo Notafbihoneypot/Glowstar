@@ -8,12 +8,16 @@ on:
       - "xmr-relay/**"
       - "monero-commerce/**"
       - "nip17-notifier/**"
+      - "relay-gate/**"
+      - "armada-voice/**"
       - ".github/workflows/xmr-relay.yml"
   pull_request:
     paths:
       - "xmr-relay/**"
       - "monero-commerce/**"
       - "nip17-notifier/**"
+      - "relay-gate/**"
+      - "armada-voice/**"
       - ".github/workflows/xmr-relay.yml"
 
 permissions:
@@ -50,6 +54,18 @@ jobs:
       - name: Test NIP-17 renewal notifier
         run: |
           cd nip17-notifier
+          npm install --ignore-scripts --no-audit --no-fund
+          npm test
+
+      - name: Test multi-auth paid relay gate
+        run: |
+          cd relay-gate
+          npm install --ignore-scripts --no-audit --no-fund
+          npm test
+
+      - name: Test Armada CORD-07 voice broker
+        run: |
+          cd armada-voice
           npm install --ignore-scripts --no-audit --no-fund
           npm test
 

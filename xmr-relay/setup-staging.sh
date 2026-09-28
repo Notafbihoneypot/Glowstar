@@ -6,6 +6,7 @@ set -Eeuo pipefail
 
 SITE_DOMAIN="${GLOWSTR_STAGING_SITE_DOMAIN:-staging.glowstr.com}"
 RELAY_DOMAIN="${GLOWSTR_STAGING_RELAY_DOMAIN:-relay-staging.glowstr.com}"
+VOICE_DOMAIN="${GLOWSTR_STAGING_VOICE_DOMAIN:-voice-staging.glowstr.com}"
 SKIP_DNS_CHECK="${SKIP_DNS_CHECK:-0}"
 
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -54,6 +55,8 @@ check_dns() {
     die "$SITE_DOMAIN does not resolve. Create its DNS A/AAAA record, then rerun."
   getent ahosts "$RELAY_DOMAIN" >/dev/null 2>&1 ||
     die "$RELAY_DOMAIN does not resolve. Create its DNS A/AAAA record, then rerun."
+  getent ahosts "$VOICE_DOMAIN" >/dev/null 2>&1 ||
+    die "$VOICE_DOMAIN does not resolve. Create its DNS A/AAAA record, then rerun."
 }
 
 env_value() {
@@ -88,17 +91,29 @@ generate_notifier_identity() {
 }
 
 write_env() {
-  local token
+  local token livekit_key livekit_secret
   token="$(env_value GLOWSTR_COMMERCE_ADMIN_TOKEN)"
   if [[ ! "$token" =~ ^[A-Za-z0-9_-]{32,}$ && ! "$token" =~ ^[0-9a-fA-F]{64,}$ ]]; then
     token="$(openssl rand -hex 32)"
   fi
+  livekit_key="$(env_value LIVEKIT_API_KEY)"
+  if [[ ! "$livekit_key" =~ ^[A-Za-z0-9_-]{8,64}$ ]]; then
+    livekit_key="LK$(openssl rand -hex 10)"
+  fi
+  livekit_secret="$(env_value LIVEKIT_API_SECRET)"
+  if [[ ! "$livekit_secret" =~ ^[A-Za-z0-9_-]{24,128}$ && ! "$livekit_secret" =~ ^[0-9a-fA-F]{32,128}$ ]]; then
+    livekit_secret="$(openssl rand -hex 32)"
+  fi
+
+  LIVEKIT_KEY="$livekit_key"
+  LIVEKIT_SECRET="$livekit_secret"
 
   umask 077
   cat > "$ENV_FILE" <<EOF
 GLOWSTR_COMMERCE_ADMIN_TOKEN=$token
 GLOWSTR_STAGING_SITE_DOMAIN=$SITE_DOMAIN
 GLOWSTR_STAGING_RELAY_DOMAIN=$RELAY_DOMAIN
+GLOWSTR_STAGING_VOICE_DOMAIN=$VOICE_DOMAIN
 GLOWSTR_ALLOWED_ORIGIN=https://$SITE_DOMAIN
 GLOWSTR_RELAY_TARGET=$RELAY_DOMAIN
 
@@ -124,6 +139,10 @@ GLOWSTR_NIP17_SENDER_RELAYS=
 GLOWSTR_NIP17_POLL_SECONDS=10
 GLOWSTR_NIP17_RETRY_SECONDS=30
 GLOWSTR_NIP17_BATCH_SIZE=25
+
+# Armada Concord voice / LiveKit staging.
+LIVEKIT_API_KEY=$LIVEKIT_KEY
+LIVEKIT_API_SECRET=$LIVEKIT_SECRET
 EOF
   chmod 600 "$ENV_FILE"
 }
@@ -147,8 +166,37 @@ $SITE_DOMAIN {
 }
 
 $RELAY_DOMAIN {
-    reverse_proxy 127.0.0.1:7777
+    @nostr_ws {
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    handle @nostr_ws {
+        reverse_proxy 127.0.0.1:7778
+    }
+    handle {
+        reverse_proxy 127.0.0.1:7777
+    }
 }
+
+$VOICE_DOMAIN {
+    handle /.well-known/concord/av* {
+        reverse_proxy 127.0.0.1:8086
+    }
+    handle {
+        reverse_proxy 127.0.0.1:7880
+    }
+}
+EOF
+
+  cat > "$STAGING_DIR/livekit.yaml" <<EOF
+port: 7880
+log_level: info
+rtc:
+  tcp_port: 7881
+  udp_port: 7882
+  use_external_ip: true
+keys:
+  $LIVEKIT_KEY: "$LIVEKIT_SECRET"
 EOF
 
   python3 - "$HERE/strfry.conf" "$STAGING_DIR/strfry.conf" "$RELAY_DOMAIN" <<'PY'
@@ -191,7 +239,7 @@ preflight_ports() {
 }
 
 start_stack() {
-  say "Starting Caddy + mock wallet + Commerce + relay + NIP-17 notifier"
+  say "Starting Caddy + mock wallet + Commerce + relay gate + NIP-17 notifier + Armada voice + LiveKit"
   cd "$HERE"
   "${COMPOSE[@]}"     -f compose.yaml     -f compose.staging.yaml     --profile notifications     up -d --build
 }
@@ -201,7 +249,9 @@ healthcheck() {
   local ok=0
   for _ in $(seq 1 30); do
     if curl -fsS http://127.0.0.1:18084/health >/dev/null 2>&1 &&
-       curl -fsS http://127.0.0.1:8787/ready >/dev/null 2>&1; then
+       curl -fsS http://127.0.0.1:8787/ready >/dev/null 2>&1 &&
+       curl -fsS http://127.0.0.1:7778/health >/dev/null 2>&1 &&
+       curl -fsS -o /dev/null http://127.0.0.1:8086/.well-known/concord/av; then
       ok=1
       break
     fi
@@ -218,6 +268,12 @@ healthcheck() {
     printf '\nWARNING: backend is healthy, but public HTTPS is not reachable yet.\n'
     printf 'Check DNS, TCP 80/443 NAT/firewall rules, and Caddy logs.\n'
   fi
+
+  if curl -fsS -o /dev/null --retry 12 --retry-delay 3 "https://$VOICE_DOMAIN/.well-known/concord/av" 2>/dev/null; then
+    printf 'Armada voice capability: OK (%s)\n' "$VOICE_DOMAIN"
+  else
+    printf 'WARNING: Armada voice HTTPS capability is not reachable yet.\n'
+  fi
 }
 
 print_finish() {
@@ -228,6 +284,7 @@ print_finish() {
 ============================================================
 Client:       https://$SITE_DOMAIN/
 Nostr relay: wss://$RELAY_DOMAIN/
+Armada voice: https://$VOICE_DOMAIN/
 Commerce:    https://$SITE_DOMAIN/xmr-commerce/v1/
 Notifier PK: $NOTIFIER_PUBKEY
 
@@ -249,6 +306,20 @@ Test:
   5. DO NOT pay the fake QR/address.
   6. Confirm the mock reaches 2 confirmations.
   7. Around 5 minutes later, verify the encrypted renewal DM and notification.
+
+Armada voice test:
+  1. Make sure the TEST Nostr identity has the active staging relay entitlement above.
+  2. In Armada, add relay: wss://$RELAY_DOMAIN/
+  3. In Armada Settings -> Voice, add: https://$VOICE_DOMAIN
+  4. Create/join a Concord community that uses the staging relay.
+  5. Start a voice call from two test devices/accounts.
+  6. Verify audio in both directions, mute/unmute, leave/rejoin, and reconnect.
+  7. Verify the relay gate logs accept encrypted kind 21059 traffic.
+
+Required inbound ports on the staging VM/router:
+  TCP 80, 443, 7881
+  UDP 7882
+Do NOT expose TCP 7777, 7778, 7880, 8086, 8787, or 18084.
 
 Logs:
   cd $HERE

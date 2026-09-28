@@ -151,6 +151,22 @@ function sendJson(ws, value) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(value))
 }
 
+async function paidAuthenticated(entitlements, authed) {
+  const paid = new Set()
+  const checks = await Promise.all([...authed].map(async pk => [pk, await entitlements.active(pk)]))
+  for (const [pk, active] of checks) if (active) paid.add(pk)
+  return paid
+}
+
+async function waitForPaidAuthenticated(entitlements, authed, graceMs) {
+  const deadline = Date.now() + graceMs
+  while (true) {
+    const paid = await paidAuthenticated(entitlements, authed)
+    if (paid.size || Date.now() >= deadline) return paid
+    await new Promise(resolve => setTimeout(resolve, 250))
+  }
+}
+
 function closePair(client, upstream, code = 1000, reason = '') {
   try { if (client.readyState === WebSocket.OPEN || client.readyState === WebSocket.CONNECTING) client.close(code, reason) } catch {}
   try { if (upstream?.readyState === WebSocket.OPEN || upstream?.readyState === WebSocket.CONNECTING) upstream.close(code, reason) } catch {}
@@ -169,6 +185,8 @@ async function main() {
     String(process.env.GLOWSTR_ALLOW_PRIVACY_WRAPPERS || 'true').toLowerCase(),
   )
   const maxAuthKeys = envInt('GLOWSTR_GATE_MAX_AUTH_KEYS', 64, 2, 256)
+  const authGraceMs = envInt('GLOWSTR_GATE_PRIVACY_AUTH_GRACE_MS', 15000, 0, 60000)
+  const maxGraceWrites = envInt('GLOWSTR_GATE_MAX_GRACE_WRITES', 8, 1, 64)
   if (!adminToken) throw new Error('GLOWSTR_COMMERCE_ADMIN_TOKEN[_FILE] is required')
 
   const entitlements = new EntitlementCache({
@@ -206,6 +224,7 @@ async function main() {
   wss.on('connection', client => {
     const challenge = randomBytes(32).toString('base64url')
     const authed = new Set()
+    let graceWrites = 0
     const upstream = new WebSocket(upstreamUrl, {
       maxPayload: MAX_FRAME_BYTES,
       perMessageDeflate: false,
@@ -274,10 +293,27 @@ async function main() {
           return
         }
 
-        const paid = new Set()
+        let paid
         try {
-          const checks = await Promise.all([...authed].map(async pk => [pk, await entitlements.active(pk)]))
-          for (const [pk, active] of checks) if (active) paid.add(pk)
+          paid = await paidAuthenticated(entitlements, authed)
+          if (
+            !paid.size &&
+            allowPrivacyWrappers &&
+            isPrivacyWrapperKind(event.kind) &&
+            authGraceMs > 0 &&
+            graceWrites < maxGraceWrites
+          ) {
+            // Armada may AUTH a derived stream key first and a slow external
+            // user signer (Amber/NIP-46) shortly afterward. Hold only privacy
+            // wrappers, with a strict per-connection bound, while later AUTH
+            // frames continue to be processed concurrently.
+            graceWrites++
+            try {
+              paid = await waitForPaidAuthenticated(entitlements, authed, authGraceMs)
+            } finally {
+              graceWrites--
+            }
+          }
         } catch (err) {
           console.error('entitlement check failed:', String(err?.message || err))
           sendJson(client, ['OK', event.id, false, 'error: membership service unavailable'])

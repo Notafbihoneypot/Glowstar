@@ -16,29 +16,43 @@ A public-read, Monero-paid-write Nostr relay for Glowstr.
 ## Architecture
 
 ```text
-Nostr client
+Nostr client / Armada
    |  WebSocket / NIP-42 AUTH
    v
+Glowstr relay-gate :7778
+   |  multi-AUTH + XMR entitlement check
+   |  accepted Nostr frames
+   v
 strfry :7777
-   |  writePolicy JSONL
-   v
-Glowstr XMR policy
-   |  private admin HTTP
-   v
-Monero Commerce :8787
-   |        |
-   |        +--> renewal reminder queue --> NIP-17 notifier
-   v
-monero-wallet-rpc :18083
+   |  private storage/query engine
+   |
+   +------------------------+
+                            |
+                    Monero Commerce :8787
+                       |          |
+                       |          +--> renewal queue --> NIP-17 notifier
+                       v
+                monero-wallet-rpc :18083
+
+Armada voice:
+Armada -> CORD-07 broker :8086 -> LiveKit :7880
+                                  | TCP 7881 / UDP 7882
+                                  v
+                              WebRTC media
 ```
+
+The public reverse proxy sends relay **WebSocket** traffic through `relay-gate`, while HTTP/NIP-11 can go directly to loopback-only strfry.
 
 A network write is accepted only when all of these are true:
 
-1. The connection completed NIP-42 authentication.
-2. By default, the authenticated pubkey matches the event author.
-3. That pubkey has an unexpired `relay_365d` entitlement.
+1. At least one valid NIP-42 identity has authenticated on the socket.
+2. At least one authenticated identity has an unexpired `relay_365d` entitlement.
+3. For ordinary events, `event.pubkey` is one of the authenticated identities.
+4. Only privacy-wrapper kinds **1059** and **21059** may use an outer author that is not one of the authenticated identities.
 
-The policy fails closed if Commerce is unavailable. Local `Import` and `Stored` sources can remain allowed for operator maintenance.
+The narrow wrapper exception is required for NIP-59 and Armada Concord privacy envelopes; it does not disable author matching for ordinary notes. The gate verifies event signatures and fails closed if Commerce is unavailable.
+
+This gate also solves Armada's multi-AUTH behavior: Armada may authenticate a derived Concord stream key immediately and the real user key later on the same socket. Upstream strfry currently keeps only one NIP-42 identity per connection, so it remains private behind the gate rather than being the public authorization layer.
 
 ## Payment flow
 
@@ -48,7 +62,7 @@ The policy fails closed if Commerce is unavailable. Local `Import` and `Stored` 
 4. A background reconciler monitors unpaid invoices even when the client closes.
 5. At 0 confirmations the invoice is `MEMPOOL`; below the threshold it is `CONFIRMING`.
 6. At 2 confirmations, Commerce grants or extends the entitlement by 365 days.
-7. The relay write-policy sees the active entitlement and accepts authenticated writes.
+7. The relay gate sees the active entitlement and accepts authenticated writes.
 
 Invoice polling is still supported for UI status, but it is no longer required for payment recognition.
 
@@ -72,7 +86,7 @@ Copy `.env.example` to `.env`, set a strong admin token and wallet RPC credentia
 podman compose up -d --build
 ```
 
-Commerce and strfry bind to host loopback; Caddy is the only intended public listener. Keep `monero-wallet-rpc` on loopback and use RPC authentication.
+Commerce, relay-gate, and strfry bind to host loopback; Caddy is the only intended public HTTP/WebSocket listener. Keep `monero-wallet-rpc` on loopback and use RPC authentication.
 
 To enable encrypted renewal notifications, create a dedicated notifier key file, configure the `GLOWSTR_NIP17_*` values in `.env`, then start the notification profile:
 
@@ -97,6 +111,9 @@ Do not use a personal Nostr key for the notifier and never commit `secrets/notif
 - `GLOWSTR_RECONCILE_SECONDS=20`
 - `GLOWSTR_INVOICE_SECONDS=1800`
 - `GLOWSTR_LATE_PAYMENT_GRACE_SECONDS=300`
+- `GLOWSTR_ENTITLEMENT_CACHE_SECONDS=15`
+- `GLOWSTR_GATE_MAX_AUTH_KEYS=64`
+- `GLOWSTR_ALLOW_PRIVACY_WRAPPERS=true` — author-mismatch exception only for kinds 1059/21059
 - `GLOWSTR_NIP17_SECRET_PATH` — local path to the dedicated notifier key file
 - `GLOWSTR_NIP17_LOOKUP_RELAYS` — public discovery relays used to find members' `kind:10050` events
 - `GLOWSTR_NIP17_POLL_SECONDS=300`
@@ -105,8 +122,21 @@ Do not use a personal Nostr key for the notifier and never commit `secrets/notif
 ## Security notes
 
 - Keep wallet RPC and Commerce admin APIs private.
-- Keep `GLOWSTR_REQUIRE_AUTHOR_MATCH=true` unless delegated publishing is explicitly required.
+- Keep the relay gate's ordinary author matching enabled; do not broaden the 1059/21059 privacy-wrapper exception to normal event kinds.
 - Invoice creation has application-level IP/pubkey throttling; also rate-limit at Caddy/firewall level.
 - Commerce uses SQLite WAL and a busy timeout for concurrent reconciliation/API access.
 - Public 500 responses do not expose wallet-RPC exception details.
 - Back up the relay LMDB and Commerce SQLite database separately.
+
+
+## Armada voice staging
+
+The all-in-one staging installer also deploys a CORD-07-compatible blind voice broker plus LiveKit. It uses:
+
+- `voice-staging.glowstr.com` for HTTPS broker requests and WSS LiveKit signaling,
+- TCP 7881 for ICE/TCP,
+- UDP 7882 for ICE/UDP.
+
+The Nostr relay does **not** carry raw audio. Armada publishes encrypted Concord call presence/control data through Nostr; LiveKit carries the WebRTC media.
+
+See `HERMES-STAGING.md` for the end-to-end two-device test.

@@ -3120,7 +3120,7 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
 
         <div class="relay-section-title" style="margin-top:24px;color:var(--xmr-orange);border-bottom-color:var(--xmr-orange-dim);">ɱ MONERO-PAID RELAYS</div>
         <div class="info-box">
-          Paid relays fight spam — pay a small XMR fee (~$1) to whitelist your pubkey.
+          Glowstr paid write access is $10 USD equivalent in XMR for one year. Reading stays free.
           Reading is always free. Publishing requires payment.
           <strong style="color:var(--xmr-orange);">Your sats-free, private alternative to Lightning paywalls.</strong>
         </div>
@@ -3129,12 +3129,12 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
         <div class="xmr-relay-card glowstr-relay-card" id="glowstr-relay-card">
           <div class="xmr-relay-name">GLOWSTR RELAY <span class="xmr-badge">ɱ XMR WRITE</span></div>
           <div class="xmr-relay-url">wss://relay.glowstr.com/</div>
-          <div class="xmr-relay-desc">First-party Glowstr relay. Reading is free. Publishing uses NIP-42 authentication and an active Monero membership.</div>
+          <div class="xmr-relay-desc">First-party Glowstr relay. Reading is free. Publishing requires NIP-42 authentication plus a $10/year Monero membership. Access starts after 2 confirmations.</div>
           <div class="glowstr-membership-line">STATUS: <span class="glowstr-membership-status" id="glowstr-relay-membership">NOT CHECKED</span></div>
           <div class="xmr-relay-actions">
             <button class="btn-xmr" id="glowstr-relay-connect" type="button">+ CONNECT</button>
             <button class="btn-xmr" id="glowstr-relay-check" type="button">CHECK ACCESS</button>
-            <button class="btn-xmr" id="glowstr-relay-pay" type="button">PAY WITH XMR</button>
+            <button class="btn-xmr" id="glowstr-relay-pay" type="button">BUY / RENEW · $10/YR</button>
           </div>
         </div>
         <!-- GLOWSTR_V4_2_STABLE_END -->
@@ -3252,6 +3252,21 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
           Publishing a relay list (kind 10002) makes you discoverable.
         </div>
         <button class="btn btn-small" data-glow-click="h0093" id="publish-nip65-btn" style="width:100%;">PUBLISH MY RELAY LIST (NIP-65)</button>
+
+        <div class="relay-section-title" style="margin-top:24px;color:var(--xmr-purple);border-bottom-color:var(--xmr-purple);">🎁 NIP-17 PRIVATE INBOX</div>
+        <div class="info-box">
+          NIP-17 senders need your public <strong>kind 10050</strong> inbox list to know where to place encrypted gift-wrap messages.
+          The relay addresses are public, but the message sender and content stay inside NIP-44/NIP-59 encryption.
+          Glowstr uses this inbox for your encrypted 30-day relay-renewal reminder.
+        </div>
+        <div class="relay-add-box" style="display:flex;gap:8px;align-items:stretch;">
+          <input class="relay-input" id="nip17-inbox-relays" autocomplete="off" spellcheck="false"
+            placeholder="wss://nos.lol, wss://relay.nostr.band" style="flex:1;" />
+          <button class="btn btn-small" id="publish-nip17-inbox-btn" type="button">PUBLISH INBOX</button>
+        </div>
+        <div id="nip17-inbox-status" style="font-family:var(--font-retro);font-size:.86rem;color:var(--xmr-text-dim);margin-top:7px;line-height:1.35;">
+          Sign in to check your NIP-17 inbox list.
+        </div>
       </div>
     </div>
 
@@ -4153,6 +4168,7 @@ const DEFAULT_RELAYS = ['wss://relay.damus.io','wss://nos.lol','wss://relay.nost
 const PAID_RELAYS = new Set(['wss://nostr.wine', 'wss://inbox.nostr.wine', 'wss://filter.nostr.wine', 'wss://eden.nostr.land', 'wss://nostr.land']);
 // NIP-50 search-capable relays — used as fallback if connected relays don't return results
 const SEARCH_RELAYS = ['wss://relay.nostr.band', 'wss://nostr.wine', 'wss://relay.noswhere.com', 'wss://search.nos.today'];
+const GLOWSTR_NOTIFIER_TRUST_URL = 'https://relay.glowstr.com/xmr-commerce/v1/notifier';
 
 // ═══ USERNAME REGISTRY CONFIG (edit these to match your Netlify deployment) ═══
 const USERNAME_REGISTRY = {
@@ -6440,7 +6456,7 @@ function handleEvent(event, relayUrl) {
   if (event.kind === 1059 && state.publicKey) {
     const pTag = (event.tags || []).find(t => t[0] === 'p');
     if (pTag && pTag[1] === state.publicKey) {
-      decryptNip17(event).then(dm => {
+      decryptNip17(event).then(async dm => {
         if (!dm) return;
         // Store like a NIP-04 DM
         state.dms = state.dms || [];
@@ -6451,6 +6467,17 @@ function handleEvent(event, relayUrl) {
             content: dm.content, created_at: dm.created_at,
             tags: [['p', state.publicKey]], _nip17: true
           });
+          const subject=(dm.tags||[]).find(t=>Array.isArray(t)&&t[0]==='subject')?.[1]||'';
+          if(subject==='Glowstr relay renewal'){
+            const trusted=await glowstrTrustedNotifierPubkey();
+            if(trusted && dm.sender===trusted){
+              const renewalKey=(dm.tags||[]).find(t=>Array.isArray(t)&&t[0]==='d'&&/^glowstr-relay-renewal:\d+$/.test(String(t[1]||'')))?.[1]||dm.id;
+              addNotification('renewal',dm.sender,renewalKey,dm.content,dm.created_at);
+              showToast('ɱ Verified Glowstr relay renewal reminder received');
+            }else{
+              console.warn('Renewal-like NIP-17 DM was not from the trusted Glowstr notifier key');
+            }
+          }
           if (typeof updateDmSidebar === 'function') updateDmSidebar();
           if (state.activeDmPubkey === dm.sender) renderDmConvo(dm.sender);
         }
@@ -7679,10 +7706,11 @@ function renderNotifications() {
     list.innerHTML = '<div class="notif-empty"><p style="font-size:1.05rem;">No notifications yet.</p><p style="margin-top:8px;font-size:0.9rem;">Likes, replies, mentions, reposts, and zaps on your posts will appear here.</p></div>';
     return;
   }
-  const iconFor = { like: '♥', reply: '↩', repost: '🔁', zap: '⚡', mention: '@', follow: '👤' };
+  const iconFor = { like: '♥', reply: '↩', repost: '🔁', zap: '⚡', mention: '@', follow: '👤', renewal: 'ɱ' };
   const verbFor = {
     like: 'liked your post', reply: 'replied to you', repost: 'reposted your note',
     zap: 'zapped you', mention: 'mentioned you', follow: 'followed you',
+    renewal: 'sent a private relay renewal reminder',
   };
   list.innerHTML = state.notifications.map(n => {
     const profile = state.profiles[n.actorPubkey];
@@ -7690,8 +7718,8 @@ function renderNotifications() {
     const name = profile?.display_name || profile?.name || n.actorPubkey.slice(0, 12) + '...';
     const unread = n.created_at > state.notifReadTs;
     const zapAmount = n.type === 'zap' && n.context ? ' (' + n.context + ' sats)' : '';
-    const contextHtml = (n.type === 'reply' || n.type === 'mention') && n.context
-      ? '<div class="notif-context">' + escapeHtml(n.context.slice(0, 140)) + '</div>'
+    const contextHtml = (n.type === 'reply' || n.type === 'mention' || n.type === 'renewal') && n.context
+      ? '<div class="notif-context">' + escapeHtml(n.context.slice(0, 180)) + '</div>'
       : '';
     return '<div class="notif-item' + (unread ? ' unread' : '') + '" data-glow-action="open-notif" data-event-id="' + escapeHtml(n.targetEventId || '') + '" data-pubkey="' + n.actorPubkey + '" data-notif-type="' + escapeHtml(n.type) + '">' +
       '<div class="notif-icon ' + n.type + '">' + (iconFor[n.type] || '•') + '</div>' +
@@ -7706,6 +7734,7 @@ function renderNotifications() {
 }
 
 function openNotifTarget(eventId, actorPubkey, type) {
+  if(type==='renewal'){switchView('wallet');return;}
   if (type === 'follow' || !eventId) { viewUserProfile(actorPubkey); return; }
   if (typeof viewThread === 'function') { viewThread(eventId); }
   else {
@@ -8960,6 +8989,23 @@ async function checkImageExif() {
   showToast('✓ ' + stripped + '/' + imgUrls.length + ' images verified clean (canvas re-render)');
 }
 
+let _glowstrNotifierTrustCache={pubkey:'',at:0};
+async function glowstrTrustedNotifierPubkey(){
+  const now=Date.now();
+  if(now-_glowstrNotifierTrustCache.at<10*60*1000)return _glowstrNotifierTrustCache.pubkey;
+  try{
+    const c=new AbortController(),timer=setTimeout(()=>c.abort(),8000);
+    const r=await fetch(GLOWSTR_NOTIFIER_TRUST_URL,{cache:'no-store',credentials:'omit',redirect:'error',referrerPolicy:'no-referrer',signal:c.signal});
+    clearTimeout(timer);
+    const j=await r.json();
+    const pub=String(j?.pubkey||'').toLowerCase();
+    _glowstrNotifierTrustCache={pubkey:(r.ok&&j?.configured&&/^[0-9a-f]{64}$/.test(pub))?pub:'',at:now};
+  }catch(e){
+    _glowstrNotifierTrustCache={pubkey:'',at:now};
+  }
+  return _glowstrNotifierTrustCache.pubkey;
+}
+
 const _glowstrDmInboxSockets = new Map();
 function glowstrSafeRelayUrl(raw){try{const u=new URL(raw);if(!['wss:','ws:'].includes(u.protocol)||!u.hostname||u.username||u.password||u.hash)return null;if(u.protocol==='ws:'&&!u.hostname.endsWith('.onion')&&location.protocol==='https:')return null;return u.toString();}catch(e){return null;}}
 async function fetchDmRelayList(pubkey){
@@ -9038,7 +9084,7 @@ async function decryptNip17(giftWrapEvent) {
     const addressedToUs = rumor.tags.some(t => Array.isArray(t) && t[0] === 'p' && t[1] === state.publicKey);
     if (!addressedToUs) return null;
 
-    return { sender: seal.pubkey, content: rumor.content, created_at: rumor.created_at, id: rumor.id };
+    return { sender: seal.pubkey, content: rumor.content, created_at: rumor.created_at, id: rumor.id, tags: rumor.tags };
   } catch(e) {
     console.warn('NIP-17 decrypt rejected:', e?.message || e);
     return null;
@@ -12768,10 +12814,7 @@ const XMR_COMMERCE = {
   apiBase: 'https://relay.glowstr.com/xmr-commerce/v1',
   pollMs: 5000,
   features: {
-    relay_30d: { title: '⚡ PAID RELAY — 30 DAYS', target: '' },
-    room_30d: { title: '🔒 XMR ROOM — 30 DAYS', target: '' },
-    storage_10gb_30d: { title: '💾 10 GB STORAGE — 30 DAYS', target: '' },
-    creator_30d: { title: '⭐ SUPPORT CREATOR — 30 DAYS', target: '' }
+    relay_365d: { title: '⚡ GLOWSTR RELAY — 1 YEAR · $10', target: 'relay.glowstr.com' }
   }
 };
 let _xmrCommercePoll = null;
@@ -12810,7 +12853,19 @@ async function xmrCommerceCheck(id,token,feature) {
   const r=await fetch(XMR_COMMERCE.apiBase+'/invoices/'+encodeURIComponent(id),{headers:{Authorization:'Bearer '+token},cache:'no-store'});
   if(!r.ok) throw new Error('Invoice check failed ('+r.status+')');
   const inv=await r.json(); xmrCommerceRender(inv,feature);
-  if(inv.status==='PAID'||inv.status==='EXPIRED'){ if(_xmrCommercePoll) clearInterval(_xmrCommercePoll); _xmrCommercePoll=null; if(inv.status==='PAID'){xmrCommerceForget(id);showToast('✓ XMR payment confirmed — feature activated');} }
+  if(inv.status==='PAID'||inv.status==='EXPIRED'){
+    if(_xmrCommercePoll) clearInterval(_xmrCommercePoll); _xmrCommercePoll=null;
+    if(inv.status==='PAID'){
+      if(feature==='relay_365d'&&inv.access_valid_until){
+        try{localStorage.setItem('glowstr_relay_membership_until',String(inv.access_valid_until));}catch(e){}
+        const d=new Date(inv.access_valid_until*1000).toLocaleDateString();
+        if(typeof glowstrSetMembershipV42==='function')glowstrSetMembershipV42('ACTIVE · UNTIL '+d,true);
+      }
+      xmrCommerceForget(id);
+      showToast('✓ 2 confirmations — Glowstr relay access activated');
+      fetchDmRelayList(state.publicKey).then(r=>{if(!r.length)showToast('Publish your NIP-17 inbox in RELAYS to receive the 30-day renewal reminder');}).catch(()=>{});
+    }
+  }
 }
 async function buyXmrFeature(feature,target='') {
   if(!state.publicKey){showToast('Login first to buy an XMR feature');switchView('keys');return;}
@@ -12824,6 +12879,14 @@ async function buyXmrFeature(feature,target='') {
     _xmrCommercePoll=setInterval(()=>xmrCommerceCheck(inv.id,inv.token,feature).catch(e=>console.warn('XMR invoice poll',e)),XMR_COMMERCE.pollMs);
   }catch(e){ if(status){status.textContent='Could not create invoice: '+(e.message||e);status.style.color='var(--xmr-red)';} }
 }
+function resumeXmrCommerceInvoices(){
+  const all=xmrCommerceSaved();
+  const entries=Object.entries(all).sort((a,b)=>(b[1]?.createdAt||0)-(a[1]?.createdAt||0));
+  const next=entries.find(([,x])=>x?.token&&x?.feature==='relay_365d');
+  if(!next)return;
+  const [id,x]=next;
+  xmrCommerceCheck(id,x.token,x.feature).catch(()=>{});
+}
 function openXmrCommerceWallet(){
   const inv=state.activeXmrInvoice; if(!inv?.uri){showToast('No active invoice');return;}
   window.location.href=inv.uri;
@@ -12833,13 +12896,12 @@ function copyXmrCommerceAddress(){
   copyToClipboard(inv.address);
 }
 function renderXmrCommercePanel(){
-  return '<div class="wallet-section"><div class="wallet-section-title">ɱ XMR-ONLY NOSTR FEATURES</div><div class="wallet-section-body">'+
-    '<div style="font-family:var(--font-retro);font-size:.9rem;color:var(--xmr-text-dim);margin-bottom:10px;">Pay directly in XMR. Every purchase uses a unique subaddress and activates access for your current Nostr pubkey after confirmations.</div>'+
+  let until='';
+  try{const u=Number(localStorage.getItem('glowstr_relay_membership_until')||0);if(u>Date.now()/1000)until=' · active until '+new Date(u*1000).toLocaleDateString();}catch(e){}
+  return '<div class="wallet-section"><div class="wallet-section-title">ɱ GLOWSTR PAID RELAY</div><div class="wallet-section-body">'+
+    '<div style="font-family:var(--font-retro);font-size:.9rem;color:var(--xmr-text-dim);margin-bottom:10px;">Public reads stay free. $10 USD equivalent in XMR buys 365 days of write access for your current Nostr pubkey. Access activates after 2 confirmations and early renewals stack from your existing expiry'+until+'.</div>'+
     '<div class="wallet-pick-grid">'+
-    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="relay_30d"><div class="wallet-pick-icon">⚡</div><span class="wallet-pick-name">PAID RELAY</span><span class="wallet-pick-platform">30 days</span></div>'+
-    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="room_30d"><div class="wallet-pick-icon">🔒</div><span class="wallet-pick-name">XMR ROOM</span><span class="wallet-pick-platform">30 days</span></div>'+
-    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="storage_10gb_30d"><div class="wallet-pick-icon">💾</div><span class="wallet-pick-name">10 GB STORAGE</span><span class="wallet-pick-platform">30 days</span></div>'+
-    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="creator_30d"><div class="wallet-pick-icon">⭐</div><span class="wallet-pick-name">SUPPORT CREATOR</span><span class="wallet-pick-platform">30 days</span></div>'+
+    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="relay_365d" data-target="relay.glowstr.com"><div class="wallet-pick-icon">⚡</div><span class="wallet-pick-name">BUY / RENEW RELAY</span><span class="wallet-pick-platform">$10 · 1 year · 2 confs</span></div>'+
     '</div></div></div>';
 }
 
@@ -12990,6 +13052,81 @@ async function publishRelayList() {
   }catch(e){showToast('NIP-65 error: '+e.message);}
 }
 
+const GLOWSTR_NIP17_DISCOVERY_RELAYS = ['wss://nos.lol','wss://relay.nostr.band'];
+
+function glowstrParseDmInboxRelays(raw){
+  const out=[];
+  for(const piece of String(raw||'').split(/[\s,]+/)){
+    if(!piece)continue;
+    try{
+      const u=new URL(piece);
+      if(u.protocol!=='wss:'||!u.hostname||u.username||u.password||u.hash)continue;
+      const url=u.toString();
+      if(!out.includes(url))out.push(url);
+      if(out.length>=3)break;
+    }catch(e){}
+  }
+  return out;
+}
+
+async function glowstrLoadDmInboxUi(){
+  const input=document.getElementById('nip17-inbox-relays');
+  const status=document.getElementById('nip17-inbox-status');
+  if(!input||!status)return;
+  if(!state.publicKey){
+    status.textContent='Sign in to check your NIP-17 inbox list.';
+    return;
+  }
+  status.textContent='Checking your published kind 10050 inbox list…';
+  try{
+    const existing=await fetchDmRelayList(state.publicKey);
+    if(existing.length){
+      input.value=existing.join(', ');
+      status.textContent='ACTIVE · '+existing.length+' NIP-17 inbox relay'+(existing.length===1?'':'s')+' published.';
+      status.style.color='var(--xmr-green)';
+      return;
+    }
+  }catch(e){}
+  if(!input.value.trim())input.value=GLOWSTR_NIP17_DISCOVERY_RELAYS.join(', ');
+  status.textContent='NOT PUBLISHED · Publish an inbox list to receive NIP-17 DMs and Glowstr renewal reminders.';
+  status.style.color='var(--xmr-amber)';
+}
+
+async function publishDmInboxList(){
+  if(!state.publicKey){showToast('Login first');switchView('keys');return;}
+  const input=document.getElementById('nip17-inbox-relays');
+  const status=document.getElementById('nip17-inbox-status');
+  const relays=glowstrParseDmInboxRelays(input?.value||'');
+  if(!relays.length){
+    showToast('Add at least one public wss:// inbox relay');
+    if(status){status.textContent='Use one to three public wss:// relay URLs.';status.style.color='var(--xmr-red)';}
+    return;
+  }
+  if(status){status.textContent='Signing kind 10050 inbox list…';status.style.color='var(--xmr-text-dim)';}
+  try{
+    const signed=await signEventUniversal({
+      kind:10050,
+      created_at:Math.floor(Date.now()/1000),
+      tags:relays.map(url=>['relay',url]),
+      content:''
+    });
+    if(!signed)throw new Error('Signer did not return a signed event');
+    const sent=broadcastEvent(signed);
+    const discovery=[...new Set([...GLOWSTR_NIP17_DISCOVERY_RELAYS,...relays])];
+    const extra=await broadcastToRelays(signed,discovery,5000);
+    if(!sent&&!extra)throw new Error('No relay accepted the inbox list');
+    try{localStorage.setItem('glowstr_nip17_inbox_relays',JSON.stringify(relays));}catch(e){}
+    if(fetchDmRelayList._cache)fetchDmRelayList._cache.delete(state.publicKey);
+    input.value=relays.join(', ');
+    if(status){status.textContent='ACTIVE · Published to '+(sent+extra)+' relay connection'+((sent+extra)===1?'':'s')+'.';status.style.color='var(--xmr-green)';}
+    showToast('✓ NIP-17 inbox published — encrypted renewal reminders enabled');
+    setTimeout(()=>refreshNip17InboxSubscriptions().catch(()=>{}),250);
+  }catch(e){
+    if(status){status.textContent='PUBLISH FAILED · '+String(e.message||e).slice(0,120);status.style.color='var(--xmr-red)';}
+    showToast('NIP-17 inbox publish failed');
+  }
+}
+
 // HELPERS
 function switchView(name) {
   const currentlyOnProfile=document.getElementById('view-profile')?.classList.contains('active');
@@ -13000,6 +13137,7 @@ function switchView(name) {
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active',t.dataset.viewTarget===name));
   const viewEl=document.getElementById('view-'+name); if(viewEl)viewEl.classList.add('active');
+  if(name==='relays')setTimeout(()=>glowstrLoadDmInboxUi().catch(()=>{}),0);
   if(name==='wallet'){
     loadWalletState(); initUsernameStorefront();
     setTimeout(()=>{if(_xmrCache.data)renderXmrData(_xmrCache.data);const activeRange=document.querySelector('.xmr-panel-actions button.active')?.dataset.range||1;const prices=_xmrCache.chart[activeRange];if(prices)drawXmrChart(prices);else loadXmrChart(activeRange);},50);
@@ -13609,7 +13747,7 @@ function glowstrHandleRelayFrameV42(ws,data){
     if(data[2]===true){ws._glowstrAuthedV42=true;glowstrSetMembershipV42('NIP-42 AUTHENTICATED');glowstrRetryPendingV42(ws);}else glowstrSetMembershipV42('AUTH REJECTED');
     return;
   }
-  if(data[0]==='OK' && data[2]===true && _glowstrPendingPublishesV42.has(data[1])) _glowstrPendingPublishesV42.delete(data[1]);
+  if(data[0]==='OK' && data[2]===true && _glowstrPendingPublishesV42.has(data[1])){_glowstrPendingPublishesV42.delete(data[1]);glowstrSetMembershipV42('ACTIVE',true);}
   const reason=(data[0]==='OK'&&data[2]===false?data[3]:data[0]==='CLOSED'?data[2]:'')||'';
   if(typeof reason==='string' && reason.startsWith('restricted:')) glowstrSetMembershipV42('XMR MEMBERSHIP REQUIRED');
 }
@@ -13637,7 +13775,16 @@ async function glowstrApiV42(path,{method='GET',body=null,invoiceToken=null,auth
   try{return await glowstrReadJsonV42(await fetch(url,{method,headers,body:text||undefined,credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',signal:c.signal}));}finally{clearTimeout(timer);}
 }
 async function glowstrCheckMembershipV42(){
-  try{glowstrSetMembershipV42('CHECKING…');const x=await glowstrApiV42('/api/xmr/membership');if(x.active){const d=x.expires_at?new Date(x.expires_at*1000).toLocaleDateString():'';glowstrSetMembershipV42('ACTIVE'+(d?' · UNTIL '+d:''),true);return true;}glowstrSetMembershipV42('NO ACTIVE MEMBERSHIP');return false;}catch(e){glowstrSetMembershipV42('CHECK FAILED');showToast(e.message||'Membership check failed');return false;}
+  let until=0;
+  try{until=Number(localStorage.getItem('glowstr_relay_membership_until')||0);}catch(e){}
+  if(until>Date.now()/1000){glowstrSetMembershipV42('ACTIVE · UNTIL '+new Date(until*1000).toLocaleDateString(),true);return true;}
+  try{
+    const pending=Object.values(xmrCommerceSaved()).some(x=>x?.feature==='relay_365d'&&x?.token);
+    if(pending){glowstrSetMembershipV42('PAYMENT / CONFIRMATIONS PENDING');resumeXmrCommerceInvoices();return false;}
+  }catch(e){}
+  glowstrSetMembershipV42('WILL VERIFY ON NEXT WRITE');
+  glowstrConnectFirstPartyV42();
+  return false;
 }
 function glowstrPayOpenV42(open){const b=document.getElementById('glowstr-pay-backdrop');if(!b)return;b.classList.toggle('open',!!open);b.setAttribute('aria-hidden',open?'false':'true');if(!open&&_glowstrInvoicePollV42){clearInterval(_glowstrInvoicePollV42);_glowstrInvoicePollV42=null;}}
 function glowstrRenderInvoiceV42(inv){
@@ -13649,19 +13796,20 @@ function glowstrRenderInvoiceV42(inv){
 async function glowstrPollInvoiceV42(){if(!_glowstrInvoiceV42?.invoice_id||!_glowstrInvoiceV42?.status_token)return;try{glowstrRenderInvoiceV42(await glowstrApiV42('/api/xmr/invoice/'+encodeURIComponent(_glowstrInvoiceV42.invoice_id),{invoiceToken:_glowstrInvoiceV42.status_token}));}catch(e){}}
 async function glowstrPayRelayV42(){
   if(!state?.publicKey){showToast('Login with a signer first');switchView('keys');return;}
-  glowstrPayOpenV42(true);const s=document.getElementById('glowstr-pay-status'),d=document.getElementById('glowstr-pay-details');if(s)s.textContent='Requesting a fresh Monero subaddress…';if(d)d.hidden=true;
-  try{const inv=await glowstrApiV42('/api/xmr/invoice',{method:'POST',body:{plan:'30d'}});if(!inv.active&&!inv.status_token)throw new Error('Invoice token missing');glowstrRenderInvoiceV42(inv);if(!inv.active){if(_glowstrInvoicePollV42)clearInterval(_glowstrInvoicePollV42);_glowstrInvoicePollV42=setInterval(glowstrPollInvoiceV42,15000);}}catch(e){if(s)s.textContent='Could not create invoice: '+(e.message||'unknown error');}
+  if(typeof buyXmrFeature!=='function'){showToast('Monero commerce is not available');return;}
+  return buyXmrFeature('relay_365d','relay.glowstr.com');
 }
 function initGlowstrV42(){
   if(_glowstrV42UiReady)return;_glowstrV42UiReady=true;
   document.getElementById('glowstr-relay-connect')?.addEventListener('click',glowstrConnectFirstPartyV42);
   document.getElementById('glowstr-relay-check')?.addEventListener('click',glowstrCheckMembershipV42);
   document.getElementById('glowstr-relay-pay')?.addEventListener('click',glowstrPayRelayV42);
+  document.getElementById('publish-nip17-inbox-btn')?.addEventListener('click',publishDmInboxList);
   document.getElementById('glowstr-pay-close')?.addEventListener('click',()=>glowstrPayOpenV42(false));
   document.getElementById('glowstr-pay-backdrop')?.addEventListener('click',e=>{if(e.target===e.currentTarget)glowstrPayOpenV42(false);});
   document.getElementById('glowstr-pay-copy')?.addEventListener('click',()=>{const a=_glowstrInvoiceV42?.address;if(a)copyToClipboard(a);});
   document.getElementById('glowstr-pay-wallet')?.addEventListener('click',()=>{const u=_glowstrInvoiceV42?.monero_uri;if(u)location.href=u;});
-  setTimeout(glowstrAttachFirstPartyV42,500);
+  setTimeout(()=>{glowstrAttachFirstPartyV42();try{resumeXmrCommerceInvoices();}catch(e){}},500);
   setInterval(()=>{if(!document.hidden)glowstrAttachFirstPartyV42();},3000);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initGlowstrV42,{once:true});else initGlowstrV42();

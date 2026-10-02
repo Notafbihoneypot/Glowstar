@@ -1,6 +1,19 @@
-# Public Nostr WebSocket + NIP-11 endpoint.
+# Public Nostr endpoint.
+# WebSocket relay traffic goes through the multi-AUTH/XMR relay gate.
+# Ordinary HTTP/NIP-11 requests go directly to loopback-only strfry.
 relay.glowstr.com {
-    reverse_proxy 127.0.0.1:7777
+    @nostr_ws {
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+
+    handle @nostr_ws {
+        reverse_proxy 127.0.0.1:7778
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:7777
+    }
 }
 
 # Add this handler to the HTTPS origin that serves Glowstr.
@@ -10,4 +23,18 @@ glowstr.com {
         reverse_proxy 127.0.0.1:8787
     }
     # Keep your existing Glowstr site handler below this line.
+}
+
+# Armada Concord voice is a separate HTTPS/WebRTC origin.
+# The CORD-07 broker owns only /.well-known/concord/av*; LiveKit handles
+# signaling on the remaining paths. LiveKit media itself uses TCP 7881 and
+# UDP 7882 directly, so those ports must be allowed by the host firewall/NAT.
+voice.glowstr.com {
+    handle /.well-known/concord/av* {
+        reverse_proxy 127.0.0.1:8086
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:7880
+    }
 }

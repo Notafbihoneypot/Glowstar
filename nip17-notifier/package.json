@@ -1,0 +1,14 @@
+{
+  "name": "glowstr-nip17-notifier",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node notifier.mjs",
+    "test": "node --test test-notifier.mjs",
+    "keygen": "node keygen.mjs"
+  },
+  "dependencies": {
+    "nostr-tools": "2.25.2"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "glowstr-relay-gate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node gate.mjs",
+    "test": "node --test test-gate.mjs"
+  },
+  "dependencies": {
+    "nostr-tools": "2.25.2",
+    "ws": "8.21.3"
+  }
+}

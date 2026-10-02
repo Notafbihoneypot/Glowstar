@@ -7,11 +7,17 @@ on:
     paths:
       - "xmr-relay/**"
       - "monero-commerce/**"
+      - "nip17-notifier/**"
+      - "relay-gate/**"
+      - "armada-voice/**"
       - ".github/workflows/xmr-relay.yml"
   pull_request:
     paths:
       - "xmr-relay/**"
       - "monero-commerce/**"
+      - "nip17-notifier/**"
+      - "relay-gate/**"
+      - "armada-voice/**"
       - ".github/workflows/xmr-relay.yml"
 
 permissions:
@@ -25,10 +31,57 @@ jobs:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
       - name: Test XMR relay write policy
         run: |
           cd xmr-relay
           go test policy.go policy_test.go
 
-      - name: Validate Monero commerce service
-        run: python3 -m py_compile monero-commerce/server.py
+      - name: Test Monero commerce lifecycle
+        run: |
+          cd monero-commerce
+          python3 -m py_compile server.py mock_wallet.py
+          python3 -m unittest -v test_server.py
+
+      - name: Check relay deploy scripts
+        run: |
+          bash -n xmr-relay/setup-staging.sh
+          bash -n xmr-relay/setup-paid-relay.sh
+
+      - name: Test NIP-17 renewal notifier
+        run: |
+          cd nip17-notifier
+          npm install --ignore-scripts --no-audit --no-fund
+          npm test
+
+      - name: Test multi-auth paid relay gate
+        run: |
+          cd relay-gate
+          npm install --ignore-scripts --no-audit --no-fund
+          npm test
+
+      - name: Test Armada CORD-07 voice broker
+        run: |
+          cd armada-voice
+          npm install --ignore-scripts --no-audit --no-fund
+          npm test
+
+      - name: Check Glowstr inline JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          import re, subprocess
+          from pathlib import Path
+          html = Path("glowstr-v5.3-bluetooth-direct.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>", html, re.S | re.I)
+          if not scripts:
+              raise SystemExit("no inline scripts found")
+          for i, script in enumerate(scripts):
+              path = Path(f"/tmp/glowstr-inline-{i}.js")
+              path.write_text(script, encoding="utf-8")
+              subprocess.run(["node", "--check", str(path)], check=True)
+          print(f"checked {len(scripts)} inline script(s)")
+          PY

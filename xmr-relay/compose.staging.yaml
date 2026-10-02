@@ -1,0 +1,102 @@
+services:
+  mock-wallet:
+    build:
+      context: ../monero-commerce
+      dockerfile: MockWallet.Containerfile
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      MOCK_WALLET_HOST: 127.0.0.1
+      MOCK_WALLET_PORT: 18084
+      MOCK_WALLET_CONF1_SECONDS: 8
+      MOCK_WALLET_CONF2_SECONDS: 18
+      MOCK_WALLET_AMOUNT_ATOMIC: 10000000000000
+    volumes:
+      - glowstr-mock-wallet:/data
+
+  commerce:
+    depends_on:
+      - mock-wallet
+    environment:
+      MONERO_WALLET_RPC: http://127.0.0.1:18084/json_rpc
+      MONERO_RPC_USER: ""
+      MONERO_RPC_PASS: ""
+      GLOWSTR_XMR_USD_OVERRIDE: "100"
+      GLOWSTR_RELAY_SECONDS: "600"
+      GLOWSTR_REMINDER_SECONDS: "300"
+      GLOWSTR_INVOICE_SECONDS: "300"
+      GLOWSTR_RECONCILE_SECONDS: "5"
+      GLOWSTR_ALLOWED_ORIGIN: https://${GLOWSTR_STAGING_SITE_DOMAIN}
+      GLOWSTR_RELAY_TARGET: ${GLOWSTR_STAGING_RELAY_DOMAIN}
+
+  relay:
+    volumes:
+      - ./staging/strfry.conf:/app/strfry.conf:ro
+      - glowstr-relay:/app/strfry-db
+
+  notifier:
+    environment:
+      GLOWSTR_NIP17_POLL_SECONDS: "10"
+      GLOWSTR_NIP17_RETRY_SECONDS: "30"
+
+  relay-gate:
+    environment:
+      GLOWSTR_GATE_PUBLIC_RELAY: wss://${GLOWSTR_STAGING_RELAY_DOMAIN}/
+      GLOWSTR_RELAY_TARGET: ${GLOWSTR_STAGING_RELAY_DOMAIN}
+      GLOWSTR_ENTITLEMENT_CACHE_SECONDS: "2"
+      GLOWSTR_GATE_MAX_AUTH_KEYS: "64"
+      GLOWSTR_ALLOW_PRIVACY_WRAPPERS: "true"
+
+  livekit:
+    image: docker.io/livekit/livekit-server:v1.13.7
+    restart: unless-stopped
+    network_mode: host
+    command: ["--config", "/etc/livekit.yaml"]
+    volumes:
+      - ./staging/livekit.yaml:/etc/livekit.yaml:ro
+
+  armada-voice:
+    build: ../armada-voice
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - livekit
+    environment:
+      ARMADA_VOICE_HOST: 127.0.0.1
+      ARMADA_VOICE_PORT: 8086
+      ARMADA_VOICE_PUBLIC_ORIGIN: https://${GLOWSTR_STAGING_VOICE_DOMAIN}
+      ARMADA_VOICE_CORS_ORIGIN: "*"
+      ARMADA_VOICE_TOKEN_TTL_SECONDS: "3600"
+      ARMADA_VOICE_IP_LIMIT_PER_MINUTE: "60"
+      ARMADA_VOICE_ROOM_LIMIT_PER_MINUTE: "120"
+      LIVEKIT_PUBLIC_URL: wss://${GLOWSTR_STAGING_VOICE_DOMAIN}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?set LIVEKIT_API_SECRET}
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+
+  caddy:
+    image: docker.io/library/caddy:2-alpine
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - commerce
+      - relay
+      - relay-gate
+      - armada-voice
+      - livekit
+    volumes:
+      - ./staging/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./staging/site:/srv:ro
+      - glowstr-caddy-data:/data
+      - glowstr-caddy-config:/config
+
+volumes:
+  glowstr-mock-wallet: {}
+  glowstr-caddy-data: {}
+  glowstr-caddy-config: {}

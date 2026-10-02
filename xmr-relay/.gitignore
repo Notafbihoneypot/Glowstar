@@ -1,3 +1,6 @@
 .env
 secrets/
 staging/
+.env.production
+paid-relay/
+production/

@@ -1,0 +1,52 @@
+services:
+  caddy:
+    image: docker.io/library/caddy:2-alpine
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - commerce
+      - relay
+      - relay-gate
+    volumes:
+      - ./production/Caddyfile:/etc/caddy/Caddyfile:ro
+      - glowstr-caddy-data:/data
+      - glowstr-caddy-config:/config
+
+  livekit:
+    profiles: ["voice"]
+    image: docker.io/livekit/livekit-server:v1.13.7
+    restart: unless-stopped
+    network_mode: host
+    command: ["--config", "/etc/livekit.yaml"]
+    volumes:
+      - ./production/livekit.yaml:/etc/livekit.yaml:ro
+
+  armada-voice:
+    profiles: ["voice"]
+    build: ../armada-voice
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - livekit
+    environment:
+      ARMADA_VOICE_HOST: 127.0.0.1
+      ARMADA_VOICE_PORT: 8086
+      ARMADA_VOICE_PUBLIC_ORIGIN: https://${GLOWSTR_VOICE_DOMAIN}
+      ARMADA_VOICE_CORS_ORIGIN: "*"
+      ARMADA_VOICE_TOKEN_TTL_SECONDS: ${ARMADA_VOICE_TOKEN_TTL_SECONDS:-3600}
+      ARMADA_VOICE_IP_LIMIT_PER_MINUTE: ${ARMADA_VOICE_IP_LIMIT_PER_MINUTE:-60}
+      ARMADA_VOICE_ROOM_LIMIT_PER_MINUTE: ${ARMADA_VOICE_ROOM_LIMIT_PER_MINUTE:-120}
+      LIVEKIT_PUBLIC_URL: wss://${GLOWSTR_VOICE_DOMAIN}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?set LIVEKIT_API_SECRET}
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+
+volumes:
+  glowstr-caddy-data: {}
+  glowstr-caddy-config: {}

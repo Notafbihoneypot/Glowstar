@@ -217,10 +217,10 @@ from pathlib import Path
 import sys
 src, dst, site, relay = sys.argv[1:]
 text = Path(src).read_text(encoding="utf-8")
-for needle in ("https://glowstr.com/xmr-commerce/v1", "wss://relay.glowstr.com/", "relay.glowstr.com"):
+for needle in ("https://relay.glowstr.com/xmr-commerce/v1", "wss://relay.glowstr.com/", "relay.glowstr.com"):
     if needle not in text:
         raise SystemExit(f"staging client replacement anchor missing: {needle}")
-text = text.replace("https://glowstr.com/xmr-commerce/v1", f"https://{site}/xmr-commerce/v1")
+text = text.replace("https://relay.glowstr.com/xmr-commerce/v1", f"https://{site}/xmr-commerce/v1")
 text = text.replace("https://relay.glowstr.com", f"https://{relay}")
 text = text.replace("wss://relay.glowstr.com/", f"wss://{relay}/")
 text = text.replace("relay.glowstr.com", relay)

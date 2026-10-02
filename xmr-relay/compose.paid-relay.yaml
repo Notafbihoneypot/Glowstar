@@ -1,0 +1,21 @@
+services:
+  relay-gate:
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=96"
+
+  caddy:
+    image: docker.io/library/caddy:2-alpine
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - commerce
+      - relay
+      - relay-gate
+    volumes:
+      - ./paid-relay/Caddyfile:/etc/caddy/Caddyfile:ro
+      - glowstr-paid-caddy-data:/data
+      - glowstr-paid-caddy-config:/config
+
+volumes:
+  glowstr-paid-caddy-data: {}
+  glowstr-paid-caddy-config: {}

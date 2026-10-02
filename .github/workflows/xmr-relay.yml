@@ -47,9 +47,10 @@ jobs:
           python3 -m py_compile server.py mock_wallet.py
           python3 -m unittest -v test_server.py
 
-      - name: Check staging deploy script
+      - name: Check relay deploy scripts
         run: |
           bash -n xmr-relay/setup-staging.sh
+          bash -n xmr-relay/setup-paid-relay.sh
 
       - name: Test NIP-17 renewal notifier
         run: |

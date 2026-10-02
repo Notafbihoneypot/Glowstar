@@ -78,6 +78,38 @@ Glowstr can publish the member's `kind:10050` list from **Relays → NIP-17 Priv
 
 The Nostr notification key is deliberately isolated from Monero Commerce.
 
+## Lightweight 512 MB paid-relay deployment
+
+For a tiny VPS that is only hosting the paid Nostr relay, use:
+
+```sh
+GLOWSTR_RELAY_DOMAIN=relay.glowstr.com \
+GLOWSTR_ALLOWED_ORIGIN=https://glowstr.com \
+MONERO_WALLET_RPC=http://100.64.0.10:18083/json_rpc \
+MONERO_RPC_USER=glowstr \
+MONERO_RPC_PASS='replace-with-strong-password' \
+bash setup-paid-relay.sh
+```
+
+This mode runs only:
+
+- Caddy
+- `relay-gate`
+- strfry
+- Monero Commerce
+
+It does **not** run `monerod`, `monero-wallet-rpc`, NIP-17 notifier, Armada, or LiveKit. The script is intended for low-traffic operation on a 512 MB / 1 vCPU VPS and attempts to create a 1 GB swap file when less than 1 GB RAM is available.
+
+The required `monero-wallet-rpc` should preferably run on another trusted machine and be reached over a private WireGuard/Tailscale link or HTTPS. That wallet RPC may itself connect to a remote Monero daemon, so no full Monero node is required on the relay VPS.
+
+The public payment API is served from the relay host:
+
+```text
+https://relay.glowstr.com/xmr-commerce/v1
+```
+
+Only TCP 80/443 need to be public. Keep strfry (7777), relay-gate (7778), Commerce (8787), and wallet RPC private.
+
 ## Deploy with Podman
 
 Copy `.env.example` to `.env`, set a strong admin token and wallet RPC credentials, then:

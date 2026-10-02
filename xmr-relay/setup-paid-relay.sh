@@ -302,7 +302,7 @@ ensure_wallet_user() {
   [[ $EUID -eq 0 ]] || die "Root is required to create the view-wallet service"
 
   if ! id "$MONERO_WALLET_USER" >/dev/null 2>&1; then
-    useradd --system --home-dir "$MONERO_WALLET_DIR" --shell /usr/sbin/nologin "$MONERO_WALLET_USER"
+    useradd --system --user-group --home-dir "$MONERO_WALLET_DIR" --shell /usr/sbin/nologin "$MONERO_WALLET_USER"
   fi
   install -d -m 0700 -o "$MONERO_WALLET_USER" -g "$MONERO_WALLET_USER" "$MONERO_WALLET_DIR"
   install -d -m 0750 -o root -g "$MONERO_WALLET_USER" "$MONERO_CONFIG_DIR"

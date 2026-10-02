@@ -4168,7 +4168,7 @@ const DEFAULT_RELAYS = ['wss://relay.damus.io','wss://nos.lol','wss://relay.nost
 const PAID_RELAYS = new Set(['wss://nostr.wine', 'wss://inbox.nostr.wine', 'wss://filter.nostr.wine', 'wss://eden.nostr.land', 'wss://nostr.land']);
 // NIP-50 search-capable relays — used as fallback if connected relays don't return results
 const SEARCH_RELAYS = ['wss://relay.nostr.band', 'wss://nostr.wine', 'wss://relay.noswhere.com', 'wss://search.nos.today'];
-const GLOWSTR_NOTIFIER_TRUST_URL = 'https://glowstr.com/xmr-commerce/v1/notifier';
+const GLOWSTR_NOTIFIER_TRUST_URL = 'https://relay.glowstr.com/xmr-commerce/v1/notifier';
 
 // ═══ USERNAME REGISTRY CONFIG (edit these to match your Netlify deployment) ═══
 const USERNAME_REGISTRY = {
@@ -12811,7 +12811,7 @@ function restoreNWC() {
 // ═══ XMR COMMERCE — PAID NOSTR FEATURES ═══
 const XMR_COMMERCE = {
   // Production: reverse-proxy this path to monero-commerce on 127.0.0.1:8787.
-  apiBase: 'https://glowstr.com/xmr-commerce/v1',
+  apiBase: 'https://relay.glowstr.com/xmr-commerce/v1',
   pollMs: 5000,
   features: {
     relay_365d: { title: '⚡ GLOWSTR RELAY — 1 YEAR · $10', target: 'relay.glowstr.com' }

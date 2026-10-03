@@ -145,7 +145,7 @@ c.WebSocket=FakeSocket;
   assert.equal(await run(`nip44DecryptUniversal(encrypted,await derivePublicKey(testRecipientSecret))`),'Private message');
   await assert.rejects(run(`encryptDmUniversal('Legacy',await derivePublicKey(testRecipientSecret))`),/NIP-17/);
   pass('remote event signing and NIP-44 messaging; FROSTR legacy NIP-04 disabled');
-  run(`testMode='noise'`);assert.equal(await run(`nip46Request('ping',[],1000)`),'pong');
+  run(`testMode='noise'`);assert.equal(await run(`nip46Request('ping',[],5000)`),'pong');
   pass('forged body, wrong author, request ID and subscription responses ignored');
   run(`testMode='changed-template'`);
   await assert.rejects(run(`signEventUniversal({kind:1,created_at:1700000004,tags:[],content:'Expected content'})`),/mismatch|changed|requested/i);

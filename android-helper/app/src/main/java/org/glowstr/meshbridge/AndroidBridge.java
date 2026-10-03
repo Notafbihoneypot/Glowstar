@@ -31,29 +31,35 @@ public final class AndroidBridge {
     private static final String IDENTITY_PREFS = "glowstr_identity";
     private static final String KEY_PUBLIC_STATE = "remembered_public_state";
     private static final String KEY_LOCAL_SIGNER = "remembered_local_signer";
+    private static final String KEY_REMOTE_SIGNER = "remembered_remote_signer";
     private static final String KEYSTORE_ALIAS = "glowstr_local_signer_v1";
     private static final byte[] SIGNER_AAD =
             "Glowstr local signer v1".getBytes(StandardCharsets.UTF_8);
     private final Context context;
+    private final String capability;
 
-    AndroidBridge(Context context) {
+    AndroidBridge(Context context, String capability) {
+        this.capability = capability;
         this.context = context.getApplicationContext();
         NativeNotifier.ensureChannel(this.context);
         MeshDiagnostics.start(this.context);
     }
 
     @JavascriptInterface
-    public boolean notificationsEnabled() {
+    public boolean notificationsEnabled(String capability) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
         return NativeNotifier.canPost(context);
     }
 
     @JavascriptInterface
-    public boolean notifyNostr(String type, String key) {
+    public boolean notifyNostr(String capability, String type, String key) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
         return NativeNotifier.postActivity(context, type == null ? "activity" : type, key);
     }
 
     @JavascriptInterface
-    public boolean amberSignerAvailable() {
+    public boolean amberSignerAvailable(String capability) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
         try {
             Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("nostrsigner:"));
             return !context.getPackageManager().queryIntentActivities(i, 0).isEmpty();
@@ -63,8 +69,9 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public boolean amberGetPublicKey() {
-        if (!amberSignerAvailable()) return false;
+    public boolean amberGetPublicKey(String capability) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
+        if (!amberSignerAvailable(capability)) return false;
         try {
             context.startActivity(new Intent(context, AmberProxyActivity.class)
                     .putExtra("request_type", AmberProxyActivity.ACTION_PUBLIC_KEY)
@@ -76,8 +83,9 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public boolean amberApproveEvent(String eventJson) {
-        if (!amberSignerAvailable() || eventJson == null || eventJson.trim().isEmpty()) return false;
+    public boolean amberApproveEvent(String capability, String eventJson) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
+        if (!amberSignerAvailable(capability) || eventJson == null || eventJson.trim().isEmpty()) return false;
         try {
             String currentUser = "";
             try { currentUser = new JSONObject(eventJson).optString("pubkey", ""); } catch (Exception ignored) {}
@@ -93,7 +101,8 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public String pollAmberResult() {
+    public String pollAmberResult(String capability) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return "";
         try {
             android.content.SharedPreferences p = context.getSharedPreferences(AmberProxyActivity.PREFS, Context.MODE_PRIVATE);
             String result = p.getString(AmberProxyActivity.KEY_RESULT, "");
@@ -111,12 +120,13 @@ public final class AndroidBridge {
      * tokens, encrypted secrets, and arbitrary caller-controlled fields.
      */
     @JavascriptInterface
-    public boolean saveRememberedPublicState(String rawJson) {
+    public boolean saveRememberedPublicState(String capability, String rawJson) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
         if (rawJson == null || rawJson.length() > 512 * 1024) return false;
         try {
             JSONObject in = new JSONObject(rawJson);
             if (!in.optBoolean("persist", false)) {
-                return clearRememberedPublicState();
+                return clearRememberedPublicState(capability);
             }
 
             String publicKey = in.optString("publicKey", "").trim().toLowerCase(java.util.Locale.ROOT);
@@ -130,6 +140,10 @@ public final class AndroidBridge {
             if (signerMethod.length() <= 64 &&
                     ("amber-nip55".equals(signerMethod) ||
                      "nip07".equals(signerMethod) ||
+                     "frostr".equals(signerMethod) ||
+                     "nip46".equals(signerMethod) ||
+                     "nip46-qr".equals(signerMethod) ||
+                     "amber-bunker".equals(signerMethod) ||
                      "nsec".equals(signerMethod) ||
                      "generated".equals(signerMethod) ||
                      "readonly".equals(signerMethod) ||
@@ -172,7 +186,8 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public String loadRememberedPublicState() {
+    public String loadRememberedPublicState(String capability) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return "";
         try {
             String value = context.getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
                     .getString(KEY_PUBLIC_STATE, "");
@@ -183,7 +198,8 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public boolean clearRememberedPublicState() {
+    public boolean clearRememberedPublicState(String capability) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
         try {
             return context.getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
                     .edit().remove(KEY_PUBLIC_STATE).commit();
@@ -226,7 +242,8 @@ public final class AndroidBridge {
      */
     @JavascriptInterface
     public boolean saveRememberedLocalSigner(
-            String publicKey, String signerMethod, String privateKey) {
+            String capability, String publicKey, String signerMethod, String privateKey) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
         String pub = publicKey == null ? "" :
                 publicKey.trim().toLowerCase(java.util.Locale.ROOT);
         String method = signerMethod == null ? "" : signerMethod.trim();
@@ -264,7 +281,8 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public String loadRememberedLocalSigner(String expectedPublicKey) {
+    public String loadRememberedLocalSigner(String capability, String expectedPublicKey) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return "";
         String expected = expectedPublicKey == null ? "" :
                 expectedPublicKey.trim().toLowerCase(java.util.Locale.ROOT);
         if (!expected.matches("[0-9a-f]{64}")) return "";
@@ -311,7 +329,8 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public boolean clearRememberedLocalSigner() {
+    public boolean clearRememberedLocalSigner(String capability) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
         try {
             return context.getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
                     .edit().remove(KEY_LOCAL_SIGNER).commit();
@@ -321,7 +340,8 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public boolean secureLocalSignerStorageAvailable() {
+    public boolean secureLocalSignerStorageAvailable(String capability) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
         try {
             return getOrCreateLocalSignerKey() != null;
         } catch (Exception e) {
@@ -329,8 +349,94 @@ public final class AndroidBridge {
         }
     }
 
+    // Remote signer records contain only the disposable client transport key,
+    // never an account nsec, FROSTR group package, key share, or connect secret.
+    private JSONObject remoteSignerRecord(String raw, String expected) throws Exception {
+        if (raw == null || raw.length() > 8192 || !expected.matches("[0-9a-f]{64}"))
+            throw new IllegalArgumentException("Invalid remote signer record");
+        JSONObject in = new JSONObject(raw);
+        if (!expected.equals(in.optString("publicKey"))) throw new IllegalArgumentException("Wrong account");
+        String method = in.optString("signerMethod");
+        if (!("frostr".equals(method) || "nip46".equals(method) ||
+                "nip46-qr".equals(method) || "amber-bunker".equals(method)))
+            throw new IllegalArgumentException("Wrong signer method");
+        JSONObject n = in.getJSONObject("nip46"), out = new JSONObject();
+        for (String key : new String[]{"clientPrivKey", "clientPubKey", "signerPubkey"}) {
+            String value = n.optString(key);
+            if (!value.matches("[0-9a-f]{64}")) throw new IllegalArgumentException("Invalid transport key");
+            out.put(key, value);
+        }
+        org.json.JSONArray relays = n.getJSONArray("relays"), safe = new org.json.JSONArray();
+        if (relays.length() < 1 || relays.length() > 5) throw new IllegalArgumentException("Invalid relays");
+        String primary = n.optString("relay");
+        boolean found = false;
+        for (int i = 0; i < relays.length(); i++) {
+            String relay = relays.getString(i);
+            java.net.URI uri = new java.net.URI(relay);
+            if (relay.length() > 512 || !"wss".equals(uri.getScheme()) || uri.getHost() == null ||
+                    uri.getUserInfo() != null || uri.getFragment() != null)
+                throw new IllegalArgumentException("Invalid signer relay");
+            safe.put(relay); found |= relay.equals(primary);
+        }
+        if (!found) throw new IllegalArgumentException("Primary relay missing");
+        out.put("relay", primary).put("relays", safe).put("enc", "nip44");
+        return new JSONObject().put("v", 1).put("publicKey", expected)
+                .put("signerMethod", method).put("nip46", out);
+    }
+
     @JavascriptInterface
-    public boolean startNostrQrScanner() {
+    public boolean saveRememberedRemoteSigner(String capability, String raw) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
+        if (raw == null || raw.length() > 8192) return false;
+        try {
+            JSONObject in = new JSONObject(raw);
+            String pub = in.optString("publicKey");
+            JSONObject clear = remoteSignerRecord(raw, pub);
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, getOrCreateLocalSignerKey());
+            cipher.updateAAD(("Glowstr remote signer v1:" + pub).getBytes(StandardCharsets.UTF_8));
+            JSONObject sealed = new JSONObject().put("v", 1).put("publicKey", pub)
+                    .put("iv", Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP))
+                    .put("ct", Base64.encodeToString(cipher.doFinal(clear.toString()
+                            .getBytes(StandardCharsets.UTF_8)), Base64.NO_WRAP));
+            return context.getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
+                    .edit().putString(KEY_REMOTE_SIGNER, sealed.toString()).commit();
+        } catch (Exception e) { return false; }
+    }
+
+    @JavascriptInterface
+    public String loadRememberedRemoteSigner(String capability, String expected) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return "";
+        if (expected == null || !expected.matches("[0-9a-f]{64}")) return "";
+        try {
+            String raw = context.getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
+                    .getString(KEY_REMOTE_SIGNER, "");
+            if (raw == null || raw.isEmpty()) return "";
+            JSONObject sealed = new JSONObject(raw);
+            if (!expected.equals(sealed.optString("publicKey"))) return "";
+            SecretKey key = getExistingLocalSignerKey();
+            if (key == null) return "";
+            byte[] iv = Base64.decode(sealed.getString("iv"), Base64.NO_WRAP);
+            if (iv.length != 12) return "";
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, iv));
+            cipher.updateAAD(("Glowstr remote signer v1:" + expected).getBytes(StandardCharsets.UTF_8));
+            String clear = new String(cipher.doFinal(Base64.decode(sealed.getString("ct"),
+                    Base64.NO_WRAP)), StandardCharsets.UTF_8);
+            return remoteSignerRecord(clear, expected).toString();
+        } catch (Exception e) { return ""; }
+    }
+
+    @JavascriptInterface
+    public boolean clearRememberedRemoteSigner(String capability) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
+        return context.getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
+                .edit().remove(KEY_REMOTE_SIGNER).commit();
+    }
+
+    @JavascriptInterface
+    public boolean startNostrQrScanner(String capability) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
         try {
             context.getSharedPreferences(QrScanActivity.PREFS, Context.MODE_PRIVATE)
                     .edit().remove(QrScanActivity.KEY_RESULT).apply();
@@ -343,7 +449,8 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public String pollNostrQrResult() {
+    public String pollNostrQrResult(String capability) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return "";
         try {
             android.content.SharedPreferences p =
                     context.getSharedPreferences(QrScanActivity.PREFS, Context.MODE_PRIVATE);
@@ -357,7 +464,8 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public String makeNostrQrDataUrl(String payload) {
+    public String makeNostrQrDataUrl(String capability, String payload) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return "";
         if (payload == null) return "";
         String value = payload.trim();
         if (value.length() < 8 || value.length() > 1024) return "";
@@ -410,7 +518,8 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public String pairingToken() {
+    public String pairingToken(String capability) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return "";
         MeshService s = MeshService.current();
         if (s != null) return s.pairingToken();
         android.content.SharedPreferences p = context.getSharedPreferences("mesh", Context.MODE_PRIVATE);
@@ -423,7 +532,8 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public boolean openExternal(String rawUrl) {
+    public boolean openExternal(String capability, String rawUrl) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
         try {
             Uri uri = Uri.parse(rawUrl == null ? "" : rawUrl.trim());
             String scheme = uri.getScheme();
@@ -437,7 +547,8 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public String request(String method, String target, String body) {
+    public String request(String capability, String method, String target, String body) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return "";
         try {
             MeshService s = MeshService.current();
             if (s == null) {

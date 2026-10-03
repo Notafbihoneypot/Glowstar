@@ -10,12 +10,31 @@ android {
         applicationId 'org.glowstr.meshbridge'
         minSdk 29
         targetSdk 36
-        versionCode 23
-        versionName '0.3.11'
+        versionCode 24
+        versionName '0.3.12'
+    }
+
+    def signingEnv = ['GLOWSTR_RELEASE_STORE_FILE', 'GLOWSTR_RELEASE_STORE_PASSWORD',
+                      'GLOWSTR_RELEASE_KEY_ALIAS', 'GLOWSTR_RELEASE_KEY_PASSWORD']
+    def hasReleaseSigning = signingEnv.every { System.getenv(it) }
+    if (System.getenv('GLOWSTR_REQUIRE_RELEASE_SIGNING') == 'true' && !hasReleaseSigning) {
+        throw new GradleException('Production APK requires all four GLOWSTR_RELEASE signing variables')
+    }
+    if (hasReleaseSigning) {
+        signingConfigs {
+            production {
+                storeFile file(System.getenv('GLOWSTR_RELEASE_STORE_FILE'))
+                storePassword System.getenv('GLOWSTR_RELEASE_STORE_PASSWORD')
+                keyAlias System.getenv('GLOWSTR_RELEASE_KEY_ALIAS')
+                keyPassword System.getenv('GLOWSTR_RELEASE_KEY_PASSWORD')
+            }
+        }
     }
 
     buildTypes {
         release {
+            debuggable false
+            if (hasReleaseSigning) signingConfig signingConfigs.production
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -87,44 +106,6 @@ def syncGlowstrAsset = tasks.register('syncGlowstrAsset', Copy) {
 '''
         if (!text.contains('<div id="boot-screen"')) throw new GradleException('Could not locate QR modal insertion point')
         text = text.replace('<div id="boot-screen"', qrModal + '\n<div id="boot-screen"')
-
-        def oldAuth = '''          if (response.error) { clearTimeout(timeout); ws.close(); reject(new Error(response.error)); return; }
-          if (response.result === 'auth_url') {
-            // Signer wants user approval out-of-band (Amber prompts directly); keep waiting
-            return;
-          }'''
-        def newAuth = '''          if (response.result === 'auth_url') {
-            const authUrl = typeof response.error === 'string' ? response.error.trim() : '';
-            if (/^https?:\\/\\//i.test(authUrl)) {
-              try {
-                if (window.GlowstrAndroid?.openExternal) window.GlowstrAndroid.openExternal(authUrl);
-                else window.open(authUrl, '_blank', 'noopener,noreferrer');
-              } catch(e) { console.warn('Could not open NIP-46 auth URL', e); }
-            }
-            return;
-          }
-          if (response.error) { clearTimeout(timeout); ws.close(); reject(new Error(response.error)); return; }'''
-        if (!text.contains(oldAuth)) throw new GradleException('Could not locate NIP-46 auth challenge block')
-        text = text.replace(oldAuth, newAuth)
-
-        def oldConnect = '''    const connectParams = [signerPubkey, secret || '', NIP46_REQUESTED_PERMS, nip46ClientMetadata()];
-    const connectResult = await nip46Request('connect', connectParams, 60000); // user may need to approve in signer'''
-        def newConnect = '''    const connectParams = [signerPubkey, secret || '', NIP46_REQUESTED_PERMS, nip46ClientMetadata()];
-    let connectResult = null;
-    let connectError = null;
-    for (const relayUrl of relays) {
-      state.nip46.relay = relayUrl;
-      try {
-        connectResult = await nip46Request('connect', connectParams, 60000);
-        connectError = null;
-        break;
-      } catch (e) {
-        connectError = e;
-      }
-    }
-    if (connectError) throw connectError;'''
-        if (!text.contains(oldConnect)) throw new GradleException('Could not locate NIP-46 connect block')
-        text = text.replace(oldConnect, newConnect)
 
         def oldNotificationTail = '''  if (state.notifications.length > 200) state.notifications.length = 200;
   if (!state.profiles[actorPubkey]) requestProfile(actorPubkey);'''
@@ -556,6 +537,8 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
         __glowstrAmberBusy = false;
         __glowstrAmberMode = null;
         if (!/^[0-9a-f]{64}$/.test(pk)) { showToast('Amber returned an invalid public key'); return; }
+        if (state.amberPendingAction !== 'get_public_key') return;
+        glowstrResetSigner();
         state.publicKey = pk;
         state.signerMethod = 'amber-nip55';
         showLoggedIn();
@@ -627,6 +610,8 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
     if (__glowstrAmberBusy || __glowstrQueueDrainActive) { showToast('Amber is already handling a request'); return; }
     try {
       if (!window.GlowstrAndroid.amberSignerAvailable()) { showAmberNotInstalledHelp(); return; }
+      glowstrApplyLoginPersistChoice();
+      glowstrResetSigner();
       state.amberPendingAction = 'get_public_key';
       state.amberPendingTimestamp = Date.now();
       __glowstrAmberBusy = true;

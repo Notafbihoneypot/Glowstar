@@ -4965,10 +4965,15 @@ function glowstrResetAccountContext() {
   // resume them when it is selected again.
   try { if (typeof closeXmrCommerce === 'function') closeXmrCommerce(); } catch(e) {}
 
+  try { glowstrInvalidateFeedSelection(); } catch(e) {}
+}
+
+function glowstrRefreshAnonymousAccountUi() {
+  // Run only after the old public key has been detached so the UI cannot render
+  // an old account as "self" during a signer transition.
   try { updateFollowingCount(); } catch(e) {}
   try { updateDmSidebar(); } catch(e) {}
   try { updateNotifBadge(); } catch(e) {}
-  try { glowstrInvalidateFeedSelection(); } catch(e) {}
   try { glowstrUpdateFeedPresetControls(); } catch(e) {}
   try { rerenderFeed(); } catch(e) {}
 }
@@ -4983,6 +4988,7 @@ function glowstrResetSigner(skipQr = false) {
   state.privateKey = null; state.nip46 = null; state.bunkerUrl = null;
   state.publicKey = null; state.signerMethod = null;
   state.amberPendingAction = null; state.amberPendingTimestamp = null;
+  glowstrRefreshAnonymousAccountUi();
   try { sessionStorage.removeItem(GLOWSTR_SESSION_SECRET_KEY); } catch(e) {}
   try { sessionStorage.removeItem(GLOWSTR_PUBLIC_STATE_KEY); } catch(e) {}
   try { localStorage.removeItem(GLOWSTR_PUBLIC_STATE_KEY); } catch(e) {}

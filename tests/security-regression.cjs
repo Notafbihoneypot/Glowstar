@@ -188,6 +188,7 @@ c.WebSocket=FakeSocket;
     state.networkMutedEvents=new Set(['4'.repeat(64)]);
     state.muteEvent={id:'old-mute'};
     state.dms=[{id:dmId,pubkey:'5'.repeat(64),content:'old account dm'}];
+    state.eventIds=state.eventIds||new Set();
     state.eventIds.add(dmId);
     state.activeDmPubkey='5'.repeat(64);
     state._dmEventIds=new Set([dmId]);

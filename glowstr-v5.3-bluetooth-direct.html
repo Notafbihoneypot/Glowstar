@@ -4893,10 +4893,93 @@ function glowstrApplyLoginPersistChoice() {
   glowstrSyncPersistUi();
   return !!state.persistKey;
 }
+function glowstrResetAccountContext() {
+  // Identity-derived state must never survive a signer/account transition.
+  // Keep global relay/profile/event caches, but detach every subscription and
+  // clear any state whose meaning depends on the currently authenticated pubkey.
+
+  // Stop old-account relay subscriptions before clearing state.publicKey.
+  try {
+    Object.values(state.relays || {}).forEach(r => {
+      const ws = r?.ws;
+      try { glowstrCloseSubscription(ws, 'user'); } catch(e) {}
+      try {
+        if (ws?._glowstrNip17InboxSub) {
+          if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(['CLOSE', ws._glowstrNip17InboxSub]));
+          delete ws._glowstrNip17InboxSub;
+          delete ws._glowstrNip17InboxUrl;
+          delete ws._glowstrInboxAuthEvent;
+          delete ws._glowstrLastChallenge;
+        }
+      } catch(e) {}
+    });
+  } catch(e) {}
+
+  // Dedicated NIP-17 inbox sockets are account-specific.
+  try {
+    for (const [, ws] of _glowstrDmInboxSockets || []) {
+      try { ws.close(); } catch(e) {}
+    }
+    _glowstrDmInboxSockets?.clear?.();
+  } catch(e) {}
+
+  // Allow DM events to be loaded again if this account is selected later.
+  try {
+    for (const dm of state.dms || []) {
+      if (dm?.id) state.eventIds?.delete?.(dm.id);
+    }
+  } catch(e) {}
+
+  state.following = new Set();
+  state.followEvent = null;
+  state.followSets = {};
+  state.selectedFollowSet = null;
+
+  state.networkMutedPubkeys = new Set();
+  state.networkMutedWords = new Set();
+  state.networkMutedTags = new Set();
+  state.networkMutedEvents = new Set();
+  state.muteEvent = null;
+
+  state.dms = [];
+  state.activeDmPubkey = null;
+  state._dmEventIds = new Set();
+
+  state.notifications = [];
+  state.notifReadTs = 0;
+  state.reactedIds = new Set();
+
+  state.replyTo = null;
+  state.activeTip = null;
+  state.pendingUsername = null;
+  state.activeXmrInvoice = null;
+
+  // The feed selection may contain authors from the prior account.
+  state.feedBuffer = [];
+  state._feedSelectionCache = null;
+  state._cachedAuthors = null;
+  state._cachedAuthorsAt = 0;
+
+  // Stop an invoice poll that was created for the previous pubkey. Saved invoice
+  // capability tokens are intentionally retained so the original account can
+  // resume them when it is selected again.
+  try { if (typeof closeXmrCommerce === 'function') closeXmrCommerce(); } catch(e) {}
+
+  try { updateFollowingCount(); } catch(e) {}
+  try { updateDmSidebar(); } catch(e) {}
+  try { updateNotifBadge(); } catch(e) {}
+  try { glowstrInvalidateFeedSelection(); } catch(e) {}
+  try { glowstrUpdateFeedPresetControls(); } catch(e) {}
+  try { rerenderFeed(); } catch(e) {}
+}
+
 function glowstrResetSigner(skipQr = false) {
   ++_glowstrSignerEpoch;
   for (const cancel of [..._glowstrNip46Pending]) cancel();
   if (!skipQr) { try { stopQrLogin(); } catch(e) {} }
+
+  glowstrResetAccountContext();
+
   state.privateKey = null; state.nip46 = null; state.bunkerUrl = null;
   state.publicKey = null; state.signerMethod = null;
   state.amberPendingAction = null; state.amberPendingTimestamp = null;
@@ -4907,6 +4990,7 @@ function glowstrResetSigner(skipQr = false) {
   glowstrClearNativeLocalSigner();
   try { window.GlowstrAndroid?.clearRememberedRemoteSigner?.(); } catch(e) {}
   try { glowstrMaskPrivateKeyDisplay(); } catch(e) {}
+  try { glowstrRefreshCoreSubscriptions(); } catch(e) {}
   return _glowstrSignerEpoch;
 }
 

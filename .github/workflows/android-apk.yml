@@ -14,7 +14,7 @@ on:
     paths: ['android-helper/**', 'tests/**', 'monero-commerce/**', 'glowstr-v5.3-bluetooth-direct.html', '.github/workflows/android-apk.yml']
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -87,6 +87,24 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
+      - name: Publish FROSTR test APK as GitHub prerelease
+        if: github.event_name == 'push' && github.ref == 'refs/heads/security/frostr-hardening'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="v0.3.12-frostr-test"
+          APK="dist/Glowstr-Android-0.3.12-FROSTR-test.apk"
+          SUM="dist/Glowstr-Android-0.3.12-FROSTR-test.apk.sha256"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" "$SUM" --clobber
+          else
+            gh release create "$TAG" "$APK" "$SUM" \
+              --target "$GITHUB_SHA" \
+              --title "Glowstr Android 0.3.12 FROSTR Test" \
+              --notes "Test Android build with the integrated FROSTR / Igloo NIP-46 login flow. Installs side-by-side using package org.glowstr.meshbridge.frostrtest. This is a prerelease test build, not the production release." \
+              --prerelease
+          fi
 
   signed-release:
     if: github.event_name == 'workflow_dispatch' && inputs.signed

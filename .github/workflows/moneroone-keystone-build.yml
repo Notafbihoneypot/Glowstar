@@ -1,0 +1,49 @@
+name: Monero One Keystone APK
+
+on:
+  push:
+    branches:
+      - build/moneroone-keystone
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout build harness
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Clone Monero One
+        run: git clone --recurse-submodules https://github.com/bwgh0/MoneroOne.Android.git MoneroOne
+
+      - name: Apply Keystone integration
+        run: python3 tools/moneroone-keystone/patch.py MoneroOne
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        working-directory: MoneroOne
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Collect APK
+        run: cp MoneroOne/app/build/outputs/apk/debug/app-debug.apk MoneroOne-Keystone-debug.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MoneroOne-Keystone-debug
+          path: MoneroOne-Keystone-debug.apk
+          if-no-files-found: error

@@ -114,7 +114,7 @@ final class BluetoothMeshManager {
                         .put("node", p.remoteNode == null ? "unknown" : p.remoteNode)
                         .put("direction", p.outgoing ? "outgoing" : "incoming")
                         .put("connected_at", p.connectedAt));
-            } catch (Exception ignored) {}
+            } catch (SecurityException ignored) {} catch (Exception ignored) {}
         }
         return out;
     }
@@ -139,17 +139,17 @@ final class BluetoothMeshManager {
     synchronized void stop() {
         running.set(false);
         scanEpoch.incrementAndGet();
-        try { if (scanner != null && scanning && hasScanPermission()) scanner.stopScan(scanCallback); } catch (Exception ignored) {}
+        try { if (scanner != null && scanning && hasScanPermission()) scanner.stopScan(scanCallback); } catch (SecurityException ignored) {} catch (Exception ignored) {}
         scanning = false;
-        try { if (advertiser != null && hasAdvertisePermission()) advertiser.stopAdvertising(advertiseCallback); } catch (Exception ignored) {}
+        try { if (advertiser != null && hasAdvertisePermission()) advertiser.stopAdvertising(advertiseCallback); } catch (SecurityException ignored) {} catch (Exception ignored) {}
         advertising = false;
-        for (BluetoothGatt g : pendingGatt.values()) try { g.close(); } catch (Exception ignored) {}
+        for (BluetoothGatt g : pendingGatt.values()) try { g.close(); } catch (SecurityException ignored) {} catch (Exception ignored) {}
         pendingGatt.clear();
         for (PeerConnection p : new ArrayList<>(peers.values())) p.close();
         peers.clear();
-        try { if (gattServer != null) gattServer.close(); } catch (Exception ignored) {}
+        try { if (gattServer != null) gattServer.close(); } catch (SecurityException ignored) {} catch (Exception ignored) {}
         gattServer = null;
-        try { if (l2capServer != null) l2capServer.close(); } catch (Exception ignored) {}
+        try { if (l2capServer != null) l2capServer.close(); } catch (SecurityException ignored) {} catch (Exception ignored) {}
         l2capServer = null;
         psm = -1;
         changed();
@@ -248,14 +248,15 @@ final class BluetoothMeshManager {
         if (!running.get()) return;
         try {
             if (scanner != null && scanning && hasScanPermission()) scanner.stopScan(scanCallback);
-        } catch (Exception ignored) {}
+        } catch (SecurityException ignored) {} catch (Exception ignored) {}
         scanning = false;
-        try { startScanning(true); } catch (Exception ignored) {}
+        try { startScanning(true); } catch (SecurityException ignored) {} catch (Exception ignored) {}
         changed();
     }
 
     private void startL2capServer() throws IOException {
-        l2capServer = adapter.listenUsingL2capChannel();
+        try { l2capServer = adapter.listenUsingL2capChannel(); }
+        catch (SecurityException e) { throw new IOException("Bluetooth connect permission revoked", e); }
         psm = l2capServer.getPsm();
         io.execute(() -> {
             while (running.get()) {
@@ -263,7 +264,7 @@ final class BluetoothMeshManager {
                     BluetoothSocket socket = l2capServer.accept();
                     if (socket != null) {
                         if (liveSessions.get() >= MAX_LIVE_SESSIONS) {
-                            try { socket.close(); } catch (Exception ignored) {}
+                            try { socket.close(); } catch (SecurityException ignored) {} catch (Exception ignored) {}
                         } else {
                             new PeerConnection(socket, false).start();
                         }
@@ -276,14 +277,17 @@ final class BluetoothMeshManager {
     }
 
     private void startGattServer() throws IOException {
-        gattServer = bluetoothManager.openGattServer(context, gattServerCallback);
+        try { gattServer = bluetoothManager.openGattServer(context, gattServerCallback); }
+        catch (SecurityException e) { throw new IOException("Bluetooth connect permission revoked", e); }
         if (gattServer == null) throw new IOException("Could not open BLE GATT server");
         BluetoothGattService service = new BluetoothGattService(SERVICE_UUID, BluetoothGattService.SERVICE_TYPE_PRIMARY);
         BluetoothGattCharacteristic info = new BluetoothGattCharacteristic(INFO_UUID,
                 BluetoothGattCharacteristic.PROPERTY_READ,
                 BluetoothGattCharacteristic.PERMISSION_READ);
         service.addCharacteristic(info);
-        if (!gattServer.addService(service)) throw new IOException("Could not publish Glowstr BLE service");
+        try {
+            if (!gattServer.addService(service)) throw new IOException("Could not publish Glowstr BLE service");
+        } catch (SecurityException e) { throw new IOException("Bluetooth connect permission revoked", e); }
     }
 
     private void startAdvertising() throws IOException {
@@ -313,14 +317,15 @@ final class BluetoothMeshManager {
         ScanSettings settings = new ScanSettings.Builder()
                 .setScanMode(fast ? ScanSettings.SCAN_MODE_LOW_LATENCY : ScanSettings.SCAN_MODE_BALANCED)
                 .build();
-        scanner.startScan(filters, settings, scanCallback);
+        try { scanner.startScan(filters, settings, scanCallback); }
+        catch (SecurityException e) { scanning = false; changed(); return; }
         scanning = true;
         if (fast) {
             scheduler.schedule(() -> {
                 if (!running.get() || scanEpoch.get() != epoch) return;
-                try { if (scanner != null && scanning && hasScanPermission()) scanner.stopScan(scanCallback); } catch (Exception ignored) {}
+                try { if (scanner != null && scanning && hasScanPermission()) scanner.stopScan(scanCallback); } catch (SecurityException ignored) {} catch (Exception ignored) {}
                 scanning = false;
-                try { startScanning(false); } catch (Exception ignored) {}
+                try { startScanning(false); } catch (SecurityException ignored) {} catch (Exception ignored) {}
                 changed();
             }, 20, TimeUnit.SECONDS);
         }
@@ -329,7 +334,7 @@ final class BluetoothMeshManager {
     private final AdvertiseCallback advertiseCallback = new AdvertiseCallback() {
         @Override public void onStartSuccess(AdvertiseSettings settingsInEffect) {
             if (!running.get()) {
-                try { if (advertiser != null && hasAdvertisePermission()) advertiser.stopAdvertising(this); } catch (Exception ignored) {}
+                try { if (advertiser != null && hasAdvertisePermission()) advertiser.stopAdvertising(this); } catch (SecurityException ignored) {} catch (Exception ignored) {}
                 advertising = false;
             } else advertising = true;
             changed();
@@ -413,14 +418,14 @@ final class BluetoothMeshManager {
                 BluetoothSocket socket = device.createL2capChannel(remotePsm);
                 socket.connect();
                 new PeerConnection(socket, true).start();
-            } catch (Exception ignored) {}
+            } catch (SecurityException ignored) {} catch (Exception ignored) {}
         });
     }
 
     private void closeGatt(String addr, BluetoothGatt g) {
         pendingGatt.remove(addr, g);
-        try { g.disconnect(); } catch (Exception ignored) {}
-        try { g.close(); } catch (Exception ignored) {}
+        try { g.disconnect(); } catch (SecurityException ignored) {} catch (Exception ignored) {}
+        try { g.close(); } catch (SecurityException ignored) {} catch (Exception ignored) {}
     }
 
     private final BluetoothGattServerCallback gattServerCallback = new BluetoothGattServerCallback() {
@@ -437,12 +442,14 @@ final class BluetoothMeshManager {
         @Override public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic) {
             if (gattServer == null) return;
             if (!INFO_UUID.equals(characteristic.getUuid())) {
-                gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED, offset, null);
+                try { gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED, offset, null); }
+                catch (SecurityException ignored) {}
                 return;
             }
             byte[] all = Protocol.infoBytes(psm, nodeId);
             if (offset < 0 || offset > all.length) {
-                gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_INVALID_OFFSET, offset, null);
+                try { gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_INVALID_OFFSET, offset, null); }
+                catch (SecurityException ignored) {}
                 return;
             }
             byte[] part = new byte[all.length - offset];
@@ -469,7 +476,7 @@ final class BluetoothMeshManager {
                         peer.send(Protocol.envelope(row.event, row.hops));
                     }
                     sleep(35);
-                } catch (Exception ignored) {}
+                } catch (SecurityException ignored) {} catch (Exception ignored) {}
             }
         });
     }
@@ -520,7 +527,7 @@ final class BluetoothMeshManager {
         void start() {
             if (liveSessions.incrementAndGet() > MAX_LIVE_SESSIONS) {
                 liveSessions.decrementAndGet();
-                try { socket.close(); } catch (Exception ignored) {}
+                try { socket.close(); } catch (SecurityException ignored) {} catch (Exception ignored) {}
                 return;
             }
             counted.set(true);
@@ -588,7 +595,7 @@ final class BluetoothMeshManager {
 
         void close() {
             if (!alive.compareAndSet(true, false)) return;
-            try { socket.close(); } catch (Exception ignored) {}
+            try { socket.close(); } catch (SecurityException ignored) {} catch (Exception ignored) {}
             if (counted.compareAndSet(true, false)) liveSessions.decrementAndGet();
             unregister(this);
         }

@@ -14,6 +14,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import java.io.ByteArrayInputStream;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -22,6 +24,7 @@ import android.view.ViewParent;
 import android.widget.Toast;
 
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,17 +32,22 @@ import java.util.List;
 public final class MainActivity extends Activity {
     private static final int REQ_BT = 420;
     private static final int REQ_ENABLE = 421;
-    private static final String APP_ORIGIN = "https://app.glowstr.local/";
+    private static final String APP_ORIGIN = TrustedWebContent.ORIGIN;
     private static final String APP_HOST = "app.glowstr.local";
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private WebView webView;
+    private final String bridgeCapability = TrustedWebContent.newCapability();
     private boolean pendingStart;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         webView = new WebView(this);
         setContentView(webView);
+        if (Build.VERSION.SDK_INT >= 33) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBackPressed);
+        }
         configureWebView();
         loadBundledGlowstr();
         handler.postDelayed(() -> ensureBluetooth(true), 300);
@@ -59,7 +67,7 @@ public final class MainActivity extends Activity {
             if (parent instanceof ViewGroup) {
                 ((ViewGroup) parent).removeView(webView);
             }
-            webView.removeJavascriptInterface("GlowstrAndroid");
+            webView.removeJavascriptInterface("GlowstrNative");
             webView.stopLoading();
             webView.destroy();
             webView = null;
@@ -67,7 +75,11 @@ public final class MainActivity extends Activity {
         super.onDestroy();
     }
 
-    @Override public void onBackPressed() {
+    // Older devices use onBackPressed; API 33+ uses the registered dispatcher.
+    @android.annotation.SuppressLint("GestureBackNavigation")
+    @Override public void onBackPressed() { handleBackPressed(); }
+
+    private void handleBackPressed() {
         if (webView != null && webView.canGoBack()) webView.goBack();
         else super.onBackPressed();
     }
@@ -96,21 +108,31 @@ public final class MainActivity extends Activity {
         webView.setHorizontalScrollBarEnabled(false);
         webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
 
-        webView.addJavascriptInterface(new AndroidBridge(this), "GlowstrAndroid");
+        webView.addJavascriptInterface(new AndroidBridge(this, bridgeCapability), "GlowstrNative");
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                return handleNavigation(request.getUrl());
+                if (!request.isForMainFrame()) return true;
+                return handleNavigation(request.getUrl(), request.hasGesture());
             }
 
             @Override @SuppressWarnings("deprecation")
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                return handleNavigation(Uri.parse(url));
+                return true; // API 29+ uses the frame/gesture-aware overload.
+            }
+
+            @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                // This synthetic origin is never a network server.
+                if (APP_HOST.equalsIgnoreCase(request.getUrl().getHost())) {
+                    return new WebResourceResponse("text/plain", "UTF-8", 403, "Forbidden",
+                            java.util.Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
+                }
+                return super.shouldInterceptRequest(view, request);
             }
 
             @Override public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                if (url != null && url.startsWith(APP_ORIGIN)) {
+                if (TrustedWebContent.isAppDocument(url)) {
                     injectAndroidResponsiveStyles();
                     installNativeFetchBridge();
                     injectNativeUiState();
@@ -120,23 +142,26 @@ public final class MainActivity extends Activity {
         });
     }
 
-    private boolean handleNavigation(Uri uri) {
-        if (uri == null) return true;
+    private boolean handleNavigation(Uri uri, boolean userGesture) {
+        // Never load a second document, including about:, data:, blob:, or a page
+        // claiming the synthetic app origin. Open deliberate external links only.
+        if (uri == null || !userGesture || APP_HOST.equalsIgnoreCase(uri.getHost())) return true;
         String scheme = uri.getScheme();
-        String host = uri.getHost();
-        if ("https".equalsIgnoreCase(scheme) && APP_HOST.equalsIgnoreCase(host)) return false;
-        if ("about".equalsIgnoreCase(scheme) || "data".equalsIgnoreCase(scheme) || "blob".equalsIgnoreCase(scheme)) return false;
-        try {
-            startActivity(new Intent(Intent.ACTION_VIEW, uri));
-        } catch (RuntimeException e) {
-            toast("No app can open this link");
-        }
+        if (!("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme) ||
+                "nostr".equalsIgnoreCase(scheme) || "nostrsigner".equalsIgnoreCase(scheme))) return true;
+        try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); }
+        catch (RuntimeException e) { toast("No app can open this link"); }
         return true;
     }
 
     private void loadBundledGlowstr() {
         try (InputStream in = getAssets().open("glowstr.html")) {
-            String html = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = in.read(buffer)) != -1) bytes.write(buffer, 0, count);
+            String html = TrustedWebContent.bindBridge(
+                    bytes.toString("UTF-8"), bridgeCapability);
             webView.loadDataWithBaseURL(APP_ORIGIN, html, "text/html", "UTF-8", APP_ORIGIN);
         } catch (Exception e) {
             String message = safeMessage(e).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
@@ -356,8 +381,9 @@ public final class MainActivity extends Activity {
             toast("This phone does not support Bluetooth");
             return;
         }
-        if (!adapter.isEnabled()) {
+        if (!isBluetoothEnabled()) {
             try { startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), REQ_ENABLE); }
+            catch (SecurityException e) { pendingStart = false; toast("Nearby devices permission was revoked"); }
             catch (RuntimeException e) { toast("Enable Bluetooth in Android settings"); }
             return;
         }

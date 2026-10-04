@@ -87,6 +87,8 @@ public final class QrScanActivity extends Activity {
         finishSuccess(text);
     }
 
+    // API 33+ dispatcher above also writes the cancellation result.
+    @android.annotation.SuppressLint("GestureBackNavigation")
     @Override public void onBackPressed() {
         finishCancelled();
     }

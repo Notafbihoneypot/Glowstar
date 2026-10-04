@@ -58,6 +58,16 @@ ok('Client JavaScript syntax', r.returncode==0, r.stderr[:200])
 manifest=MANIFEST.read_text()
 alljava='\n'.join(x.read_text() for x in JAVA.glob('*.java'))
 btm=(JAVA/'BluetoothMeshManager.java').read_text(); http=(JAVA/'LocalHttpServer.java').read_text(); proto=(JAVA/'Protocol.java').read_text(); svc=(JAVA/'MeshService.java').read_text(); gradle=(ROOT/'android-helper/app/build.gradle').read_text(); bridge=(JAVA/'AndroidBridge.java').read_text(); qrscan=(JAVA/'QrScanActivity.java').read_text(); mainactivity=(JAVA/'MainActivity.java').read_text()
+# Legacy sync methods are callable from all WebView frames; every entry point
+# must refuse callers without the launch-specific main-document capability.
+methods=re.findall(r'@JavascriptInterface\s+public (?:boolean|String) (\w+)\((.*?)\) \{\s*([^\n]+)',bridge,re.S)
+ok('All native methods require main-document capability', bool(methods) and all('String capability' in args and 'TrustedWebContent.authorized' in first for _,args,first in methods), str(len(methods)))
+ok('Android main-document bridge bootstrap', 'TrustedWebContent.bindBridge' in mainactivity and 'bridgeCapability' in mainactivity)
+ok('Native external frames blocked', "frame-src 'none';" in (JAVA/'TrustedWebContent.java').read_text())
+ok('Android navigations require main frame and gesture', 'request.isForMainFrame()' in mainactivity and 'request.hasGesture()' in mainactivity)
+ok('Production build non-debuggable', 'debuggable false' in gradle and 'GLOWSTR_REQUIRE_RELEASE_SIGNING' in gradle)
+ok('FROSTR identity and signer isolation', 'id="section-frostr"' in text and 'expectedPublicKey' in text and 'glowstrResetSigner' in text)
+
 ok('Android neverForLocation', 'android:usesPermissionFlags="neverForLocation"' in manifest)
 ok('Android modern Bluetooth permissions', all(x in manifest for x in ['BLUETOOTH_SCAN','BLUETOOTH_ADVERTISE','BLUETOOTH_CONNECT']))
 ok('No app-wide cleartext opt-in', 'usesCleartextTraffic="true"' not in manifest)

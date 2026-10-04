@@ -85,13 +85,25 @@ def refresh_invoice(c,row):
   conf=int(best.get("confirmations",0)); txid=best.get("txid")
   status="PAID" if conf>=CONFIRMATIONS else ("CONFIRMING" if conf else "MEMPOOL")
   if status=="PAID": paid_at=now
- c.execute("UPDATE invoices SET status=?,confirmations=?,txid=?,paid_at=COALESCE(paid_at,?) WHERE id=?",(status,conf,txid,paid_at,row["id"]))
- if status=="PAID":
-  spec=FEATURES[row["feature"]]; current=c.execute("SELECT valid_until FROM entitlements WHERE pubkey=? AND feature=? AND target=?",(row["pubkey"],row["feature"],row["target"])).fetchone()
-  base=max(now,int(current["valid_until"]) if current else now); until=base+spec["seconds"]
-  c.execute("""INSERT INTO entitlements(pubkey,feature,target,valid_until,invoice_id) VALUES(?,?,?,?,?)
-   ON CONFLICT(pubkey,feature,target) DO UPDATE SET valid_until=excluded.valid_until,invoice_id=excluded.invoice_id""",(row["pubkey"],row["feature"],row["target"],until,row["id"]))
- c.commit(); return c.execute("SELECT * FROM invoices WHERE id=?",(row["id"],)).fetchone()
+ # Wallet RPC stays outside the write lock. Another poll may have credited this
+ # invoice while it was in flight: re-read under the lock before any transition.
+ # The invoice transition and entitlement are one transaction, including rollback.
+ try:
+  c.execute("BEGIN IMMEDIATE")
+  fresh=c.execute("SELECT * FROM invoices WHERE id=?",(row["id"],)).fetchone()
+  if fresh is None: raise ValueError("invoice no longer exists")
+  if fresh["status"]!="PAID":
+   c.execute("UPDATE invoices SET status=?,confirmations=?,txid=?,paid_at=COALESCE(paid_at,?) WHERE id=?",(status,conf,txid,paid_at,fresh["id"]))
+   if status=="PAID":
+    spec=FEATURES[fresh["feature"]]; current=c.execute("SELECT valid_until FROM entitlements WHERE pubkey=? AND feature=? AND target=?",(fresh["pubkey"],fresh["feature"],fresh["target"])).fetchone()
+    base=max(now,int(current["valid_until"]) if current else now); until=base+spec["seconds"]
+    c.execute("""INSERT INTO entitlements(pubkey,feature,target,valid_until,invoice_id) VALUES(?,?,?,?,?)
+     ON CONFLICT(pubkey,feature,target) DO UPDATE SET valid_until=excluded.valid_until,invoice_id=excluded.invoice_id""",(fresh["pubkey"],fresh["feature"],fresh["target"],until,fresh["id"]))
+  c.commit()
+ except Exception:
+  c.rollback()
+  raise
+ return c.execute("SELECT * FROM invoices WHERE id=?",(row["id"],)).fetchone()
 
 class H(BaseHTTPRequestHandler):
  server_version="GlowstrCommerce/0.1"

@@ -7,7 +7,7 @@
 <title>GLOWSTR // v5.3 Bluetooth Direct</title>
 <meta name="description" content="Glowstr — a retro privacy-first Nostr PWA client">
 <meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-qSkLQm2miHJwW7PJ2X43T2GtwB0z7SN9zOZhVWLzQEs='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-DbcnQ5f/u5QWCrQb50RBtYaELnIVMPKm+NbDyr6W1+8='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkdMT1dTVFIiLCAic2hvcnRfbmFtZSI6ICJHTE9XU1RSIiwgImRlc2NyaXB0aW9uIjogIlNlZSBUaHJvdWdoIHRoZSBOb2lzZSBcdTIwMTQgUHJpdmFjeS1maXJzdCBOb3N0ciBjbGllbnQiLCAic3RhcnRfdXJsIjogIi4iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMGEwYSIsICJ0aGVtZV9jb2xvciI6ICIjRkY2NjAwIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCMmFXVjNRbTk0UFNJd0lEQWdNVGt5SURFNU1pSStDanh5WldOMElIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCbWFXeHNQU0lqTUdFd1lUQmhJaTgrQ2p4eVpXTjBJSGc5SWpnaUlIazlJamdpSUhkcFpIUm9QU0l4TnpZaUlHaGxhV2RvZEQwaU1UYzJJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlOR1JqWTJNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlOQ0l2UGdvOGRHVjRkQ0I0UFNJNU5pSWdlVDBpTVRFd0lpQm1iMjUwTFdaaGJXbHNlVDBpYlc5dWIzTndZV05sSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUJtYjI1MExYZGxhV2RvZEQwaVltOXNaQ0lnWm1sc2JEMGlJMFpHTmpZd01DSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krUnp3dmRHVjRkRDRLUEhSbGVIUWdlRDBpT1RZaUlIazlJakUxTUNJZ1ptOXVkQzFtWVcxcGJIazlJbTF2Ym05emNHRmpaU0lnWm05dWRDMXphWHBsUFNJeE5pSWdabWxzYkQwaUkyTmpOVEl3TUNJZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSStSMHhQVjFOVVVqd3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
@@ -369,6 +369,8 @@ main { flex: 1; width: 100%; margin: 0 auto; padding: 0; }
 .login-section.open .login-header-arrow { transform: rotate(90deg); }
 .login-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.4s ease; padding: 0 16px; }
 .login-section.open .login-body { max-height: 800px; padding: 0 16px 16px; }
+#section-frostr.open .login-body { max-height: none; }
+#section-frostr ol { padding-left: 24px; list-style: decimal; }
 .login-desc { font-family: var(--font-retro); font-size: 1.00rem; color: var(--xmr-text-dim); line-height: 1.6; margin-bottom: 14px; }
 .login-desc strong { color: var(--xmr-text); font-weight: normal; }
 
@@ -3351,6 +3353,31 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
             </div>
           </div>
 
+          <div class="login-section" id="section-frostr">
+            <div class="login-header" data-glow-action="frostr-toggle">
+              <div class="login-header-left">
+                <div class="login-header-icon nip07-icon-box">❄</div>
+                <div class="login-header-title">FROSTR THRESHOLD SIGNER</div>
+              </div>
+              <div class="login-header-badge badge-advanced">NIP-46</div>
+            </div>
+            <div class="login-body">
+              <div class="login-desc">Connect your <strong>FROSTR / Igloo</strong> signer. Your account key and shares stay in your signers; Glowstr receives signatures and encrypted messages through NIP-46.</div>
+              <ol class="login-desc">
+                <li>Set up a FROSTR group, such as 2 of 3, outside Glowstr. Keep shares on separate devices and one backup offline.</li>
+                <li>Enable NIP-46 in Igloo Server. Keep another group signer available to meet your threshold.</li>
+                <li>Copy Igloo's bunker URL and your group account npub below. Approve Glowstr in your signer.</li>
+              </ol>
+              <label class="key-label" for="frostr-account-pubkey">ACCOUNT NPUB (FROM YOUR FROSTR GROUP)</label>
+              <input class="profile-edit-input" id="frostr-account-pubkey" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="npub1… or 64-character hex public key" />
+              <label class="key-label" for="frostr-bunker-url">IGLOO BUNKER URL</label>
+              <input class="profile-edit-input" type="password" id="frostr-bunker-url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="bunker://…?relay=wss://…&amp;secret=…" />
+              <button class="btn" id="frostr-connect-btn" data-glow-action="frostr-connect" style="width:100%;">CONNECT FROSTR</button>
+              <div class="login-desc" style="margin-top:12px;">Use gift-wrapped NIP-17 for messages. Signer approvals still matter: keep permissions narrow and review signing requests. Stay logged in remembers the client session securely in the Android app; browsers reconnect after their session ends.</div>
+              <a href="https://github.com/FROSTR-ORG/igloo-server" target="_blank" rel="noopener noreferrer">Igloo Server setup ↗</a>
+            </div>
+          </div>
+
           <!-- NIP-07 -->
           <div class="login-section" id="section-qrlogin">
             <div class="login-header" data-glow-click="h0100">
@@ -4168,8 +4195,6 @@ const USERNAME_REGISTRY = {
 let state = {
   relays: {}, events: [], eventIds: new Set(), profiles: {},
   eventsById: {},       // id -> event for reply lookups
-  verifiedEventIds: new Set(), // valid relay events already signature-checked
-  rejectedEventIds: new Set(), // invalid relay events; avoids repeated expensive verification
   following: new Set(), // pubkeys we follow
   followEvent: null,    // our latest kind 3 event (for updating)
   feedMode: 'following',   // feed preset currently shown
@@ -4382,6 +4407,12 @@ async function glowstrVerifiedNip07Sign(eventTemplate) {
   return await glowstrValidateSignerResult(requested, signed);
 }
 
+function glowstrIsRemoteSignerMethod(method) {
+  return ['frostr', 'amber-bunker', 'nip46-qr', 'nip46'].includes(method);
+}
+let _glowstrSignerEpoch = 0;
+const _glowstrNip46Pending = new Set();
+
 // ═══ UNIVERSAL EVENT SIGNING ═══
 // Routes an unsigned event template to whatever signer the user logged in with.
 // Returns the signed event, or null if signing isn't possible.
@@ -4389,23 +4420,27 @@ async function glowstrVerifiedNip07Sign(eventTemplate) {
 // a redirect, so callers using nip55 must handle it separately (publishNote does).
 // For everything else (nip07, amber-bunker, nip46, nsec, generated) it returns the signed event.
 async function signEventUniversal(eventTemplate) {
+  const epoch = _glowstrSignerEpoch, account = state.publicKey;
   const m = state.signerMethod;
   let signed = null;
   if (m === 'nip07' && window.nostr) {
     eventTemplate.pubkey = state.publicKey;
     signed = await glowstrVerifiedNip07Sign(eventTemplate);
-  } else if ((m === 'amber-bunker' || m === 'nip46-qr' || m === 'nip46') && state.nip46) {
+  } else if (glowstrIsRemoteSignerMethod(m) && state.nip46) {
     eventTemplate.pubkey = state.publicKey;
     signed = await nip46Sign(eventTemplate);
   } else if ((m === 'nsec' || m === 'generated') && state.privateKey) {
     signed = await signNostrEvent(eventTemplate, state.privateKey);
-  } else if (state.privateKey) {
-    signed = await signNostrEvent(eventTemplate, state.privateKey);
   }
-  if (!signed) return null;
+  if (!signed) {
+    if (glowstrIsRemoteSignerMethod(m)) throw new Error('Remote signer unavailable; reconnect it');
+    return null;
+  }
+  if (epoch !== _glowstrSignerEpoch || account !== state.publicKey || m !== state.signerMethod) throw new Error('Signer changed during request');
   if (!isSafeRelayEventShape(signed)) throw new Error('Signer returned malformed event');
   if (state.publicKey && signed.pubkey !== state.publicKey) throw new Error('Signer returned event for wrong pubkey');
   if (!(await verifyEvent(signed))) throw new Error('Signer returned invalid event signature');
+  if (epoch !== _glowstrSignerEpoch || account !== state.publicKey || m !== state.signerMethod) throw new Error('Signer changed during request');
   return signed;
 }
 
@@ -4414,30 +4449,33 @@ async function signEventUniversal(eventTemplate) {
 function canSignInline() {
   const m = state.signerMethod;
   if (m === 'nip07' && window.nostr) return true;
-  if ((m === 'amber-bunker' || m === 'nip46-qr' || m === 'nip46') && state.nip46) return true;
-  if (state.privateKey) return true;
+  if (glowstrIsRemoteSignerMethod(m) && state.nip46) return true;
+  if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) return true;
   return false;
 }
 
-// NIP-04 encrypt/decrypt routed through whatever signer is active.
-// Bunker (NIP-46) exposes nip04_encrypt / nip04_decrypt methods.
+// Encryption follows the selected signer, including account-change cancellation.
+async function glowstrDmOperation(protocol, operation, value, theirPubKey) {
+  if (!/^[0-9a-f]{64}$/.test(theirPubKey || '')) throw new Error('Invalid recipient public key');
+  const epoch = _glowstrSignerEpoch, account = state.publicKey, m = state.signerMethod;
+  let result;
+  if (glowstrIsLocalSignerMethod(m) && state.privateKey) {
+    const fn = protocol === 'nip44' ? (operation === 'encrypt' ? nip44Encrypt : nip44Decrypt) : (operation === 'encrypt' ? nip04Encrypt : nip04Decrypt);
+    result = await fn(value, state.privateKey, theirPubKey);
+  } else if (m === 'nip07' && window.nostr?.[protocol]?.[operation]) {
+    result = await window.nostr[protocol][operation](theirPubKey, value);
+  } else if (glowstrIsRemoteSignerMethod(m) && state.nip46) {
+    result = await nip46Request(protocol + '_' + operation, [theirPubKey, value], 30000);
+  } else { throw new Error('Current signer does not provide ' + protocol.toUpperCase() + ' ' + operation); }
+  if (epoch !== _glowstrSignerEpoch || account !== state.publicKey || m !== state.signerMethod) throw new Error('Signer changed during request');
+  if (typeof result !== 'string') throw new Error('Invalid signer encryption response');
+  return result;
+}
 async function encryptDmUniversal(plaintext, theirPubKey) {
-  const m = state.signerMethod;
-  if (state.privateKey) return await nip04Encrypt(plaintext, state.privateKey, theirPubKey);
-  if (m === 'nip07' && window.nostr?.nip04?.encrypt) return await window.nostr.nip04.encrypt(theirPubKey, plaintext);
-  if ((m === 'amber-bunker' || m === 'nip46-qr' || m === 'nip46') && state.nip46) {
-    return await nip46Request('nip04_encrypt', [theirPubKey, plaintext], 30000);
-  }
-  throw new Error('No NIP-04 encryption available');
+  return await glowstrDmOperation('nip04', 'encrypt', plaintext, theirPubKey);
 }
 async function decryptDmUniversal(ciphertext, theirPubKey) {
-  const m = state.signerMethod;
-  if (state.privateKey) return await nip04Decrypt(ciphertext, state.privateKey, theirPubKey);
-  if (m === 'nip07' && window.nostr?.nip04?.decrypt) return await window.nostr.nip04.decrypt(theirPubKey, ciphertext);
-  if ((m === 'amber-bunker' || m === 'nip46-qr' || m === 'nip46') && state.nip46) {
-    return await nip46Request('nip04_decrypt', [theirPubKey, ciphertext], 30000);
-  }
-  throw new Error('No NIP-04 decryption available');
+  return await glowstrDmOperation('nip04', 'decrypt', ciphertext, theirPubKey);
 }
 
 // BIP-340 Schnorr verify — returns true/false
@@ -4516,17 +4554,11 @@ function glowstrScheduleVerify(event) {
   return new Promise(resolve => { _glowstrVerifyQueue.push({event, resolve}); glowstrPumpVerifyQueue(); });
 }
 async function glowstrVerifyAndCache(event) {
-  if (!isSafeRelayEventShape(event) || state.rejectedEventIds.has(event.id)) return false;
-  if (state.verifiedEventIds.has(event.id)) return true;
-  const valid = await glowstrScheduleVerify(event);
-  if (valid) {
-    state.verifiedEventIds.add(event.id);
-    if (state.verifiedEventIds.size > 10000) state.verifiedEventIds.clear();
-    return true;
-  }
-  state.rejectedEventIds.add(event.id);
-  if (state.rejectedEventIds.size > 5000) state.rejectedEventIds.clear();
-  return false;
+  // An event's claimed ID is untrusted until its complete body and signature
+  // have been checked. ID-only caches allowed both forged bodies and poisoning
+  // of a later valid event. Keep every verification in the bounded work queue.
+  if (!isSafeRelayEventShape(event)) return false;
+  return await glowstrScheduleVerify(event);
 }
 async function acceptVerifiedRelayEvent(event, relayUrl) {
   if (!(await glowstrVerifyAndCache(event))) {
@@ -4707,6 +4739,7 @@ async function checkAmberCallback() {
         console.error('Amber callback: bad pubkey result:', result.slice(0, 200));
         return;
       }
+      glowstrResetSigner();
       state.publicKey = hexPub;
       state.signerMethod = 'amber-nip55';
       showLoggedIn(); saveState();
@@ -4850,7 +4883,7 @@ function glowstrSignerReady() {
     try { return !!window.GlowstrAndroid?.amberSignerAvailable?.(); } catch(e) { return true; }
   }
   if (m === 'nip07') return !!window.nostr;
-  if (m === 'amber-bunker' || m === 'nip46' || m === 'nip46-qr') return !!state.nip46;
+  if (glowstrIsRemoteSignerMethod(m)) return !!state.nip46;
   return false;
 }
 
@@ -4860,8 +4893,134 @@ function glowstrApplyLoginPersistChoice() {
   glowstrSyncPersistUi();
   return !!state.persistKey;
 }
+function glowstrResetAccountContext() {
+  // Identity-derived state must never survive a signer/account transition.
+  // Keep global relay/profile/event caches, but detach every subscription and
+  // clear any state whose meaning depends on the currently authenticated pubkey.
+
+  // Stop old-account relay subscriptions before clearing state.publicKey.
+  try {
+    Object.values(state.relays || {}).forEach(r => {
+      const ws = r?.ws;
+      try { glowstrCloseSubscription(ws, 'user'); } catch(e) {}
+      try {
+        if (ws?._glowstrNip17InboxSub) {
+          if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(['CLOSE', ws._glowstrNip17InboxSub]));
+          delete ws._glowstrNip17InboxSub;
+          delete ws._glowstrNip17InboxUrl;
+          delete ws._glowstrInboxAuthEvent;
+          delete ws._glowstrLastChallenge;
+        }
+      } catch(e) {}
+    });
+  } catch(e) {}
+
+  // Dedicated NIP-17 inbox sockets are account-specific.
+  try {
+    for (const [, ws] of _glowstrDmInboxSockets || []) {
+      try { ws.close(); } catch(e) {}
+    }
+    _glowstrDmInboxSockets?.clear?.();
+  } catch(e) {}
+
+  // Allow DM events to be loaded again if this account is selected later.
+  try {
+    for (const dm of state.dms || []) {
+      if (dm?.id) state.eventIds?.delete?.(dm.id);
+    }
+  } catch(e) {}
+
+  state.following = new Set();
+  state.followEvent = null;
+  state.followSets = {};
+  state.selectedFollowSet = null;
+
+  state.networkMutedPubkeys = new Set();
+  state.networkMutedWords = new Set();
+  state.networkMutedTags = new Set();
+  state.networkMutedEvents = new Set();
+  state.muteEvent = null;
+
+  state.dms = [];
+  state.activeDmPubkey = null;
+  state._dmEventIds = new Set();
+
+  state.notifications = [];
+  state.notifReadTs = 0;
+  state.reactedIds = new Set();
+
+  state.replyTo = null;
+  state.activeTip = null;
+  state.pendingUsername = null;
+  state.activeXmrInvoice = null;
+
+  // The feed selection may contain authors from the prior account.
+  state.feedBuffer = [];
+  state._feedSelectionCache = null;
+  state._cachedAuthors = null;
+  state._cachedAuthorsAt = 0;
+
+  // Stop an invoice poll that was created for the previous pubkey. Saved invoice
+  // capability tokens are intentionally retained so the original account can
+  // resume them when it is selected again.
+  try { if (typeof closeXmrCommerce === 'function') closeXmrCommerce(); } catch(e) {}
+
+  try { glowstrInvalidateFeedSelection(); } catch(e) {}
+}
+
+function glowstrRefreshAnonymousAccountUi() {
+  // Run only after the old public key has been detached so the UI cannot render
+  // an old account as "self" during a signer transition.
+  try { updateFollowingCount(); } catch(e) {}
+  try { updateDmSidebar(); } catch(e) {}
+  try { updateNotifBadge(); } catch(e) {}
+  try { glowstrUpdateFeedPresetControls(); } catch(e) {}
+  try { rerenderFeed(); } catch(e) {}
+}
+
+function glowstrResetSigner(skipQr = false) {
+  ++_glowstrSignerEpoch;
+  for (const cancel of [..._glowstrNip46Pending]) cancel();
+  if (!skipQr) { try { stopQrLogin(); } catch(e) {} }
+
+  glowstrResetAccountContext();
+
+  state.privateKey = null; state.nip46 = null; state.bunkerUrl = null;
+  state.publicKey = null; state.signerMethod = null;
+  state.amberPendingAction = null; state.amberPendingTimestamp = null;
+  glowstrRefreshAnonymousAccountUi();
+  try { sessionStorage.removeItem(GLOWSTR_SESSION_SECRET_KEY); } catch(e) {}
+  try { sessionStorage.removeItem(GLOWSTR_PUBLIC_STATE_KEY); } catch(e) {}
+  try { localStorage.removeItem(GLOWSTR_PUBLIC_STATE_KEY); } catch(e) {}
+  try { window.GlowstrAndroid?.clearRememberedPublicState?.(); } catch(e) {}
+  glowstrClearNativeLocalSigner();
+  try { window.GlowstrAndroid?.clearRememberedRemoteSigner?.(); } catch(e) {}
+  try { glowstrMaskPrivateKeyDisplay(); } catch(e) {}
+  try { glowstrRefreshCoreSubscriptions(); } catch(e) {}
+  return _glowstrSignerEpoch;
+}
+
+function glowstrSignerRelayUrl(raw) {
+  try {
+    if (typeof raw !== 'string' || raw.length > 512) return null;
+    const u = new URL(raw);
+    if (u.protocol !== 'wss:' || !u.hostname || u.username || u.password || u.hash) return null;
+    return u.toString();
+  } catch(e) { return null; }
+}
+
+function glowstrRemoteSignerRecord() {
+  if (!glowstrIsRemoteSignerMethod(state.signerMethod) || !state.nip46 || !state.publicKey) return null;
+  const n = state.nip46;
+  return {v:1, publicKey:state.publicKey, signerMethod:state.signerMethod, nip46:{
+    clientPrivKey:n.clientPrivKey, clientPubKey:n.clientPubKey, signerPubkey:n.signerPubkey,
+    relay:n.relay, relays:n.relays, enc:'nip44'
+  }};
+}
+
 function glowstrReconnectSigner() {
   const rememberedPubkey = state.publicKey;
+  glowstrResetSigner();
   state.privateKey = null;
   state.publicKey = null;
   state.signerMethod = null;
@@ -4913,11 +5072,11 @@ function loadSavedState() {
 
       // External signers can be restored by method name alone. Local signers are
       // restored only when the Android Keystore vault successfully returns their key.
-      if (saved.signerMethod && !['nsec','generated','amber-bunker','nip46','nip46-qr'].includes(saved.signerMethod)) {
+      if (saved.signerMethod && !glowstrIsLocalSignerMethod(saved.signerMethod) && !glowstrIsRemoteSignerMethod(saved.signerMethod)) {
         state.signerMethod = saved.signerMethod;
       } else if (glowstrIsLocalSignerMethod(saved.signerMethod)) {
         glowstrRestoreNativeLocalSigner(saved.signerMethod);
-      } else if (state.publicKey) {
+      } else if (state.publicKey && !saved.signerMethod) {
         // Migration from 0.3.8/0.3.9 public-only state: the old record may not
         // contain signerMethod even if a valid native Keystore vault exists.
         glowstrRestoreNativeLocalSigner('');
@@ -4933,27 +5092,23 @@ function loadSavedState() {
       }
     }
 
-    // NIP-46 client keys are disposable, but a refresh needs them to keep the current tab session alive.
-    // Keep them in sessionStorage ONLY; never localStorage.
-    try {
-      const secretRaw = sessionStorage.getItem(GLOWSTR_SESSION_SECRET_KEY);
-      const secretSaved = secretRaw ? JSON.parse(secretRaw) : null;
-      if (secretSaved?.nip46?.clientPrivKey && secretSaved?.nip46?.signerPubkey) {
-        const n = secretSaved.nip46;
-        if (/^[0-9a-f]{64}$/.test(n.clientPrivKey) && /^[0-9a-f]{64}$/.test(n.signerPubkey)) {
-          state.nip46 = {
-            clientPrivKey: n.clientPrivKey,
-            clientPubKey: n.clientPubKey,
-            signerPubkey: n.signerPubkey,
-            relay: n.relay,
-            relays: Array.isArray(n.relays) ? n.relays : [n.relay],
-            secret: n.secret || null,
-            enc: n.enc || null,
-          };
-          if (secretSaved.signerMethod) state.signerMethod = secretSaved.signerMethod;
+    // Remote transports are account/method bound. Native persistence is encrypted;
+    // browsers use sessionStorage only and reconnect after the session ends.
+    if (saved && glowstrIsRemoteSignerMethod(saved.signerMethod) && state.publicKey) {
+      try {
+        const nativeRaw = state.persistKey ? window.GlowstrAndroid?.loadRememberedRemoteSigner?.(state.publicKey) : '';
+        const raw = nativeRaw || sessionStorage.getItem(GLOWSTR_SESSION_SECRET_KEY);
+        const record = raw ? JSON.parse(raw) : null, n = record?.nip46;
+        if (record?.publicKey === state.publicKey && record?.signerMethod === saved.signerMethod &&
+            n && ['clientPrivKey','clientPubKey','signerPubkey'].every(k => /^[0-9a-f]{64}$/.test(n[k] || '')) &&
+            Array.isArray(n.relays) && n.relays.length >= 1 && n.relays.length <= 5 &&
+            n.relays.every(r => glowstrSignerRelayUrl(r)) && n.relays.includes(n.relay)) {
+          state.privateKey = null;
+          state.nip46 = {...n, secret:null, enc:'nip44'};
+          state.signerMethod = record.signerMethod;
         }
-      }
-    } catch(e) { console.warn('Could not restore NIP-46 session:', e); }
+      } catch(e) { console.warn('Remote signer restore failed; reconnect'); }
+    }
 
     if (saved && state.persistKey && raw) {
       try {
@@ -5009,22 +5164,18 @@ function saveState() {
       glowstrClearNativeLocalSigner();
     }
 
-    // NIP-46 session material is never persistent across a browser/session restart.
-    if (state.nip46?.clientPrivKey && state.nip46?.signerPubkey) {
-      sessionStorage.setItem(GLOWSTR_SESSION_SECRET_KEY, JSON.stringify({
-        signerMethod: state.signerMethod,
-        nip46: {
-          clientPrivKey: state.nip46.clientPrivKey,
-          clientPubKey: state.nip46.clientPubKey,
-          signerPubkey: state.nip46.signerPubkey,
-          relay: state.nip46.relay,
-          relays: state.nip46.relays,
-          secret: state.nip46.secret || null,
-          enc: state.nip46.enc || null,
+    const remote = glowstrRemoteSignerRecord();
+    if (remote) {
+      const raw = JSON.stringify(remote);
+      sessionStorage.setItem(GLOWSTR_SESSION_SECRET_KEY, raw);
+      if (state.persistKey && window.GlowstrAndroid?.saveRememberedRemoteSigner) {
+        if (!window.GlowstrAndroid.saveRememberedRemoteSigner(raw)) {
+          showToast('Secure signer session storage failed; reconnect after restart');
         }
-      }));
+      } else { window.GlowstrAndroid?.clearRememberedRemoteSigner?.(); }
     } else {
       try { sessionStorage.removeItem(GLOWSTR_SESSION_SECRET_KEY); } catch(e) {}
+      try { window.GlowstrAndroid?.clearRememberedRemoteSigner?.(); } catch(e) {}
     }
 
     // Defense-in-depth cleanup for legacy versions.
@@ -5071,7 +5222,10 @@ function setPersistKey(persist) {
   }
 }
 
-const NIP46_REQUESTED_PERMS = 'get_public_key,sign_event,nip44_encrypt,nip44_decrypt';
+// Common feed, contacts, NIP-17, and relay authentication permissions. Other
+// event kinds require a separate approval in the signer; never ask for all kinds.
+const NIP46_REQUESTED_PERMS = 'get_public_key,nip44_encrypt,nip44_decrypt,' +
+  [0,1,3,5,6,7,13,10000,10002,10050,22242].map(k => 'sign_event:' + k).join(',');
 function nip46ClientMetadata() {
   const meta = { name: 'Glowstr', description: 'See Through the Noise' };
   try { if (location.protocol === 'https:' || location.protocol === 'http:') meta.url = location.origin + location.pathname; } catch(e) {}
@@ -5262,6 +5416,7 @@ async function submitBunkerFromPwa() {
   if (!input) return;
   const bunkerUrl = input.value.trim();
   if (!bunkerUrl.startsWith('bunker://')) { showToast('URL must start with bunker://'); return; }
+  input.value = "";
   await connectBunker(bunkerUrl);
 }
 
@@ -5272,141 +5427,160 @@ async function submitBunkerFromPwa() {
 // 3. Open the bunker relay, subscribe to kind 24133 responses tagged to our local pubkey
 // 4. Send a `connect` request; wait for ACK
 // 5. Send `get_public_key`; the result is the USER's real pubkey (what we post as)
-async function connectBunker(bunkerUrl) {
-  let signerPubkey, relays = [], secret = null;
+async function connectBunker(bunkerUrl, options = {}) {
+  let signerPubkey, relays = [], secret = '';
   try {
-    const afterScheme = bunkerUrl.slice('bunker://'.length);
-    const qIdx = afterScheme.indexOf('?');
-    signerPubkey = (qIdx === -1 ? afterScheme : afterScheme.slice(0, qIdx)).toLowerCase();
-    if (!/^[0-9a-f]{64}$/.test(signerPubkey)) { showToast('Bunker URL: invalid signer pubkey'); return; }
-    if (qIdx !== -1) {
-      const qs = new URLSearchParams(afterScheme.slice(qIdx + 1));
-      relays = qs.getAll('relay');
-      secret = qs.get('secret');
+    if (typeof bunkerUrl !== 'string' || bunkerUrl.length > 4096 || !bunkerUrl.startsWith('bunker://')) throw new Error('Invalid bunker URL');
+    const url = new URL(bunkerUrl);
+    signerPubkey = url.hostname.toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(signerPubkey) || url.username || url.password || url.port || url.hash || (url.pathname && url.pathname !== '/')) throw new Error('Invalid signer public key');
+    const inputRelays = url.searchParams.getAll('relay');
+    if (inputRelays.length > 5) throw new Error('At most five signer relays');
+    relays = inputRelays.map(glowstrSignerRelayUrl);
+    if (relays.some(r => !r)) throw new Error('Signer relays must use wss:// without credentials');
+    secret = url.searchParams.get('secret') || '';
+    if (secret.length > 512) throw new Error('Invalid connect secret');
+    if (!relays.length) {
+      if (options.method === 'frostr') throw new Error('Igloo bunker URL must include a relay');
+      relays = ['wss://relay.nsec.app/', 'wss://relay.damus.io/', 'wss://nos.lol/'];
     }
-  } catch(e) { showToast('Could not parse bunker URL: ' + e.message); return; }
+    if (options.method === 'frostr' && !/^[0-9a-f]{64}$/.test(options.expectedPublicKey || '')) throw new Error('Enter your FROSTR account npub');
+  } catch(e) { showToast(e.message); return false; }
 
-  if (relays.length === 0) {
-    // Some bunker URLs omit relay; fall back to common signer relays
-    relays = ['wss://relay.nsec.app', 'wss://relay.damus.io', 'wss://nos.lol'];
-  }
-
-  showToast('🔌 Connecting to bunker — approve the request in Amber...');
-
-  // Ephemeral local keypair for the client side of NIP-46
-  const clientPrivKey = generatePrivateKey();
-  const clientPubKey = await derivePublicKey(clientPrivKey);
-  const primaryRelay = relays[0];
-
-  state.nip46 = { clientPrivKey, clientPubKey, signerPubkey, relay: primaryRelay, relays, secret };
-
+  glowstrApplyLoginPersistChoice();
+  const epoch = glowstrResetSigner();
+  state.signerMethod = options.method === 'frostr' ? 'frostr' : 'amber-bunker';
+  const label = state.signerMethod === 'frostr' ? 'FROSTR / Igloo' : 'remote signer';
+  showToast('Connecting to ' + label + ' — approve Glowstr in your signer');
   try {
-    // Send connect request with least-surprise metadata/permissions.
-    const connectParams = [signerPubkey, secret || '', NIP46_REQUESTED_PERMS, nip46ClientMetadata()];
-    const connectResult = await nip46Request('connect', connectParams, 60000); // user may need to approve in signer
-    if (secret && connectResult !== 'ack' && connectResult !== secret) {
-      throw new Error('Signer did not acknowledge the bunker connection secret');
+    const clientPrivKey = generatePrivateKey();
+    const clientPubKey = await derivePublicKey(clientPrivKey);
+    if (epoch !== _glowstrSignerEpoch) return false;
+    const session = {clientPrivKey, clientPubKey, signerPubkey, relay:relays[0], relays, enc:'nip44'};
+    state.nip46 = session;
+    const params = [signerPubkey, secret, NIP46_REQUESTED_PERMS, nip46ClientMetadata()];
+    let result, error;
+    for (const relay of relays) {
+      session.relay = relay;
+      try { result = await nip46Request('connect', params, 60000); error = null; break; }
+      catch(e) { error = e; if (epoch !== _glowstrSignerEpoch) throw e; }
     }
-    if (!secret && connectResult !== 'ack' && typeof connectResult !== 'string') {
-      throw new Error('Unexpected NIP-46 connect response');
-    }
-    // Now fetch the user's real pubkey
-    const userPubkey = await nip46Request('get_public_key', [], 30000);
-    const pk = (userPubkey || '').toLowerCase().replace(/^npub/, '');
-    let hexPk = pk;
-    if (pk.startsWith('npub1')) {
-      const dec = decodeBech32(pk);
-      if (dec && dec.bytes) hexPk = bytesToHex(dec.bytes);
-    }
-    if (!/^[0-9a-f]{64}$/.test(hexPk)) {
-      showToast('Bunker connected but returned an invalid pubkey');
-      return;
-    }
-    state.publicKey = hexPk;
-    state.signerMethod = 'amber-bunker';
+    if (error) throw error;
+    if (result !== 'ack' && (!secret || result !== secret)) throw new Error('Signer did not acknowledge the connect secret');
+    secret = ''; params[1] = ''; // one-time capability is never saved
+    const publicKey = await nip46Request('get_public_key', [], 30000);
+    if (!/^[0-9a-f]{64}$/.test(publicKey || '')) throw new Error('Signer returned an invalid account public key');
+    if (options.expectedPublicKey && publicKey !== options.expectedPublicKey) throw new Error('Wrong FROSTR account: npub does not match');
+    if (epoch !== _glowstrSignerEpoch) return false;
+    state.publicKey = publicKey;
     try {
-      const switched = await nip46Request('switch_relays', [], 15000);
-      const candidateRelays = Array.isArray(switched) ? switched.filter(u => glowstrValidateRelayUrl(u)).slice(0, 5) : [];
-      if (candidateRelays.length && state.nip46) {
-        state.nip46.relays = candidateRelays;
-        state.nip46.relay = candidateRelays[0];
-      }
-    } catch(e) { /* signer may not support switch_relays yet */ }
-    // The bunker connect secret is one-time capability material. Do not keep it after success.
-    if (state.nip46) state.nip46.secret = null;
+      const switched = await nip46Request('switch_relays', [], 5000);
+      if (epoch !== _glowstrSignerEpoch) return false;
+      const safe = Array.isArray(switched) ? switched.slice(0,5).map(glowstrSignerRelayUrl) : [];
+      if (safe.length && safe.every(Boolean)) { session.relays = safe; session.relay = safe[0]; }
+    } catch(e) { /* optional method: retain the authenticated connection relay */ }
+    if (epoch !== _glowstrSignerEpoch) return false;
     state.bunkerUrl = null;
     document.getElementById('amber-pwa-help')?.remove();
     document.getElementById('amber-bunker-modal')?.remove();
-    showLoggedIn();
-    saveState();
-    showToast('✓ Connected via Amber Bunker — you can now post & sign');
+    showLoggedIn(); saveState();
+    showToast('Connected to ' + label + ' as ' + publicKey.slice(0,12) + '…');
+    return true;
   } catch(e) {
-    showToast('Bunker connect failed: ' + (e.message || 'timeout') + '. Make sure Amber approved it.');
-    console.error('NIP-46 connect error:', e);
-    state.nip46 = null;
+    if (epoch === _glowstrSignerEpoch) {
+      glowstrResetSigner();
+      showToast('Signer connection failed: ' + (e.message || 'timeout'));
+    }
+    return false;
   }
 }
 
-// Generic NIP-46 request/response over the bunker relay.
-// Opens a short-lived WebSocket, subscribes for responses to our client pubkey,
-// sends the encrypted request, resolves with response.result.
-async function nip46Request(method, params, timeoutMs) {
-  if (!state.nip46) throw new Error('No NIP-46 session');
-  const { clientPrivKey, clientPubKey, signerPubkey, relay } = state.nip46;
-  return new Promise(async (resolve, reject) => {
-    const reqId = Math.random().toString(36).slice(2, 10);
-    let req;
-    try {
-      const payload = JSON.stringify({ id: reqId, method, params: params || [] });
-      // NIP-46 kind 24133 content is NIP-44 encrypted.
-      const encrypted = await nip44Encrypt(payload, clientPrivKey, signerPubkey);
-      const reqEvent = {
-        kind: 24133,
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [['p', signerPubkey]],
-        content: encrypted,
-        pubkey: clientPubKey,
-      };
-      req = await signNostrEvent(reqEvent, clientPrivKey);
-    } catch(e) { reject(e); return; }
+async function connectFrostr() {
+  const input = document.getElementById('frostr-bunker-url');
+  const url = input.value.trim();
+  input.value = '';
+  let publicKey = document.getElementById('frostr-account-pubkey').value.trim().toLowerCase();
+  try {
+    if (publicKey.startsWith('npub1')) {
+      const decoded = decodeBech32(publicKey);
+      if (decoded.hrp !== 'npub' || decoded.bytes.length !== 32) throw new Error('Invalid npub');
+      publicKey = bytesToHex(decoded.bytes);
+    }
+    if (!/^[0-9a-f]{64}$/.test(publicKey)) throw new Error('Enter the account npub from your FROSTR group');
+    const button = document.getElementById('frostr-connect-btn');
+    button.disabled = true;
+    try { await connectBunker(url, {method:'frostr', expectedPublicKey:publicKey}); }
+    finally { button.disabled = false; }
+  } catch(e) { showToast(e.message); }
+}
 
-    let ws;
-    try { ws = new WebSocket(relay); } catch(e) { reject(new Error('Cannot open bunker relay')); return; }
-    const timeout = setTimeout(() => { try { ws.close(); } catch(e) {} reject(new Error(method + ' timeout')); }, timeoutMs || 30000);
-
+// Authenticated, bounded NIP-46 transport. Account changes cancel outstanding
+// requests; late responses can never resurrect a session or supply a signature.
+async function nip46Request(method, params, timeoutMs, logoutSession = null) {
+  const session = logoutSession || state.nip46;
+  const revoking = method === 'logout' && !!logoutSession;
+  if (!session) throw new Error('No NIP-46 session');
+  if (!revoking && state.signerMethod === 'frostr' && method.startsWith('nip04_')) throw new Error('Use gift-wrapped NIP-17 messages with FROSTR');
+  if (!revoking && _glowstrNip46Pending.size >= 16) throw new Error('Signer is busy; try again');
+  const epoch = _glowstrSignerEpoch;
+  const current = () => revoking || (epoch === _glowstrSignerEpoch && state.nip46 === session);
+  const {clientPrivKey, clientPubKey, signerPubkey, relay} = session;
+  if (!/^[0-9a-f]{64}$/.test(clientPrivKey || '') || !/^[0-9a-f]{64}$/.test(clientPubKey || '') || !/^[0-9a-f]{64}$/.test(signerPubkey || '') || !glowstrSignerRelayUrl(relay)) throw new Error('Invalid NIP-46 session');
+  if (await derivePublicKey(clientPrivKey) !== clientPubKey) throw new Error('NIP-46 transport key mismatch');
+  if (!current()) throw new Error('Signer session changed');
+  const reqId = bytesToHex(crypto.getRandomValues(new Uint8Array(16)));
+  const sid = 'n46-' + reqId;
+  const started = Math.floor(Date.now()/1000);
+  const encrypted = await nip44Encrypt(JSON.stringify({id:reqId, method, params:params || []}), clientPrivKey, signerPubkey);
+  const request = await signNostrEvent({kind:24133, created_at:started, tags:[['p',signerPubkey]], content:encrypted}, clientPrivKey);
+  if (!current()) throw new Error('Signer session changed');
+  return new Promise((resolve, reject) => {
+    let ws, timer, finished = false;
+    const finish = (error, result) => {
+      if (finished) return;
+      finished = true; clearTimeout(timer); _glowstrNip46Pending.delete(cancel);
+      try { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(['CLOSE', sid])); ws?.close(); } catch(e) {}
+      if (error) reject(error); else resolve(result);
+    };
+    const cancel = () => finish(new Error('Signer session changed'));
+    if (!revoking && _glowstrNip46Pending.size >= 16) { finish(new Error('Signer is busy; try again')); return; }
+    if (!revoking) _glowstrNip46Pending.add(cancel);
+    timer = setTimeout(() => finish(new Error(method + ' timeout')), timeoutMs || 30000);
+    try { ws = new WebSocket(relay); }
+    catch(e) { finish(new Error('Cannot open signer relay')); return; }
     ws.onopen = () => {
-      ws.send(JSON.stringify(['REQ', 'n46-' + reqId.slice(0, 4), { kinds: [24133], '#p': [clientPubKey], since: Math.floor(Date.now() / 1000) - 2 }]));
-      ws.send(JSON.stringify(['EVENT', req]));
-    };
-    ws.onmessage = async (msg) => {
+      if (!current()) return cancel();
       try {
-        const data = JSON.parse(msg.data);
-        if (data[0] === 'EVENT' && data[2]?.kind === 24133) {
-          const responseEvent = data[2];
-          if (!isSafeRelayEventShape(responseEvent)) return;
-          if (responseEvent.pubkey !== signerPubkey) return;
-          if (!(responseEvent.tags || []).some(t => t[0] === 'p' && t[1] === clientPubKey)) return;
-          if (!(await verifyEvent(responseEvent))) return;
-          // Current NIP-46 requires NIP-44 for request/response payloads.
-          let decrypted = null;
-          try {
-            decrypted = await nip44Decrypt(responseEvent.content, clientPrivKey, signerPubkey);
-            state.nip46.enc = 'nip44';
-          } catch(e1) { return; }
-          const response = JSON.parse(decrypted);
-          if (response.id !== reqId) return;
-          if (response.error) { clearTimeout(timeout); ws.close(); reject(new Error(response.error)); return; }
-          if (response.result === 'auth_url') {
-            // Signer wants user approval out-of-band (Amber prompts directly); keep waiting
-            return;
-          }
-          clearTimeout(timeout);
-          ws.close();
-          resolve(response.result);
-        }
-      } catch(e) {}
+        ws.send(JSON.stringify(['REQ',sid,{kinds:[24133],authors:[signerPubkey],'#p':[clientPubKey],since:started-60}]));
+        ws.send(JSON.stringify(['EVENT',request]));
+      } catch(e) { finish(new Error('Signer relay send failed')); }
     };
-    ws.onerror = () => { clearTimeout(timeout); reject(new Error('Bunker relay error')); };
+    ws.onmessage = async msg => {
+      if (finished || !current()) return cancel();
+      if (typeof msg.data !== 'string' || msg.data.length > MAX_RELAY_FRAME_BYTES) return;
+      try {
+        const data = JSON.parse(msg.data), event = data[2];
+        if (data[0] !== 'EVENT' || data[1] !== sid || !isSafeRelayEventShape(event) || event.kind !== 24133 || event.pubkey !== signerPubkey) return;
+        if (event.created_at < started-60 || event.created_at > Math.floor(Date.now()/1000)+120 || !event.tags.some(t => t[0] === 'p' && t[1] === clientPubKey)) return;
+        if (!(await glowstrScheduleVerify(event)) || !current() || finished) return;
+        const response = JSON.parse(await nip44Decrypt(event.content, clientPrivKey, signerPubkey));
+        if (!current() || finished) return;
+        if (response.id !== reqId) return;
+        if (response.result === 'auth_url') {
+          const url = typeof response.error === 'string' ? response.error : '';
+          if (/^https:\/\//i.test(url) && document.visibilityState === 'visible' && !ws._glowstrAuthOpened) {
+            ws._glowstrAuthOpened = true;
+            if (window.GlowstrAndroid?.openExternal) window.GlowstrAndroid.openExternal(url);
+            else window.open(url, '_blank', 'noopener,noreferrer');
+          }
+          return;
+        }
+        if (response.error) return finish(new Error(String(response.error).slice(0,200)));
+        finish(null, response.result);
+      } catch(e) { /* malformed, forged, or unrelated response: ignore until timeout */ }
+    };
+    ws.onerror = () => finish(new Error('Signer relay error'));
+    ws.onclose = () => { if (!finished) finish(new Error('Signer relay disconnected')); };
   });
 }
 
@@ -5651,7 +5825,10 @@ async function loginWithExtension() {
   glowstrApplyLoginPersistChoice();
   if (!window.nostr) { showToast('No NIP-07 extension found. Install Alby, nos2x, or similar.'); return; }
   try {
+    const epoch = glowstrResetSigner();
     const pubkey = await window.nostr.getPublicKey();
+    if (epoch !== _glowstrSignerEpoch) return;
+    if (!/^[0-9a-f]{64}$/.test(pubkey || '')) throw new Error('Invalid extension public key');
     state.publicKey = pubkey; state.signerMethod = 'nip07';
     showLoggedIn(); saveState();
     showToast('Connected via NIP-07 extension');
@@ -5685,8 +5862,10 @@ async function loginWithKey() {
 
   // Derive public key
   try {
+    const epoch = glowstrResetSigner();
     showToast('Deriving public key...');
     const pubkey = await derivePublicKey(hexKey);
+    if (epoch !== _glowstrSignerEpoch) return;
     state.privateKey = hexKey;
     state.publicKey = pubkey;
     state.signerMethod = 'nsec';
@@ -5707,9 +5886,11 @@ async function loginWithKey() {
 async function generateKeys() {
   glowstrApplyLoginPersistChoice();
   try {
+    const epoch = glowstrResetSigner();
     showToast('Generating keypair...');
     const hexKey = generatePrivateKey();
     const pubkey = await derivePublicKey(hexKey);
+    if (epoch !== _glowstrSignerEpoch) return;
     state.privateKey = hexKey;
     state.publicKey = pubkey;
     state.signerMethod = 'generated';
@@ -5734,7 +5915,7 @@ function showLoggedIn() {
   const persistCheck = document.getElementById('loggedin-persist-checkbox');
   if (persistCheck) persistCheck.checked = !!state.persistKey;
   const privSection = document.getElementById('privkey-section');
-  if (['amber-nip55','amber-bunker','nip07'].includes(state.signerMethod)) {
+  if (!glowstrIsLocalSignerMethod(state.signerMethod)) {
     privSection.style.display = 'none';
   } else {
     privSection.style.display = 'block';
@@ -5742,7 +5923,7 @@ function showLoggedIn() {
     document.getElementById('display-privkey').style.filter = 'none';
     document.getElementById('display-privkey').dataset.revealed = 'false';
   }
-  const methodLabels = { 'amber-nip55':'AMBER (NIP-55)', 'amber-bunker':'AMBER BUNKER', 'nip07':'NIP-07 EXT', 'nsec':'PRIVATE KEY', 'generated':'LOCAL KEY', 'nip46-qr':'QR (NIP-46)' };
+  const methodLabels = { 'amber-nip55':'AMBER (NIP-55)', 'amber-bunker':'AMBER BUNKER', 'nip07':'NIP-07 EXT', 'nsec':'PRIVATE KEY', 'generated':'LOCAL KEY', 'nip46-qr':'QR (NIP-46)', 'nip46':'NIP-46', 'frostr':'FROSTR (NIP-46)' };
   const signerLabel = signerReady
     ? (methodLabels[state.signerMethod] || 'CONNECTED')
     : (state.publicKey ? 'SIGNER REQUIRED' : 'NONE');
@@ -5888,6 +6069,11 @@ function subscribeUserSpecificEvents() {
 }
 
 function logout() {
+  const oldSession = state.nip46;
+  if (oldSession) nip46Request('logout', [], 5000, oldSession).catch(() => {
+    showToast('Local session deleted. Signer was unreachable; revoke Glowstr in your signer.');
+  });
+  glowstrResetSigner();
   try { if (typeof stopQrLogin === 'function') stopQrLogin(); } catch(e) {}
   state.privateKey = null; state.publicKey = null; state.signerMethod = null; state.bunkerUrl = null; state.nip46 = null; _walletCapabilityState = null;
   state.persistKey = false;
@@ -6855,13 +7041,13 @@ async function publishNote() {
       cancelReply();
       return;
 
-    } else if ((state.signerMethod === 'amber-bunker' || state.signerMethod === 'nip46-qr' || state.signerMethod === 'nip46') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       eventTemplate.pubkey = state.publicKey;
       showToast('Requesting signature from Amber...');
       signedEvent = await nip46Sign(eventTemplate);
 
     } else if ((state.signerMethod === 'nsec' || state.signerMethod === 'generated') && state.privateKey) {
-      signedEvent = await signNostrEvent(eventTemplate, state.privateKey);
+      signedEvent = await signEventUniversal(eventTemplate);
 
     } else {
       showToast('No signing method available. Login with a private key, Amber, or NIP-07.');
@@ -7938,7 +8124,7 @@ async function publishFollowList() {
       eventTemplate.pubkey = state.publicKey;
       signedEvent = await glowstrVerifiedNip07Sign(eventTemplate);
     } else if ((state.signerMethod === 'nsec' || state.signerMethod === 'generated') && state.privateKey) {
-      signedEvent = await signNostrEvent(eventTemplate, state.privateKey);
+      signedEvent = await signEventUniversal(eventTemplate);
     } else {
       return; // can't sign, silently skip
     }
@@ -8412,10 +8598,10 @@ async function reactToNote(eventId, pubkey, btnEl) {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signedEvent = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       try { signedEvent = await nip46Sign(eventTemplate); } catch(e) { showToast('NIP-46 sign failed: ' + e.message); return; }
-    } else if (state.privateKey) {
-      signedEvent = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signedEvent = await signEventUniversal(eventTemplate);
     } else { showToast('Cannot sign reaction'); return; }
 
     if (signedEvent) {
@@ -8639,10 +8825,10 @@ async function publishMood() {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signedEvent = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       try { signedEvent = await nip46Sign(eventTemplate); } catch(e) { showToast('NIP-46 sign failed'); return; }
-    } else if (state.privateKey) {
-      signedEvent = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signedEvent = await signEventUniversal(eventTemplate);
     } else { showToast('Cannot sign'); return; }
 
     if (signedEvent) {
@@ -8731,6 +8917,10 @@ function renderMusicPlayer(pubkey) {
     const id = 'mp-' + pubkey.slice(0, 8);
     let host = '';
     try { host = new URL(url).hostname; } catch(e) { host = String(url).slice(0, 30); }
+
+    if (window.GlowstrAndroid && ['youtube','wavlake','soundcloud','spotify'].includes(platform.type)) {
+      return '<div class="music-player"><span>🎵 Profile Music</span><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer nofollow" class="music-player-btn" style="width:auto;">OPEN ▸</a></div>';
+    }
 
     // ★ Wavlake — Nostr-native, embed via official iframe
     if (platform.type === 'wavlake') {
@@ -8903,10 +9093,10 @@ async function publishTop8() {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signedEvent = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       try { signedEvent = await nip46Sign(eventTemplate); } catch(e) { showToast('NIP-46 sign failed'); return; }
-    } else if (state.privateKey) {
-      signedEvent = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signedEvent = await signEventUniversal(eventTemplate);
     } else { showToast('Cannot sign'); return; }
 
     if (signedEvent) {
@@ -8977,23 +9167,10 @@ async function broadcastNip17ToInboxRelays(signedEvent,recipientPubkey){const re
 // ═══ NIP-17 GIFT-WRAPPED DM — NIP-44 + NIP-59 ═══
 // NIP-17 requires NIP-44 encryption for both the seal and the gift wrap.
 async function nip44EncryptUniversal(plaintext, theirPubKey) {
-  const m = state.signerMethod;
-  if (state.privateKey) return await nip44Encrypt(plaintext, state.privateKey, theirPubKey);
-  if (m === 'nip07' && window.nostr?.nip44?.encrypt) return await window.nostr.nip44.encrypt(theirPubKey, plaintext);
-  if ((m === 'amber-bunker' || m === 'nip46-qr' || m === 'nip46') && state.nip46) {
-    return await nip46Request('nip44_encrypt', [theirPubKey, plaintext], 30000);
-  }
-  throw new Error('Current signer does not provide NIP-44 encryption');
+  return await glowstrDmOperation('nip44', 'encrypt', plaintext, theirPubKey);
 }
-
 async function nip44DecryptUniversal(ciphertext, theirPubKey) {
-  const m = state.signerMethod;
-  if (state.privateKey) return await nip44Decrypt(ciphertext, state.privateKey, theirPubKey);
-  if (m === 'nip07' && window.nostr?.nip44?.decrypt) return await window.nostr.nip44.decrypt(theirPubKey, ciphertext);
-  if ((m === 'amber-bunker' || m === 'nip46-qr' || m === 'nip46') && state.nip46) {
-    return await nip46Request('nip44_decrypt', [theirPubKey, ciphertext], 30000);
-  }
-  throw new Error('Current signer does not provide NIP-44 decryption');
+  return await glowstrDmOperation('nip44', 'decrypt', ciphertext, theirPubKey);
 }
 
 function randomPastTimestamp(maxSeconds = 172800) {
@@ -9362,10 +9539,10 @@ async function publishEmojis() {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signedEvent = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       signedEvent = await nip46Sign(eventTemplate);
-    } else if (state.privateKey) {
-      signedEvent = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signedEvent = await signEventUniversal(eventTemplate);
     } else { showToast('Cannot sign'); return; }
 
     if (signedEvent) {
@@ -9913,14 +10090,14 @@ async function createChatRoom() {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signed = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       signed = await nip46Sign(eventTemplate);
     } else if (state.signerMethod === 'amber-nip55') {
       eventTemplate.pubkey = state.publicKey;
       signWithAmber(JSON.stringify(eventTemplate));
       return;
-    } else if (state.privateKey) {
-      signed = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signed = await signEventUniversal(eventTemplate);
     } else { showToast('Cannot sign'); return; }
 
     if (signed) {
@@ -10120,14 +10297,14 @@ async function sendChatMessage() {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signed = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       signed = await nip46Sign(eventTemplate);
     } else if (state.signerMethod === 'amber-nip55') {
       eventTemplate.pubkey = state.publicKey;
       signWithAmber(JSON.stringify(eventTemplate));
       return;
-    } else if (state.privateKey) {
-      signed = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signed = await signEventUniversal(eventTemplate);
     } else { showToast('No signing method available'); return; }
 
     if (signed) {
@@ -10151,7 +10328,7 @@ function muteChatUser(pubkey) {
   muted.add(pubkey);
   setMutedChatUsers(muted);
   // Optionally publish NIP-28 kind 44 mute event
-  if (state.publicKey && state.privateKey) publishMuteUser(pubkey);
+  if (state.publicKey && canSignInline()) publishMuteUser(pubkey);
   showToast('🔇 User muted');
   if (state.activeChatRoom) renderChatMessages(state.activeChatRoom);
 }
@@ -10166,7 +10343,7 @@ async function publishMuteUser(pubkey) {
   try {
     const signed = state.signerMethod === 'nip07'
       ? await (eventTemplate.pubkey = state.publicKey, glowstrVerifiedNip07Sign(eventTemplate))
-      : await signNostrEvent(eventTemplate, state.privateKey);
+      : await signEventUniversal(eventTemplate);
     if (signed) broadcastEvent(signed);
   } catch(e) {}
 }
@@ -10352,11 +10529,11 @@ async function submitUsernameClaim() {
     'I have sent payment. Please grant my username. 🙏';
   try {
     let encrypted;
-    if (state.privateKey) {
+    if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
       encrypted = await nip04Encrypt(claimText, state.privateKey, operatorHex);
     } else if (state.signerMethod === 'nip07' && window.nostr?.nip04?.encrypt) {
       encrypted = await window.nostr.nip04.encrypt(operatorHex, claimText);
-    } else if ((state.signerMethod === 'amber-bunker' || state.signerMethod === 'nip46-qr' || state.signerMethod === 'nip46') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       encrypted = await nip46Request('nip04_encrypt', [operatorHex, claimText], 30000);
     }
     if (!encrypted) { showToast('Could not encrypt claim — try a different login method'); return; }
@@ -10364,10 +10541,10 @@ async function submitUsernameClaim() {
     let signed;
     if (state.signerMethod === 'nip07' && window.nostr) {
       evt.pubkey = state.publicKey; signed = await glowstrVerifiedNip07Sign(evt);
-    } else if ((state.signerMethod === 'amber-bunker' || state.signerMethod === 'nip46-qr' || state.signerMethod === 'nip46') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       signed = await nip46Sign(evt);
-    } else if (state.privateKey) {
-      signed = await signNostrEvent(evt, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signed = await signEventUniversal(evt);
     }
     if (signed) {
       const sent = (typeof broadcastDmWithOutbox === 'function')
@@ -10410,10 +10587,10 @@ async function applyMyNip05() {
     let signed;
     if (state.signerMethod === 'nip07' && window.nostr) {
       evt.pubkey = state.publicKey; signed = await glowstrVerifiedNip07Sign(evt);
-    } else if ((state.signerMethod === 'amber-bunker' || state.signerMethod === 'nip46-qr' || state.signerMethod === 'nip46') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       signed = await nip46Sign(evt);
-    } else if (state.privateKey) {
-      signed = await signNostrEvent(evt, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signed = await signEventUniversal(evt);
     }
     if (signed) {
       broadcastEvent(signed);
@@ -10701,10 +10878,10 @@ async function publishListing(asDraft) {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signed = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       signed = await nip46Sign(eventTemplate);
-    } else if (state.privateKey) {
-      signed = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signed = await signEventUniversal(eventTemplate);
     } else { showToast('Cannot sign'); return; }
 
     if (signed) {
@@ -10733,10 +10910,10 @@ async function deleteListing(d, eventId) {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signed = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       signed = await nip46Sign(eventTemplate);
-    } else if (state.privateKey) {
-      signed = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signed = await signEventUniversal(eventTemplate);
     }
     if (signed) {
       const sent = broadcastEvent(signed);
@@ -10820,10 +10997,10 @@ async function publishProfileCustoms(cursorUrl, autoplayMusic) {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signed = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       signed = await nip46Sign(eventTemplate);
-    } else if (state.privateKey) {
-      signed = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signed = await signEventUniversal(eventTemplate);
     }
     if (signed) {
       broadcastEvent(signed);
@@ -11087,10 +11264,10 @@ async function publishCommunityList() {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signed = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       signed = await nip46Sign(eventTemplate);
-    } else if (state.privateKey) {
-      signed = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signed = await signEventUniversal(eventTemplate);
     }
     if (signed) broadcastEvent(signed);
   } catch(e) {}
@@ -11134,10 +11311,10 @@ async function createCommunity() {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signed = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       signed = await nip46Sign(eventTemplate);
-    } else if (state.privateKey) {
-      signed = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signed = await signEventUniversal(eventTemplate);
     }
     if (signed) {
       const sent = broadcastEvent(signed);
@@ -11287,10 +11464,10 @@ async function postToCommunity(ref) {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signed = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       signed = await nip46Sign(eventTemplate);
-    } else if (state.privateKey) {
-      signed = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signed = await signEventUniversal(eventTemplate);
     }
     if (signed) {
       const sent = broadcastEvent(signed);
@@ -11324,10 +11501,10 @@ async function approvePost(postId, postPubkey, ref) {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signed = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       signed = await nip46Sign(eventTemplate);
-    } else if (state.privateKey) {
-      signed = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signed = await signEventUniversal(eventTemplate);
     }
     if (signed) {
       const sent = broadcastEvent(signed);
@@ -11578,10 +11755,10 @@ async function saveProfile() {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signedEvent = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       try { signedEvent = await nip46Sign(eventTemplate); } catch(e) { showToast('NIP-46 sign failed: ' + e.message); return; }
-    } else if (state.privateKey) {
-      signedEvent = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signedEvent = await signEventUniversal(eventTemplate);
     } else { showToast('Cannot sign'); return; }
 
     if (signedEvent) {
@@ -11954,7 +12131,7 @@ function updateDmRelayHint() {
 async function openDmConvo(pubkey) {
   if (!state.publicKey) { showToast('Login required for DMs'); return; }
   // Check if we can decrypt: privateKey OR NIP-07 with nip04 support
-  const canDecrypt = state.privateKey || (state.signerMethod === 'nip07' && window.nostr?.nip04?.decrypt) || ((state.signerMethod === 'amber-bunker' || state.signerMethod === 'nip46-qr' || state.signerMethod === 'nip46') && state.nip46);
+  const canDecrypt = (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) || (state.signerMethod === 'nip07' && window.nostr?.nip04?.decrypt) || (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46);
   if (!canDecrypt) { showToast('Your signer does not support NIP-04 DM decryption (try NIP-07 extension or private key login)'); return; }
   state.activeDmPubkey = pubkey;
   // Pre-fetch recipient's NIP-65 relay list in background — by the time user hits Send, it's cached
@@ -11993,11 +12170,11 @@ async function openDmConvo(pubkey) {
       text = ev.content;
     } else {
       try {
-        if (state.privateKey) {
+        if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
           text = await nip04Decrypt(ev.content, state.privateKey, otherPk);
         } else if (state.signerMethod === 'nip07' && window.nostr?.nip04?.decrypt) {
           text = await window.nostr.nip04.decrypt(otherPk, ev.content);
-        } else if ((state.signerMethod === 'amber-bunker' || state.signerMethod === 'nip46-qr' || state.signerMethod === 'nip46') && state.nip46) {
+        } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
           text = await nip46Request('nip04_decrypt', [otherPk, ev.content], 30000);
         } else {
           text = '[no decryption available]';
@@ -12046,7 +12223,7 @@ async function sendDm() {
   const nip17Requested = !!document.getElementById('dm-nip17')?.checked;
   const canNip44 = !!state.privateKey ||
     (state.signerMethod === 'nip07' && !!window.nostr?.nip44?.encrypt) ||
-    ((state.signerMethod === 'amber-bunker' || state.signerMethod === 'nip46-qr' || state.signerMethod === 'nip46') && !!state.nip46);
+    (glowstrIsRemoteSignerMethod(state.signerMethod) && !!state.nip46);
   const useNip17 = nip17Requested && canNip44;
   if (nip17Requested && !canNip44) {
     showToast('Your current signer does not expose NIP-44. NIP-04 fallback is available but less private.');
@@ -12084,11 +12261,11 @@ async function sendDm() {
     // Standard NIP-04 path
     let encrypted;
     try {
-      if (state.privateKey) {
+      if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
         encrypted = await nip04Encrypt(text, state.privateKey, state.activeDmPubkey);
       } else if (state.signerMethod === 'nip07' && window.nostr?.nip04?.encrypt) {
         encrypted = await window.nostr.nip04.encrypt(state.activeDmPubkey, text);
-      } else if ((state.signerMethod === 'amber-bunker' || state.signerMethod === 'nip46-qr' || state.signerMethod === 'nip46') && state.nip46) {
+      } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
         encrypted = await nip46Request('nip04_encrypt', [state.activeDmPubkey, text], 30000);
       }
     } catch(encErr) {
@@ -12118,10 +12295,10 @@ async function sendDm() {
       if (state.signerMethod === 'nip07' && window.nostr) {
         eventTemplate.pubkey = state.publicKey;
         signedEvent = await glowstrVerifiedNip07Sign(eventTemplate);
-      } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+      } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
         signedEvent = await nip46Sign(eventTemplate);
-      } else if (state.privateKey) {
-        signedEvent = await signNostrEvent(eventTemplate, state.privateKey);
+      } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+        signedEvent = await signEventUniversal(eventTemplate);
       }
     } catch(signErr) {
       showToast('Signing failed: ' + (signErr.message || 'unknown'));
@@ -12415,10 +12592,10 @@ async function buildNip98Auth(url, method, payloadHashHex) {
     if (state.signerMethod === 'nip07' && window.nostr) {
       eventTemplate.pubkey = state.publicKey;
       signed = await glowstrVerifiedNip07Sign(eventTemplate);
-    } else if ((state.signerMethod === 'nip46-qr' || state.signerMethod === 'amber-bunker') && state.nip46) {
+    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
       signed = await nip46Sign(eventTemplate);
-    } else if (state.privateKey) {
-      signed = await signNostrEvent(eventTemplate, state.privateKey);
+    } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+      signed = await signEventUniversal(eventTemplate);
     }
   } catch(e) { return null; }
 
@@ -12916,7 +13093,7 @@ async function executeXmrTip() {
       try {
         const dmText = '💸 Sent you a Monero tip' + (amount > 0 ? ' of ' + amount + ' XMR' : '') + '! ' + message;
         let encrypted;
-        if (state.privateKey) {
+        if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
           encrypted = await nip04Encrypt(dmText, state.privateKey, tip.pubkey);
         } else if (window.nostr?.nip04?.encrypt) {
           encrypted = await window.nostr.nip04.encrypt(tip.pubkey, dmText);
@@ -12932,8 +13109,8 @@ async function executeXmrTip() {
           if (state.signerMethod === 'nip07' && window.nostr) {
             evt.pubkey = state.publicKey;
             signed = await glowstrVerifiedNip07Sign(evt);
-          } else if (state.privateKey) {
-            signed = await signNostrEvent(evt, state.privateKey);
+          } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
+            signed = await signEventUniversal(evt);
           }
           if (signed) {
             if (typeof broadcastDmWithOutbox === 'function') {
@@ -13162,11 +13339,13 @@ function installPWA() {
 let _qrLoginState = null;
 
 async function startQrLogin() {
-  stopQrLogin();
+  glowstrApplyLoginPersistChoice();
+  const epoch = glowstrResetSigner();
 
   const clientPrivKey = generatePrivateKey();
   const clientPubKey = await derivePublicKey(clientPrivKey);
-  const connectRelay = 'wss://relay.nostr.band';
+  if (epoch !== _glowstrSignerEpoch) return;
+  const connectRelay = 'wss://relay.nostr.band/';
   const connectSecret = bytesToHex(crypto.getRandomValues(new Uint8Array(16)));
 
   const qp = new URLSearchParams();
@@ -13208,7 +13387,7 @@ async function startQrLogin() {
     try {
       if (typeof msg.data !== 'string' || msg.data.length > MAX_RELAY_FRAME_BYTES) return;
       const data = JSON.parse(msg.data);
-      if (data[0] !== 'EVENT' || data[2]?.kind !== 24133 || !_qrLoginState?.active) return;
+      if (data[0] !== 'EVENT' || data[2]?.kind !== 24133 || !_qrLoginState?.active || epoch !== _glowstrSignerEpoch) return;
       const event = data[2];
       if (!isSafeRelayEventShape(event)) return;
       if (!(event.tags || []).some(t => t[0] === 'p' && t[1] === clientPubKey)) return;
@@ -13220,7 +13399,8 @@ async function startQrLogin() {
       } catch(e) { return; }
 
       // For client-initiated nostrconnect, the signer MUST echo our random secret.
-      if (response.result !== connectSecret) return;
+      if (response.result !== connectSecret || epoch !== _glowstrSignerEpoch || !_qrLoginState?.active || _qrLoginState.connecting) return;
+      _qrLoginState.connecting = true;
 
       const remoteSignerPubkey = event.pubkey;
       state.nip46 = {
@@ -13236,13 +13416,14 @@ async function startQrLogin() {
       try {
         const userPubkey = await nip46Request('get_public_key', [], 30000);
         if (!/^[0-9a-f]{64}$/.test(userPubkey || '')) throw new Error('Signer returned invalid user pubkey');
+        if (epoch !== _glowstrSignerEpoch) return;
         state.publicKey = userPubkey;
 
         // Ask signer for preferred relays immediately; use them if valid.
         try {
           const switched = await nip46Request('switch_relays', [], 15000);
           const relays = Array.isArray(switched) ? switched.filter(r => {
-            try { const u = new URL(r); return u.protocol === 'wss:' || u.protocol === 'ws:'; } catch(e) { return false; }
+            return !!glowstrSignerRelayUrl(r);
           }).slice(0, 5) : [];
           if (relays.length) {
             state.nip46.relays = relays;
@@ -13250,6 +13431,8 @@ async function startQrLogin() {
           }
         } catch(e) { /* optional signer capability */ }
 
+        if (epoch !== _glowstrSignerEpoch || !_qrLoginState?.active) return;
+        state.privateKey = null;
         showLoggedIn(); saveState(); requestProfile(userPubkey);
         statusEl.textContent = '✓ Connected securely via NIP-46 as ' + userPubkey.slice(0, 12) + '...';
         statusEl.className = 'qr-login-status connected';
@@ -13259,9 +13442,10 @@ async function startQrLogin() {
         try { ws.close(); } catch(e) {}
         _qrLoginState.active = false;
         if (_qrLoginState.timeout) clearTimeout(_qrLoginState.timeout);
-        setTimeout(() => { container.style.display = 'none'; switchView('feed'); }, 1200);
+        setTimeout(() => { if (epoch === _glowstrSignerEpoch) { container.style.display = 'none'; switchView('feed'); } }, 1200);
       } catch(e) {
-        state.nip46 = null; state.signerMethod = null;
+        if (epoch !== _glowstrSignerEpoch) return;
+        state.nip46 = null; state.signerMethod = null; state.publicKey = null;
         statusEl.textContent = 'Signer connection failed: ' + (e.message || 'unknown error');
         statusEl.className = 'qr-login-status';
       }
@@ -13283,6 +13467,7 @@ async function startQrLogin() {
 }
 
 function stopQrLogin() {
+  const cancelSession = _qrLoginState?.active && _qrLoginState?.connecting;
   if (_qrLoginState) {
     _qrLoginState.active = false;
     if (_qrLoginState.ws) {
@@ -13294,11 +13479,13 @@ function stopQrLogin() {
   }
   const container = document.getElementById('qr-login-container');
   if (container) container.style.display = 'none';
+  if (cancelSession) glowstrResetSigner(true);
 }
 
 // NIP-46 signing request (for use after QR login)
 async function nip46Sign(eventTemplate) {
   if (!state.nip46) return null;
+  const epoch = _glowstrSignerEpoch, account = state.publicKey;
   if (!eventTemplate.pubkey) eventTemplate.pubkey = state.publicKey;
   const requested = glowstrRequestedEventSnapshot(eventTemplate);
   const result = await nip46Request('sign_event', [JSON.stringify(eventTemplate)], 60000);
@@ -13307,7 +13494,9 @@ async function nip46Sign(eventTemplate) {
   if (typeof result === 'string') {
     try { signed = JSON.parse(result); } catch(e) { throw new Error('Bad signer response'); }
   } else signed = result;
-  return await glowstrValidateSignerResult(requested, signed);
+  const verified = await glowstrValidateSignerResult(requested, signed);
+  if (epoch !== _glowstrSignerEpoch || account !== state.publicKey) throw new Error('Signer changed during request');
+  return verified;
 }
 
 // SW: single-file build intentionally skips blob: service-worker registration.
@@ -13681,6 +13870,8 @@ function glowstrHandleDynamicAction(event) {
     case 'remove-fixed-show-nip46': el.closest('div[style*="fixed"]')?.remove(); showNip46QR(); break;
     case 'remove-fixed-nsec': el.closest('div[style*="fixed"]')?.remove(); toggleLoginSection('nsec'); break;
     case 'remove-parent': el.parentElement?.remove(); break;
+    case 'frostr-toggle': document.getElementById('section-frostr').classList.toggle('open'); break;
+    case 'frostr-connect': connectFrostr(); break;
     case 'submit-bunker-pwa': submitBunkerFromPwa(); break;
     case 'amber-readonly-paste': document.getElementById('amber-pwa-help')?.remove(); showAmberManualPasteModal(); break;
     case 'amber-paste-clipboard': amberPasteFromClipboard(); break;

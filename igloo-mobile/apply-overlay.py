@@ -78,7 +78,7 @@ replace_once(
 replace_once(
     main_strings,
     '<string name="main_create_group_subtitle">Authenticate to store share securely</string>',
-    '<string name="main_create_group_subtitle">Create a threshold identity and store this device\'s share securely</string>',
+    '<string name="main_create_group_subtitle">Create a threshold identity and store this device\\\'s share securely</string>',
 )
 replace_once(
     main_strings,

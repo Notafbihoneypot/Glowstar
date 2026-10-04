@@ -6,7 +6,7 @@ on:
       - build/moneroone-keystone
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -39,11 +39,25 @@ jobs:
           ./gradlew --no-daemon assembleDebug
 
       - name: Collect APK
-        run: cp MoneroOne/app/build/outputs/apk/debug/app-debug.apk MoneroOne-Keystone-debug.apk
+        run: |
+          cp MoneroOne/app/build/outputs/apk/debug/app-debug.apk MoneroOne-Keystone-debug.apk
+          sha256sum MoneroOne-Keystone-debug.apk | tee MoneroOne-Keystone-debug.apk.sha256
 
-      - name: Upload APK
+      - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
           name: MoneroOne-Keystone-debug
-          path: MoneroOne-Keystone-debug.apk
+          path: |
+            MoneroOne-Keystone-debug.apk
+            MoneroOne-Keystone-debug.apk.sha256
           if-no-files-found: error
+
+      - name: Publish GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="moneroone-keystone-test-v0.1"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG"               --target "$GITHUB_SHA"               --title "Monero One + Keystone test APK v0.1"               --notes "Experimental debug build for testing Keystone / Feather-compatible Monero QR signing. Do not use with significant funds until the hardware round-trip has been validated."               --prerelease
+          fi
+          gh release upload "$TAG"             MoneroOne-Keystone-debug.apk             MoneroOne-Keystone-debug.apk.sha256             --clobber

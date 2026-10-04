@@ -69,6 +69,24 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
+      - name: Build installable FROSTR test APK
+        run: |
+          set -euo pipefail
+          gradle -p android-helper --no-daemon --stacktrace :app:assembleDebug
+          mkdir -p dist
+          cp android-helper/app/build/outputs/apk/debug/app-debug.apk dist/Glowstr-Android-0.3.12-FROSTR-test.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/Glowstr-Android-0.3.12-FROSTR-test.apk
+          sha256sum dist/Glowstr-Android-0.3.12-FROSTR-test.apk > dist/Glowstr-Android-0.3.12-FROSTR-test.apk.sha256
+      - name: Upload installable FROSTR test APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Glowstr-Android-FROSTR-Test
+          path: |
+            dist/Glowstr-Android-0.3.12-FROSTR-test.apk
+            dist/Glowstr-Android-0.3.12-FROSTR-test.apk.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
 
   signed-release:
     if: github.event_name == 'workflow_dispatch' && inputs.signed

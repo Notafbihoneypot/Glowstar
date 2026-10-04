@@ -58,9 +58,7 @@ jobs:
           packages: platform-tools
 
       - name: Install Android NDK
-        run: |
-          sdkmanager --install "ndk;$NDK_VERSION"
-          test -d "$ANDROID_HOME/platforms/android-37"
+        run: sdkmanager --install "ndk;$NDK_VERSION"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de

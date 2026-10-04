@@ -10,7 +10,7 @@ on:
   pull_request:
     paths: ['android-helper/**', 'tests/**', 'monero-commerce/**', 'glowstr-v5.3-bluetooth-direct.html', '.github/workflows/android-apk.yml']
   push:
-    branches: [main]
+    branches: [main, security/frostr-hardening]
     paths: ['android-helper/**', 'tests/**', 'monero-commerce/**', 'glowstr-v5.3-bluetooth-direct.html', '.github/workflows/android-apk.yml']
 
 permissions:

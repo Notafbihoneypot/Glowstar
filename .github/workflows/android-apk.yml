@@ -14,7 +14,7 @@ on:
     paths: ['android-helper/**', 'tests/**', 'monero-commerce/**', 'glowstr-v5.3-bluetooth-direct.html', '.github/workflows/android-apk.yml']
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -74,19 +74,35 @@ jobs:
           set -euo pipefail
           gradle -p android-helper --no-daemon --stacktrace :app:assembleDebug
           mkdir -p dist
-          cp android-helper/app/build/outputs/apk/debug/app-debug.apk dist/Glowstr-Android-0.3.12-FROSTR-test.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/Glowstr-Android-0.3.12-FROSTR-test.apk
-          sha256sum dist/Glowstr-Android-0.3.12-FROSTR-test.apk > dist/Glowstr-Android-0.3.12-FROSTR-test.apk.sha256
+          cp android-helper/app/build/outputs/apk/debug/app-debug.apk dist/Glowstr-Android-0.3.13-FROSTR-test.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/Glowstr-Android-0.3.13-FROSTR-test.apk
+          sha256sum dist/Glowstr-Android-0.3.13-FROSTR-test.apk > dist/Glowstr-Android-0.3.13-FROSTR-test.apk.sha256
       - name: Upload installable FROSTR test APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: Glowstr-Android-FROSTR-Test
           path: |
-            dist/Glowstr-Android-0.3.12-FROSTR-test.apk
-            dist/Glowstr-Android-0.3.12-FROSTR-test.apk.sha256
+            dist/Glowstr-Android-0.3.13-FROSTR-test.apk
+            dist/Glowstr-Android-0.3.13-FROSTR-test.apk.sha256
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
+
+      - name: Publish direct FROSTR test APK prerelease
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="v0.3.13-frostr-test"
+          gh release delete "$TAG" --cleanup-tag --yes >/dev/null 2>&1 || true
+          gh release create "$TAG" \
+            dist/Glowstr-Android-0.3.13-FROSTR-test.apk \
+            dist/Glowstr-Android-0.3.13-FROSTR-test.apk.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "Glowstr Android 0.3.13 FROSTR Test" \
+            --notes "Test Android build with FROSTR / Frost Fed Bunker NIP-46 signing. This build stops pre-authorizing specific event kinds so signing requests can surface for user approval in the signer. Debug-signed test package; not the production release." \
+            --prerelease
 
   signed-release:
     if: github.event_name == 'workflow_dispatch' && inputs.signed

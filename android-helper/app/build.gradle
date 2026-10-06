@@ -41,6 +41,7 @@ android {
         debug {
             applicationIdSuffix '.debug'
             versionNameSuffix '-debug'
+            resValue 'string', 'app_name', 'Glowstr FROSTR 0.3.13'
         }
     }
 

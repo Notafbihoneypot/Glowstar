@@ -63,6 +63,7 @@ jobs:
           cd relay-gate
           npm install --ignore-scripts --no-audit --no-fund
           npm test
+          node --check smoke.mjs
 
       - name: Test Armada CORD-07 voice broker
         run: |

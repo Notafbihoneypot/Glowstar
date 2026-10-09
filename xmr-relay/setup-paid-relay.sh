@@ -591,7 +591,7 @@ healthcheck() {
   done
   (( ok == 1 )) || die "Local relay/payment services did not become healthy"
 
-  curl -fsS --retry 12 --retry-delay 3     "https://$RELAY_DOMAIN/xmr-commerce/v1/features" >/tmp/glowstr-features.json ||
+  curl -fsS --retry 12 --retry-delay 3 "https://$RELAY_DOMAIN/" | grep -q "GLOWSTR RELAY" ||\n    die "Public static relay website is not reachable"\n\n  curl -fsS --retry 12 --retry-delay 3     "https://$RELAY_DOMAIN/xmr-commerce/v1/features" >/tmp/glowstr-features.json ||
     die "Public payment API is not reachable through Caddy/TLS"
 }
 

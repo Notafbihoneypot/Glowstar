@@ -144,9 +144,13 @@ collect_inputs() {
         ask_required REMOTE_DAEMON "Remote Monero daemon URL (example: https://your-node.example:18089)"
       fi
       ask_required VIEW_ADDRESS "Monero wallet PRIMARY public address (starts with 4)"
-      ask_secret VIEW_KEY "Monero PRIVATE VIEW KEY (hidden; never stored in .env)"
-      if [[ -z "$RESTORE_HEIGHT" ]]; then
-        ask_default RESTORE_HEIGHT "Wallet restore height (0 works but scans from genesis)" "0"
+      if [[ ! -f "$MONERO_WALLET_FILE.keys" ]]; then
+        ask_secret VIEW_KEY "Monero PRIVATE VIEW KEY (hidden; never stored in .env)"
+        if [[ -z "$RESTORE_HEIGHT" ]]; then
+          ask_default RESTORE_HEIGHT "Wallet restore height (0 scans from genesis; prefer wallet creation height)" "0"
+        fi
+      else
+        say "Existing view-wallet found; its private view key is not needed again"
       fi
       ;;
     external-rpc)
@@ -171,10 +175,13 @@ validate_inputs() {
   if [[ "$WALLET_MODE" == "local-view" ]]; then
     [[ "$VIEW_ADDRESS" =~ ^4[1-9A-HJ-NP-Za-km-z]{94}$ ]] ||
       die "Primary Monero address should be a 95-character standard address beginning with 4"
-    [[ "$VIEW_KEY" =~ ^[0-9a-fA-F]{64}$ ]] ||
-      die "Private view key must be 64 hexadecimal characters"
-    [[ "$RESTORE_HEIGHT" =~ ^[0-9]+$ ]] || die "Restore height must be an integer"
-    [[ "$REMOTE_DAEMON" =~ ^https?:// ]] || die "Remote daemon must begin with http:// or https://"
+    if [[ ! -f "$MONERO_WALLET_FILE.keys" ]]; then
+      [[ "$VIEW_KEY" =~ ^[0-9a-fA-F]{64}$ ]] ||
+        die "Private view key must be 64 hexadecimal characters"
+      [[ "$RESTORE_HEIGHT" =~ ^[0-9]+$ ]] || die "Restore height must be an integer"
+    fi
+    [[ "$REMOTE_DAEMON" =~ ^https?://[^/:/?#]+:[0-9]{2,5}/?$ ]] ||
+      die "Remote daemon must be http(s)://hostname:port with no path/query, e.g. https://node.example:18089"
   fi
 }
 
@@ -258,11 +265,11 @@ install_monero_wallet_rpc() {
   arch="$(uname -m)"
   case "$arch" in
     x86_64|amd64)
-      url="https://downloads.getmonero.org/cli/linux64"
+      url="https://github.com/monero-project/monero/releases/download/v$MONERO_CLI_VERSION/monero-linux-x64-v$MONERO_CLI_VERSION.tar.bz2"
       expected="22a7dda7b0cb699fdd6b7674c3b4a4465b337cc98a54983523b759e1e7cc9958"
       ;;
     aarch64|arm64)
-      url="https://downloads.getmonero.org/cli/linuxarm8"
+      url="https://github.com/monero-project/monero/releases/download/v$MONERO_CLI_VERSION/monero-linux-armv8-v$MONERO_CLI_VERSION.tar.bz2"
       expected="c0caf042cb7c7b760f5ad6be188084b59352440b32990a78b8051497b9398dbc"
       ;;
     *)
@@ -311,6 +318,7 @@ ensure_wallet_user() {
 generate_wallet_credentials() {
   [[ "$WALLET_MODE" == "local-view" ]] || return
   RPC_USER="${RPC_USER:-glowstr}"
+  [[ -n "$RPC_PASS" ]] || RPC_PASS="$(env_value MONERO_RPC_PASS)"
   [[ -n "$RPC_PASS" ]] || RPC_PASS="$(openssl rand -hex 24)"
 
   local wallet_password
@@ -326,12 +334,20 @@ generate_wallet_credentials() {
 }
 
 write_wallet_config() {
-  local mode="$1"
+  local mode="$1" daemon_host daemon_ssl
+  daemon_host="${REMOTE_DAEMON#*://}"
+  daemon_host="${daemon_host%/}"
+  if [[ "$REMOTE_DAEMON" == https://* ]]; then
+    daemon_ssl=enabled
+  else
+    daemon_ssl=disabled
+  fi
   cat > "$MONERO_CONFIG" <<EOF
 rpc-bind-ip=127.0.0.1
 rpc-bind-port=18083
 rpc-login=$RPC_USER:$RPC_PASS
-daemon-address=$REMOTE_DAEMON
+daemon-address=$daemon_host
+daemon-ssl=$daemon_ssl
 untrusted-daemon=1
 max-concurrency=1
 log-level=0
@@ -430,10 +446,16 @@ create_or_reuse_view_wallet() {
   unset MONERO_PRIVATE_VIEW_KEY || true
 
   write_wallet_config production
-  systemctl enable --now "$MONERO_SERVICE"
+  systemctl enable "$MONERO_SERVICE"
+  systemctl restart "$MONERO_SERVICE"
   wait_wallet_rpc
 
   RPC_URL="http://127.0.0.1:18083/json_rpc"
+  local address_reply
+  address_reply="$(wallet_rpc_call get_address '{"account_index":0}')" ||
+    die "Could not verify the opened view-wallet address"
+  [[ "$address_reply" == *"$VIEW_ADDRESS"* ]] ||
+    die "Opened view-wallet does not match the entered primary Monero address"
   say "View-only wallet RPC is live on 127.0.0.1:18083"
 }
 

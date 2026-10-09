@@ -541,6 +541,14 @@ $RELAY_DOMAIN {
         Referrer-Policy "no-referrer"
     }
 
+    # Static public landing page; no tracking, cookies, or JavaScript dependencies.
+    root * $PAID_DIR
+    @home path /
+    handle @home {
+        rewrite * /index.html
+        file_server
+    }
+
     # Glowstr payment API. handle_path strips /xmr-commerce before forwarding.
     handle_path /xmr-commerce/* {
         reverse_proxy 127.0.0.1:8787

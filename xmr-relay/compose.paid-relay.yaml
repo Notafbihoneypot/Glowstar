@@ -17,6 +17,7 @@ services:
       - relay-gate
     volumes:
       - ./paid-relay/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./paid-relay/index.html:/srv/glowstr-site/index.html:ro
       - glowstr-paid-caddy-data:/data
       - glowstr-paid-caddy-config:/config
 

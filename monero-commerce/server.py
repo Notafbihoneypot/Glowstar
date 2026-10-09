@@ -7,6 +7,7 @@ Keep monero-wallet-rpc on loopback. Never expose wallet RPC to the browser.
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import os
 import secrets
@@ -54,6 +55,9 @@ PRICE_URL = os.getenv(
 PRICE_OVERRIDE = os.getenv("GLOWSTR_XMR_USD_OVERRIDE", "").strip()
 RELAY_USD_CENTS = max(1, int(os.getenv("GLOWSTR_RELAY_USD_CENTS", "1000")))
 RELAY_SECONDS = max(60, int(os.getenv("GLOWSTR_RELAY_SECONDS", str(YEAR_SECONDS))))
+RELAY_TARGET = os.getenv("GLOWSTR_RELAY_TARGET", "relay.glowstr.com").strip().lower()
+if not RELAY_TARGET or any(c not in "abcdefghijklmnopqrstuvwxyz0123456789.-" for c in RELAY_TARGET):
+    raise RuntimeError("GLOWSTR_RELAY_TARGET must be a DNS name")
 REMINDER_SECONDS = max(60, int(os.getenv("GLOWSTR_REMINDER_SECONDS", str(30 * 86400))))
 ORIGINS = {
     x.strip()
@@ -84,12 +88,34 @@ def rate_limit(key, limit, window_seconds):
     now = int(time.time())
     bucket = now // window_seconds
     with _rate_lock:
+        # Keep the counter store bounded on the low-memory relay VPS.
+        if len(_rate_buckets) > 20000:
+            _rate_buckets.clear()
         old_bucket, count = _rate_buckets.get(key, (bucket, 0))
         if old_bucket != bucket:
             old_bucket, count = bucket, 0
         count += 1
         _rate_buckets[key] = (old_bucket, count)
         return count <= limit
+
+
+def client_ip(peer, forwarded):
+    """Use Caddy's client IP only when the socket is loopback.
+
+    Production Caddy replaces untrusted inbound X-Forwarded-For by default.
+    Direct requests cannot bypass the shared rate limiter with fake headers.
+    """
+    try:
+        peer_ip = ipaddress.ip_address(peer)
+    except ValueError:
+        return "unknown"
+    if not peer_ip.is_loopback or not forwarded:
+        return str(peer_ip)
+    try:
+        # Caddy appends the actual client as the final hop.
+        return str(ipaddress.ip_address(forwarded.split(",")[-1].strip()))
+    except ValueError:
+        return str(peer_ip)
 
 
 def db():
@@ -392,18 +418,22 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             if self.path == "/v1/invoices":
-                if not rate_limit("ip:" + self.client_address[0], 20, 3600):
+                if not rate_limit("ip:" + client_ip(
+                    self.client_address[0], self.headers.get("X-Forwarded-For")
+                ), 20, 3600):
                     return self.out({"error": "rate_limited"}, 429)
                 p = self.body()
                 pubkey = str(p.get("pubkey", "")).lower()
                 feature = str(p.get("feature", ""))
-                target = str(p.get("target", ""))[:160]
+                target = str(p.get("target", "")).strip().lower()
                 if not valid_pubkey(pubkey):
                     return self.out({"error": "invalid_pubkey"}, 400)
                 if not rate_limit("pub:" + pubkey, 8, 3600):
                     return self.out({"error": "rate_limited"}, 429)
                 if feature not in FEATURES:
                     return self.out({"error": "unknown_feature", "features": FEATURES}, 400)
+                if target != RELAY_TARGET:
+                    return self.out({"error": "invalid_relay_target"}, 400)
 
                 spec = FEATURES[feature]
                 price = xmr_usd_price()

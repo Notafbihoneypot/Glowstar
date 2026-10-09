@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { createServer } from 'node:http'
 import { randomBytes } from 'node:crypto'
+import { isIP } from 'node:net'
 import { readFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 
@@ -151,6 +152,13 @@ class EntitlementCache {
   }
 }
 
+export function requestClientIp(req) {
+  const peer = String(req.socket?.remoteAddress || '')
+  if (!['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(peer)) return peer
+  const forwarded = String(req.headers?.['x-forwarded-for'] || '').split(',').at(-1)?.trim()
+  return forwarded && isIP(forwarded) ? forwarded : peer
+}
+
 function sendJson(ws, value) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(value))
 }
@@ -189,6 +197,8 @@ async function main() {
     String(process.env.GLOWSTR_ALLOW_PRIVACY_WRAPPERS || 'true').toLowerCase(),
   )
   const maxAuthKeys = envInt('GLOWSTR_GATE_MAX_AUTH_KEYS', 64, 2, 256)
+  const maxConnections = envInt('GLOWSTR_GATE_MAX_CONNECTIONS', 80, 8, 1000)
+  const maxConnectionsPerIp = envInt('GLOWSTR_GATE_MAX_CONNECTIONS_PER_IP', 12, 1, 64)
   const authGraceMs = envInt('GLOWSTR_GATE_PRIVACY_AUTH_GRACE_MS', 15000, 0, 60000)
   const maxGraceWrites = envInt('GLOWSTR_GATE_MAX_GRACE_WRITES', 8, 1, 64)
   if (!adminToken) throw new Error('GLOWSTR_COMMERCE_ADMIN_TOKEN[_FILE] is required')
@@ -222,7 +232,18 @@ async function main() {
   })
 
   server.on('upgrade', (req, socket, head) => {
-    wss.handleUpgrade(req, socket, head, client => wss.emit('connection', client, req))
+    const ip = requestClientIp(req)
+    let fromIp = 0
+    for (const ws of wss.clients) if (ws._glowstrIp === ip) fromIp++
+    if (wss.clients.size >= maxConnections || fromIp >= maxConnectionsPerIp) {
+      socket.write('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n')
+      socket.destroy()
+      return
+    }
+    wss.handleUpgrade(req, socket, head, client => {
+      client._glowstrIp = ip
+      wss.emit('connection', client, req)
+    })
   })
 
   wss.on('connection', client => {

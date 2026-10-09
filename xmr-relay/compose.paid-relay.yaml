@@ -1,4 +1,8 @@
 services:
+  relay:
+    volumes:
+      - ./strfry.lite.conf:/app/strfry.conf:ro
+
   relay-gate:
     environment:
       NODE_OPTIONS: "--max-old-space-size=96"

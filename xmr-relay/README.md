@@ -78,6 +78,9 @@ Glowstr can publish the member's `kind:10050` list from **Relays → NIP-17 Priv
 
 The Nostr notification key is deliberately isolated from Monero Commerce.
 
+For the current production deployment, wallet sync gate, unpaid-write smoke test,
+real-XMR acceptance test, and backup checklist, follow **[LAUNCH.md](LAUNCH.md)**.
+
 ## Lightweight 512 MB paid-relay deployment
 
 Run the interactive installer:

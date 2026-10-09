@@ -8,6 +8,7 @@ import {
   isPrivacyWrapperKind,
   normalizeRelayUrl,
   validateAuthEvent,
+  requestClientIp,
 } from './gate.mjs'
 
 function authEvent(sk, challenge, relay, createdAt = Math.floor(Date.now() / 1000)) {
@@ -27,6 +28,16 @@ function event(sk, kind = 1) {
     tags: [],
   }, sk)
 }
+
+test('per-IP limit uses trusted loopback Caddy hop only', () => {
+  const request = (peer, forwarded) => ({
+    socket: { remoteAddress: peer },
+    headers: { 'x-forwarded-for': forwarded },
+  })
+  assert.equal(requestClientIp(request('127.0.0.1', '203.0.113.20')), '203.0.113.20')
+  assert.equal(requestClientIp(request('198.51.100.9', '203.0.113.20')), '198.51.100.9')
+  assert.equal(requestClientIp(request('127.0.0.1', 'invalid')), '127.0.0.1')
+})
 
 test('normalizes relay URL for NIP-42 matching', () => {
   assert.equal(normalizeRelayUrl('wss://Relay.Example/abc?x=1#z'), 'wss://relay.example')

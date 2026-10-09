@@ -97,6 +97,10 @@ export function decideWrite(event, authedPubkeys, paidPubkeys, allowPrivacyWrapp
   if (!privacy && !authedPubkeys.has(event.pubkey)) {
     return { ok: false, reason: 'restricted: authenticated pubkey must match event author' }
   }
+  // A paid AUTH must not sponsor another authenticated but unpaid account.
+  if (!privacy && !paidPubkeys.has(event.pubkey)) {
+    return { ok: false, reason: 'restricted: event author has no active membership' }
+  }
 
   return { ok: true }
 }
@@ -131,7 +135,7 @@ class EntitlementCache {
       let validUntil = 0
       for (const ent of Array.isArray(data.entitlements) ? data.entitlements : []) {
         if (ent.feature !== this.feature) continue
-        if (this.target && ent.target && ent.target !== this.target) continue
+        if (ent.target !== this.target) continue
         const until = Number(ent.valid_until || 0)
         if (until > now && until > validUntil) validUntil = until
       }

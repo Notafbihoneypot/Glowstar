@@ -56,6 +56,13 @@ class CommerceTests(unittest.TestCase):
         c.commit()
         return c, c.execute("SELECT * FROM invoices WHERE id='inv1'").fetchone()
 
+    def test_client_ip_uses_caddy_header_only_on_loopback(self):
+        self.assertEqual(commerce.client_ip("127.0.0.1", "203.0.113.21"), "203.0.113.21")
+        self.assertEqual(commerce.client_ip("::1", "203.0.113.23"), "203.0.113.23")
+        self.assertEqual(commerce.client_ip("198.51.100.15", "203.0.113.21"), "198.51.100.15")
+        self.assertEqual(commerce.client_ip("127.0.0.1", "not-an-ip"), "127.0.0.1")
+        self.assertEqual(commerce.client_ip("127.0.0.1", "192.0.2.3, 203.0.113.22"), "203.0.113.22")
+
     def test_usd_conversion_rounds_up(self):
         self.assertEqual(
             commerce.usd_cents_to_atomic(1000, Decimal("100")),

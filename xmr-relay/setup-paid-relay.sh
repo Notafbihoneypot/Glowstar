@@ -542,7 +542,7 @@ $RELAY_DOMAIN {
     }
 
     # Static public landing page; no tracking, cookies, or JavaScript dependencies.
-    root * $PAID_DIR
+    root * /srv/glowstr-site
     @home path /
     handle @home {
         rewrite * /index.html

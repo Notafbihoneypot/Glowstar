@@ -3,7 +3,7 @@ name: Test XMR Relay
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feature/xmr-relay-annual-v1]
     paths:
       - "xmr-relay/**"
       - "monero-commerce/**"

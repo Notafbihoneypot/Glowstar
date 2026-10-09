@@ -57,6 +57,16 @@ test('ordinary event requires the event author to be authenticated and paid sess
   assert.equal(decideWrite(event(user, 1), new Set([userPk]), new Set([userPk])).ok, true)
 })
 
+test('a paying AUTH cannot sponsor ordinary writes by another authenticated account', () => {
+  const payer = generateSecretKey()
+  const other = generateSecretKey()
+  const payerPk = getPublicKey(payer)
+  const otherPk = getPublicKey(other)
+  const authed = new Set([payerPk, otherPk])
+  assert.equal(decideWrite(event(other, 1), authed, new Set([payerPk])).ok, false)
+  assert.equal(decideWrite(event(payer, 1), authed, new Set([payerPk])).ok, true)
+})
+
 test('paid authenticated user may publish NIP-59 and Concord privacy wrappers', () => {
   const payer = generateSecretKey()
   const stream = generateSecretKey()

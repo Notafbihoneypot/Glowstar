@@ -186,33 +186,45 @@ validate_inputs() {
 }
 
 install_deps() {
-  local missing=()
+  local missing=() install_packages=0
   for c in podman curl openssl getent tar sha256sum; do
     command -v "$c" >/dev/null 2>&1 || missing+=("$c")
   done
   [[ "$WALLET_MODE" != "local-view" ]] || command -v systemctl >/dev/null 2>&1 || missing+=("systemd")
 
-  if (("${#missing[@]}" == 0)); then return; fi
-  bool_enabled "$AUTO_INSTALL" || die "Missing dependencies: ${missing[*]}"
-  [[ $EUID -eq 0 ]] || die "Run as root to auto-install dependencies"
-
-  if command -v apt-get >/dev/null 2>&1; then
-    say "Installing relay dependencies"
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get update
-    apt-get install -y podman podman-compose curl openssl libc-bin util-linux bzip2 ca-certificates
-  else
-    die "Automatic dependency installation currently supports Debian/Ubuntu"
+  # podman-compose is a separate provider on many Debian/Ubuntu systems.
+  # Merely having the 'podman' binary does not guarantee 'podman compose' works.
+  if ! command -v podman-compose >/dev/null 2>&1 &&
+     ! { command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; }; then
+    missing+=("podman-compose")
   fi
+
+  if (("${#missing[@]}" > 0)); then
+    say "Missing packages/tools: ${missing[*]}"
+    bool_enabled "$AUTO_INSTALL" || die "Set AUTO_INSTALL=1 or install these packages manually"
+    [[ $EUID -eq 0 ]] || die "Run as root to auto-install dependencies"
+    if command -v apt-get >/dev/null 2>&1; then
+      say "Installing Podman, Compose provider and relay dependencies (Debian/Ubuntu)"
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update
+      apt-get install -y podman podman-compose curl openssl libc-bin util-linux bzip2 ca-certificates
+    else
+      die "Automatic dependency installation supports Debian/Ubuntu. Install Podman and podman-compose manually on this OS."
+    fi
+  fi
+
+  # Fail early if the installation exists but cannot actually launch containers.
+  command -v podman >/dev/null 2>&1 || die "Podman binary not found after installation"
+  podman info >/dev/null 2>&1 || die "Podman is installed but unusable. Check kernel namespaces, cgroups, and container permissions."
 }
 
 detect_compose() {
-  if podman compose version >/dev/null 2>&1; then
-    COMPOSE=(podman compose)
-  elif command -v podman-compose >/dev/null 2>&1; then
+  if command -v podman-compose >/dev/null 2>&1; then
     COMPOSE=(podman-compose)
+  elif podman compose version >/dev/null 2>&1; then
+    COMPOSE=(podman compose)
   else
-    die "No Podman Compose provider found"
+    die "No functional Podman Compose provider found; install podman-compose."
   fi
 }
 

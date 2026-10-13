@@ -36,7 +36,7 @@ ENV_FILE="$HERE/.env"
 COMPOSE=()
 
 MONERO_RPC_BIN="${MONERO_WALLET_RPC_BIN:-}"
-MONERO_CLI_VERSION="0.18.5.1"
+MONERO_CLI_VERSION="0.18.5.3"
 MONERO_WALLET_USER="glowstrmonero"
 MONERO_WALLET_DIR="/var/lib/glowstr-monero-wallet"
 MONERO_WALLET_FILE="$MONERO_WALLET_DIR/relay-view"
@@ -277,12 +277,12 @@ install_monero_wallet_rpc() {
   arch="$(uname -m)"
   case "$arch" in
     x86_64|amd64)
-      url="https://github.com/monero-project/monero/releases/download/v$MONERO_CLI_VERSION/monero-linux-x64-v$MONERO_CLI_VERSION.tar.bz2"
-      expected="22a7dda7b0cb699fdd6b7674c3b4a4465b337cc98a54983523b759e1e7cc9958"
+      url="https://downloads.getmonero.org/cli/monero-linux-x64-v$MONERO_CLI_VERSION.tar.bz2"
+      expected="3333d0e04c9cbe3023e7e2b6dd369c407f36bb8df5b05fb0a19d7685b3d56dfc"
       ;;
     aarch64|arm64)
-      url="https://github.com/monero-project/monero/releases/download/v$MONERO_CLI_VERSION/monero-linux-armv8-v$MONERO_CLI_VERSION.tar.bz2"
-      expected="c0caf042cb7c7b760f5ad6be188084b59352440b32990a78b8051497b9398dbc"
+      url="https://downloads.getmonero.org/cli/monero-linux-armv8-v$MONERO_CLI_VERSION.tar.bz2"
+      expected="1490114f795ad2f67f57bc8d167c3e2539e9f173fc46f02f70ef4abf685f8c66"
       ;;
     *)
       die "Automatic Monero CLI install supports x86_64 and arm64. Install monero-wallet-rpc manually and set MONERO_WALLET_RPC_BIN."
@@ -292,7 +292,8 @@ install_monero_wallet_rpc() {
   say "Downloading official Monero CLI $MONERO_CLI_VERSION (wallet-rpc only)"
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' RETURN
-  curl -fL --retry 3 --connect-timeout 15 -o "$tmp/monero.tar.bz2" "$url"
+  curl -fL --retry 3 --connect-timeout 15 -o "$tmp/monero.tar.bz2" "$url" ||
+    die "Could not download official Monero CLI from $url. Check the upstream site before retrying."
   printf '%s  %s\n' "$expected" "$tmp/monero.tar.bz2" | sha256sum -c - >/dev/null ||
     die "Monero download hash mismatch. The official release may have changed; do not bypass this check."
 

@@ -186,35 +186,52 @@ validate_inputs() {
 }
 
 install_deps() {
-  local missing=() install_packages=0
-  for c in podman curl openssl getent tar sha256sum; do
-    command -v "$c" >/dev/null 2>&1 || missing+=("$c")
-  done
-  [[ "$WALLET_MODE" != "local-view" ]] || command -v systemctl >/dev/null 2>&1 || missing+=("systemd")
+  local missing=() packages=() cmd package
 
-  # podman-compose is a separate provider on many Debian/Ubuntu systems.
-  # Merely having the 'podman' binary does not guarantee 'podman compose' works.
+  # The Monero CLI archive is .tar.bz2. tar alone is not enough: the
+  # standalone bzip2 decompressor must be installed as well.
+  for cmd in podman curl openssl getent tar bzip2 sha256sum; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+      missing+=("$cmd")
+      case "$cmd" in
+        getent) package="libc-bin" ;;
+        sha256sum) package="coreutils" ;;
+        *) package="$cmd" ;;
+      esac
+      packages+=("$package")
+    fi
+  done
+
+  if [[ "$WALLET_MODE" == "local-view" ]] && ! command -v systemctl >/dev/null 2>&1; then
+    missing+=("systemctl")
+    packages+=("systemd")
+  fi
+
+  # Having the Podman binary alone does not guarantee a Compose provider.
   if ! command -v podman-compose >/dev/null 2>&1 &&
      ! { command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; }; then
     missing+=("podman-compose")
+    packages+=("podman-compose")
   fi
 
   if (("${#missing[@]}" > 0)); then
-    say "Missing packages/tools: ${missing[*]}"
-    bool_enabled "$AUTO_INSTALL" || die "Set AUTO_INSTALL=1 or install these packages manually"
+    say "Missing tools: ${missing[*]}"
+    bool_enabled "$AUTO_INSTALL" || die "Set AUTO_INSTALL=1 or install the missing tools manually"
     [[ $EUID -eq 0 ]] || die "Run as root to auto-install dependencies"
     if command -v apt-get >/dev/null 2>&1; then
-      say "Installing Podman, Compose provider and relay dependencies (Debian/Ubuntu)"
+      say "Installing only missing dependencies (Debian/Ubuntu): ${packages[*]}"
       export DEBIAN_FRONTEND=noninteractive
       apt-get update
-      apt-get install -y podman podman-compose curl openssl libc-bin util-linux bzip2 ca-certificates
+      apt-get install -y "${packages[@]}"
     else
-      die "Automatic dependency installation supports Debian/Ubuntu. Install Podman and podman-compose manually on this OS."
+      die "Automatic dependency installation supports Debian/Ubuntu only. Install: ${packages[*]}"
     fi
   fi
 
-  # Fail early if the installation exists but cannot actually launch containers.
-  command -v podman >/dev/null 2>&1 || die "Podman binary not found after installation"
+  # Check after installation so failures are reported before wallet bootstrap.
+  for cmd in podman curl openssl getent tar bzip2 sha256sum; do
+    command -v "$cmd" >/dev/null 2>&1 || die "Required tool still missing: $cmd"
+  done
   podman info >/dev/null 2>&1 || die "Podman is installed but unusable. Check kernel namespaces, cgroups, and container permissions."
 }
 

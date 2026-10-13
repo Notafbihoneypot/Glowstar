@@ -448,6 +448,13 @@ wait_wallet_rpc() {
 create_or_reuse_view_wallet() {
   [[ "$WALLET_MODE" == "local-view" ]] || return
 
+  # A failed generate_from_keys call can leave one wallet file behind.
+  # Never overwrite or silently treat a partial wallet as reusable.
+  if [[ -e "$MONERO_WALLET_FILE" && ! -s "$MONERO_WALLET_FILE.keys" ]] ||
+     [[ -e "$MONERO_WALLET_FILE.keys" && ! -s "$MONERO_WALLET_FILE" ]]; then
+    die "Incomplete view-wallet files at $MONERO_WALLET_FILE (wallet or .keys missing/empty). Do not delete them; inspect logs: journalctl -u $MONERO_SERVICE -n 50 --no-pager"
+  fi
+
   ensure_wallet_user
   generate_wallet_credentials
   write_wallet_service
@@ -465,8 +472,14 @@ create_or_reuse_view_wallet() {
     params="$(printf '{"restore_height":%s,"filename":"relay-view","address":"%s","viewkey":"%s","password":"%s","autosave_current":true}'       "$RESTORE_HEIGHT" "$VIEW_ADDRESS" "$VIEW_KEY" "$escaped_pw")"
 
     response="$(wallet_rpc_call generate_from_keys "$params")" ||
-      die "generate_from_keys failed"
-    [[ "$response" == *'"result"'* ]] || die "View-wallet creation failed: $response"
+      die "generate_from_keys transport failure; inspect: journalctl -u $MONERO_SERVICE -n 50 --no-pager"
+    if [[ "$response" != *'"result"'* ]]; then
+      warn "Wallet RPC rejected generate_from_keys (the error may be generic): $response"
+      if [[ -e "$MONERO_WALLET_FILE" || -e "$MONERO_WALLET_FILE.keys" ]]; then
+        warn "Partial wallet files were created. Do not delete or overwrite them."
+      fi
+      die "View-wallet creation stopped. Inspect service logs: journalctl -u $MONERO_SERVICE -n 50 --no-pager (redact secrets before sharing)"
+    fi
 
     systemctl stop "$MONERO_SERVICE"
   fi

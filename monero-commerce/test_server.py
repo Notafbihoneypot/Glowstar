@@ -23,13 +23,20 @@ class CommerceTests(unittest.TestCase):
                 "usd_cents": 1000,
                 "seconds": 365 * 86400,
                 "label": "Glowstr relay - 1 year",
-            }
+                "lifetime": False,
+            },
+            "relay_lifetime": {
+                "usd_cents": 4000,
+                "seconds": None,
+                "label": "Glowstr relay - lifetime of service",
+                "lifetime": True,
+            },
         }
 
     def tearDown(self):
         self.tmp.cleanup()
 
-    def invoice_row(self, amount=1000, expires_delta=1800):
+    def invoice_row(self, amount=1000, expires_delta=1800, feature="relay_365d"):
         now = int(time.time())
         c = commerce.db()
         c.execute(
@@ -41,7 +48,7 @@ class CommerceTests(unittest.TestCase):
                 "inv1",
                 "hash",
                 "a" * 64,
-                "relay_365d",
+                feature,
                 "relay.glowstr.com",
                 amount,
                 0,
@@ -197,6 +204,80 @@ class CommerceTests(unittest.TestCase):
             c.close()
         finally:
             commerce.rpc = old_rpc
+
+
+    def test_annual_expiry_and_lifetime_marker(self):
+        now = 1_800_000_000
+        annual = commerce.FEATURES["relay_365d"]
+        lifetime = commerce.FEATURES["relay_lifetime"]
+        self.assertEqual(commerce.entitlement_valid_until(now, 0, annual),
+                         now + 365 * 86400)
+        self.assertEqual(commerce.entitlement_valid_until(now, now + 500, annual),
+                         now + 500 + 365 * 86400)
+        self.assertEqual(commerce.entitlement_valid_until(now, 0, lifetime),
+                         commerce.LIFETIME_UNTIL)
+
+    def test_lifetime_payment_requires_two_confirms_and_preserves_annual(self):
+        c, row = self.invoice_row(amount=4000, feature="relay_lifetime")
+        existing = int(time.time()) + 50 * 86400
+        c.execute(
+            """INSERT INTO entitlements(pubkey,feature,target,valid_until,invoice_id)
+               VALUES(?,?,?,?,?)""",
+            ("a" * 64, "relay_365d", "relay.glowstr.com", existing, "annual"),
+        )
+        c.commit()
+        conf = {"value": 1}
+        old_rpc = commerce.rpc
+        commerce.rpc = lambda method, params=None: {
+            "in": [{
+                "subaddr_index": {"major": 0, "minor": 7},
+                "amount": 4000,
+                "confirmations": conf["value"],
+                "txid": "lifetime-tx",
+                "timestamp": int(time.time()),
+                "double_spend_seen": False,
+            }],
+            "pool": [],
+        }
+        try:
+            first = commerce.refresh_invoice(c, row)
+            self.assertEqual(first["status"], "CONFIRMING")
+            self.assertIsNone(c.execute(
+                "SELECT valid_until FROM entitlements WHERE feature='relay_lifetime'"
+            ).fetchone())
+            conf["value"] = 2
+            paid = commerce.refresh_invoice(c, first)
+            self.assertEqual(paid["status"], "PAID")
+            self.assertEqual(c.execute(
+                "SELECT valid_until FROM entitlements WHERE feature='relay_lifetime'"
+            ).fetchone()["valid_until"], commerce.LIFETIME_UNTIL)
+            self.assertEqual(c.execute(
+                "SELECT valid_until FROM entitlements WHERE feature='relay_365d'"
+            ).fetchone()["valid_until"], existing)
+        finally:
+            commerce.rpc = old_rpc
+            c.close()
+
+    def test_lifetime_does_not_generate_expiry_reminder(self):
+        c = commerce.db()
+        c.execute(
+            """INSERT INTO entitlements(pubkey,feature,target,valid_until,invoice_id)
+               VALUES(?,?,?,?,?)""",
+            ("b" * 64, "relay_lifetime", "relay.glowstr.com",
+             commerce.LIFETIME_UNTIL, "lifetime"),
+        )
+        c.commit()
+        c.close()
+        old_rpc = commerce.rpc
+        commerce.rpc = lambda method, params=None: {}
+        try:
+            commerce.reconcile_once()
+            c = commerce.db()
+            self.assertIsNone(c.execute("SELECT * FROM reminders").fetchone())
+            c.close()
+        finally:
+            commerce.rpc = old_rpc
+
 
 
 if __name__ == "__main__":

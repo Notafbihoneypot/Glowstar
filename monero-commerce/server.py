@@ -17,13 +17,10 @@ import time
 from decimal import Decimal, ROUND_UP
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlencode, urlparse, parse_qs
-from urllib.request import (
-    build_opener,
-    HTTPDigestAuthHandler,
-    HTTPPasswordMgrWithDefaultRealm,
-    Request,
-    urlopen,
-)
+from urllib.request import Request, urlopen
+
+import requests
+from requests.auth import HTTPDigestAuth
 
 ATOMIC = 10**12
 YEAR_SECONDS = 365 * 86400
@@ -185,18 +182,23 @@ def db():
 
 
 def rpc(method, params=None):
-    payload = json.dumps(
-        {"jsonrpc": "2.0", "id": "glowstr", "method": method, "params": params or {}}
-    ).encode()
-    req = Request(RPC, data=payload, headers={"Content-Type": "application/json"})
-    if RPC_USER:
-        mgr = HTTPPasswordMgrWithDefaultRealm()
-        mgr.add_password(None, RPC, RPC_USER, RPC_PASS)
-        opener = build_opener(HTTPDigestAuthHandler(mgr))
-    else:
-        opener = build_opener()
-    with opener.open(req, timeout=12) as r:
-        out = json.load(r)
+    """Monero wallet JSON-RPC with proper RFC Digest challenge handling.
+
+    urllib's HTTPDigestAuthHandler repeatedly fails against monero-wallet-rpc
+    on the deployment's Python 3.13 image even when curl --digest succeeds.
+    Never log or place wallet credentials in URLs.
+    """
+    payload = {"jsonrpc": "2.0", "id": "glowstr", "method": method,
+               "params": params or {}}
+    auth = HTTPDigestAuth(RPC_USER, RPC_PASS) if RPC_USER else None
+    with requests.Session() as session:
+        # A local wallet RPC must not accidentally go through HTTP_PROXY.
+        session.trust_env = False
+        response = session.post(
+            RPC, json=payload, auth=auth, timeout=12, allow_redirects=False,
+        )
+        response.raise_for_status()
+        out = response.json()
     if out.get("error"):
         raise RuntimeError(str(out["error"]))
     return out["result"]

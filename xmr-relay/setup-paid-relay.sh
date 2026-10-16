@@ -563,9 +563,10 @@ MONERO_WALLET_RPC=$RPC_URL
 MONERO_RPC_USER=$RPC_USER
 MONERO_RPC_PASS=$RPC_PASS
 
-# USD 10 equivalent in XMR for 365 days.
+# Paid plans: USD 10 for 365 days and USD 40 one-time for service lifetime.
 GLOWSTR_XMR_CONFIRMATIONS=2
 GLOWSTR_RELAY_USD_CENTS=1000
+GLOWSTR_RELAY_LIFETIME_USD_CENTS=4000
 GLOWSTR_XMR_USD_URL=https://api.kraken.com/0/public/Ticker?pair=XMRUSD
 GLOWSTR_XMR_USD_OVERRIDE=
 GLOWSTR_RELAY_SECONDS=31536000
@@ -580,6 +581,9 @@ GLOWSTR_GATE_MAX_CONNECTIONS=80
 GLOWSTR_GATE_MAX_CONNECTIONS_PER_IP=12
 GLOWSTR_GATE_PRIVACY_AUTH_GRACE_MS=15000
 GLOWSTR_GATE_MAX_GRACE_WRITES=8
+# Per-paid-pubkey fair use, both plans. In-memory counters reset on restart.
+GLOWSTR_GATE_MAX_WRITES_PER_MINUTE=60
+GLOWSTR_GATE_MAX_WRITES_PER_DAY=5000
 GLOWSTR_ALLOW_PRIVACY_WRAPPERS=true
 
 # NIP-17 notifier intentionally disabled in the 512 MB relay profile.
@@ -655,6 +659,8 @@ healthcheck() {
 
   curl -fsS --retry 12 --retry-delay 3 "https://$RELAY_DOMAIN/xmr-commerce/v1/features" >/tmp/glowstr-features.json ||
     die "Public payment API is not reachable through Caddy/TLS"
+  grep -q '"relay_lifetime"' /tmp/glowstr-features.json ||
+    die "Payment API is running an older build without lifetime membership"
 }
 
 print_finish() {
@@ -673,11 +679,14 @@ Glowstr payment API:
 Wallet mode:
   $WALLET_MODE
 
-Plan:
-  USD 10 equivalent in XMR
-  365 days of write access
-  2 confirmations required
+Plans:
+  USD 10 equivalent in XMR — 365 days of write access
+  USD 40 equivalent in XMR — one-time access for the operating life of this relay
+  2 confirmations required for either plan
   reading remains public/free
+  fair use (both plans): 60 accepted events/minute, 5000/day per paid pubkey
+  maximum event size: 64 KiB, subject to relay filtering
+  no guaranteed permanent storage or uptime; no resale, flood, or bulk mirroring
 
 HOW GLOWSTR LEARNS THE USER PAID
 
@@ -688,12 +697,12 @@ HOW GLOWSTR LEARNS THE USER PAID
      /xmr-commerce/v1/invoices/<invoice-id>
    using that invoice token.
 5. Commerce independently watches monero-wallet-rpc, even if Glowstr closes.
-6. At 2 confirmations Commerce stores a relay_365d entitlement for that pubkey.
+6. At 2 confirmations Commerce stores the selected relay_365d or relay_lifetime entitlement.
 7. The invoice endpoint changes to:
      status = PAID
      access_valid_until = <unix time>
 8. Glowstr shows "2 confirmations — relay access activated".
-9. On every relay write, relay-gate verifies NIP-42 and checks the entitlement
+9. On every relay write, relay-gate verifies NIP-42, fair-use limits, and entitlement
    server-side. A fake client-side "paid" screen cannot bypass the gate.
 
 Glowstr must use:

@@ -650,7 +650,10 @@ healthcheck() {
   done
   (( ok == 1 )) || die "Local relay/payment services did not become healthy"
 
-  curl -fsS --retry 12 --retry-delay 3 "https://$RELAY_DOMAIN/" | grep -q "GLOWSTR RELAY" ||\n    die "Public static relay website is not reachable"\n\n  curl -fsS --retry 12 --retry-delay 3     "https://$RELAY_DOMAIN/xmr-commerce/v1/features" >/tmp/glowstr-features.json ||
+  curl -fsS --retry 12 --retry-delay 3 "https://$RELAY_DOMAIN/" | grep -q "GLOWSTR RELAY" ||
+    die "Public static relay website is not reachable"
+
+  curl -fsS --retry 12 --retry-delay 3 "https://$RELAY_DOMAIN/xmr-commerce/v1/features" >/tmp/glowstr-features.json ||
     die "Public payment API is not reachable through Caddy/TLS"
 }
 
@@ -671,7 +674,7 @@ Wallet mode:
   $WALLET_MODE
 
 Plan:
-  $10 USD equivalent in XMR
+  USD 10 equivalent in XMR
   365 days of write access
   2 confirmations required
   reading remains public/free

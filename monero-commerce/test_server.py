@@ -81,7 +81,7 @@ class CommerceTests(unittest.TestCase):
                 header = self.headers.get("Authorization", "")
                 fields = {}
                 for key, quoted, plain in re.findall(
-                    r'(\\w+)=(?:"([^"]*)"|([^,\\s]+))', header
+                    r'(\w+)=(?:"([^"]*)"|([^,\s]+))', header
                 ):
                     fields[key] = quoted or plain
                 ha1 = hashlib.md5(

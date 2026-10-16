@@ -1,8 +1,194 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Glowstr — Monero Paid Nostr Relay</title><style>
-:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#09121a;color:#ecf6f4}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 60% 0%,#153f3c 0%,#09121a 60%)}main{max-width:780px;margin:0 auto;padding:38px 22px}header{display:flex;justify-content:space-between;align-items:center}header strong{color:#87f6d1;font-size:1.3rem}small,p{color:#bdcfcf;line-height:1.7}h1{font-size:clamp(2.1rem,6vw,4rem);letter-spacing:-.04em;margin:75px 0 15px}h1 span{color:#87f6d1}.panel{background:#14252b;border:1px solid #315058;padding:24px;border-radius:18px;margin:30px 0}code{overflow-wrap:anywhere;color:#87f6d1;font-size:1.15rem}button,a.button{background:#87f6d1;color:#09231c;border:0;border-radius:9px;padding:12px 17px;font-weight:700;cursor:pointer;display:inline-block;text-decoration:none;margin:14px 12px 0 0}a{color:#87f6d1}ul{line-height:2;color:#d6e3e2;padding-left:20px}footer{margin-top:65px;border-top:1px solid #315058;padding-top:18px}#status{font-size:.9rem}</style></head><body>
-<main><header><strong>✳ GLOWSTR RELAY</strong><small>Open Nostr infrastructure</small></header><h1>Your identity.<br><span>Your relay.</span></h1><p>Independent Nostr infrastructure supported by Monero. Read public events for free; pay in XMR to publish. Connect from any Nostr client that supports relay authentication.</p>
-<section class="panel"><small>PUBLIC RELAY ADDRESS</small><p><code id="relay"></code></p><button id="copy" type="button">Copy relay URL</button><p id="status" role="status">Checking relay…</p></section>
-<section class="panel"><h2>Publish with Monero</h2><p>Membership: $10 USD equivalent in XMR for 365 days. Your account is your Nostr public key, not an email address. Payment activates after two confirmations.</p><p>Use the Monero purchase flow in Glowstr, or a compatible external payment client. A plain wallet donation does <strong>not</strong> activate publishing: use the invoice below to link payment to your Nostr public key.</p><form id="buy"><label for="pubkey">Your Nostr public key (64-character hex)</label><p><input id="pubkey" autocomplete="off" spellcheck="false" pattern="[0-9a-fA-F]{64}" minlength="64" maxlength="64" required placeholder="64-character hex public key" style="width:100%;background:#08151b;color:#f5fafa;border:1px solid #42636c;border-radius:8px;padding:12px"></p><button type="submit">Create XMR invoice</button></form><div id="invoice" role="status" style="overflow-wrap:anywhere"></div><p><small>Copy your public key from your Nostr client. Never paste your private key. Keep this tab open to watch payment confirmation.</small></p></section>
-<h2>Built for the wider Nostr network</h2><ul><li>Compatible with standard Nostr relay clients</li><li>Public reads, paid publishing and server-side verification</li><li>Signed events and NIP-42 authentication</li><li>Anti-spam protections and resource limits</li><li>No tracking pixels, analytics, external fonts, or third-party scripts</li></ul><footer><small>Never enter your Monero seed, private spend key, or Nostr private key on this page. Payment availability and NIP-42 support depend on your client.</small></footer></main>
-<script>const url='wss://'+location.host+'/';document.getElementById('relay').textContent=url;document.getElementById('copy').onclick=async()=>{try{await navigator.clipboard.writeText(url);document.getElementById('copy').textContent='Copied!'}catch{document.getElementById('copy').textContent='Select URL above'}};document.getElementById('buy').onsubmit=async e=>{e.preventDefault();const el=document.getElementById('invoice');const pubkey=document.getElementById('pubkey').value.trim().toLowerCase();el.textContent='Creating invoice…';try{const res=await fetch('/xmr-commerce/v1/invoices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pubkey,feature:'relay_365d',target:location.hostname})});const d=await res.json();if(!res.ok)throw new Error(d.error||'Invoice unavailable');el.replaceChildren();const p=document.createElement('p');p.textContent='Pay exactly '+(d.amount_atomic/1e12).toFixed(12).replace(/0+$/,'').replace(/\\.$/,'')+' XMR to:';el.append(p);const address=document.createElement('code');address.textContent=d.address;el.append(address);const link=document.createElement('p');const a=document.createElement('a');a.textContent='Open Monero wallet';a.href=d.uri;link.append(a);el.append(link);const status=document.createElement('p');status.textContent='Awaiting payment';el.append(status);const poll=async()=>{try{const r=await fetch('/xmr-commerce/v1/invoices/'+encodeURIComponent(d.id),{headers:{Authorization:'Bearer '+d.token},cache:'no-store'});const q=await r.json();status.textContent='Payment: '+(q.status||'pending')+(q.confirmations!==undefined?' · '+q.confirmations+' confirmations':'');if(q.status==='PAID'||q.status==='EXPIRED')return;}catch{status.textContent='Waiting for payment service…'}setTimeout(poll,15000)};poll()}catch(err){el.textContent='Unable to create invoice: '+err.message}};fetch('/xmr-commerce/v1/features',{cache:'no-store'}).then(r=>{document.getElementById('status').textContent=r.ok?'Payment API online':'Payment API unavailable'}).catch(()=>document.getElementById('status').textContent='Payment API unavailable');</script></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark">
+<title>Glowstr Relay — Paid Nostr, Powered by Monero</title>
+<style>
+:root {color-scheme:dark; font:16px/1.65 system-ui,-apple-system,sans-serif; background:#09121a; color:#edf8f5}
+* {box-sizing:border-box}
+body {margin:0; background:radial-gradient(ellipse at 50% 0%,#17443d 0%,#09121a 60%); min-height:100vh}
+main {width:min(840px,100%); margin:auto; padding:30px 20px 55px}
+header {display:flex;align-items:center;justify-content:space-between;gap:16px}
+header strong {font-size:1.25rem;color:#8cf6d2;letter-spacing:.02em}
+header span, .muted {color:#b3cac7}
+h1 {font-size:clamp(2.3rem,7vw,4.5rem);line-height:1.12;letter-spacing:-.05em;margin:65px 0 20px}
+h1 em {color:#8cf6d2;font-style:normal}
+h2 {font-size:1.45rem;margin:0 0 12px}
+h3 {font-size:1.05rem;margin:3px 0}
+p {color:#cbdbd8; margin:10px 0}
+.panel,.tier {border:1px solid #355753;background:#13282d;border-radius:16px;padding:22px}
+.panel {margin:26px 0}
+.tiers {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:20px 0}
+.tier {cursor:pointer;display:block;min-height:180px}
+.tier:has(input:checked) {border-color:#8cf6d2;box-shadow:0 0 0 1px #8cf6d2}
+.tier input {accent-color:#8cf6d2}
+.tier .price {font-size:2rem;font-weight:750;color:#8cf6d2;letter-spacing:-.03em}
+.tier small {display:block;color:#b3cac7}
+label.field {font-weight:650;display:block;margin:16px 0 6px}
+input[type=text] {display:block;width:100%;background:#091b20;border:1px solid #4b716f;color:#fff;border-radius:9px;padding:13px;font:inherit}
+button {background:#8cf6d2;color:#082b24;border:0;border-radius:9px;padding:12px 19px;font:inherit;font-weight:750;cursor:pointer;margin:14px 0}
+button:disabled {opacity:.5;cursor:wait}
+button:hover:not(:disabled) {background:#b9ffe8}
+a {color:#8cf6d2}
+code {font-family:ui-monospace,Consolas,monospace;color:#8cf6d2;overflow-wrap:anywhere}
+.info {font-size:.88rem;color:#b3cac7}
+#invoice:empty {display:none}
+#invoice {padding:18px;border:1px solid #355753;border-radius:11px;background:#0e2025;margin-top:16px}
+#invoice address {font-style:normal;overflow-wrap:anywhere}
+dl {display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}
+dt {color:#b3cac7} dd {margin:0}
+ul {padding-left:20px;color:#cdddde}
+li {margin-bottom:8px}
+footer {margin-top:45px;padding-top:22px;border-top:1px solid #31504f;color:#b3cac7}
+@media(max-width:560px) {.tiers,dl {grid-template-columns:1fr} header span {display:none} .panel,.tier{padding:18px} h1{margin-top:42px}}
+</style>
+</head>
+<body><main>
+<header><strong>✳ GLOWSTR RELAY</strong><span>Independent Nostr infrastructure</span></header>
+<h1>Your identity.<br><em>Your relay.</em></h1>
+<p>Read public Nostr events for free. Publish using Monero, no email or personal account required. Use Glowstr or any compatible Nostr client that supports NIP-42 authentication.</p>
+
+<section class="panel">
+<h2>Connect to the relay</h2>
+<p><code id="relay-url">wss://your-domain/</code></p>
+<button type="button" id="copy-relay">Copy relay address</button>
+<p class="info" id="status" role="status">Checking payment service…</p>
+</section>
+
+<section class="panel" id="join">
+<h2>Pay once in Monero</h2>
+<p>One invoice, one Nostr identity, no automatic renewals or recurring charges. Prices are converted to XMR when an invoice is created.</p>
+<div class="tiers" role="group" aria-label="Choose a membership">
+<label class="tier"><input type="radio" name="plan" value="relay_365d" checked>
+<h3>Annual membership</h3><div class="price">$10</div><small>365 days of publishing · renew whenever you want</small></label>
+<label class="tier"><input type="radio" name="plan" value="relay_lifetime">
+<h3>Lifetime membership</h3><div class="price">$40</div><small>One-time access for the operating lifetime of this relay</small></label>
+</div>
+<form id="buy">
+<label class="field" for="pubkey">Your Nostr public key (64 hexadecimal characters)</label>
+<input id="pubkey" name="pubkey" type="text" required maxlength="64" minlength="64"
+pattern="[0-9a-fA-F]{64}" placeholder="Paste the public key, never your nsec" autocomplete="off" spellcheck="false">
+<p class="info">Check this key carefully before paying. Membership is tied to this key, not your device. Don't enter a private key or seed.</p>
+<button id="buy-button" type="submit">Create XMR invoice</button>
+</form>
+<div id="invoice" role="status" aria-live="polite"></div>
+<p class="info">A unique payment subaddress is generated for every invoice. Access activates after 2 Monero confirmations. You can close the page after payment; the server continues verification. Keep your invoice information to check its progress.</p>
+</section>
+
+<section class="panel" id="fair-use">
+<h2>Fair use — both plans</h2>
+<p>All paid members get the same protections and limits. Lifetime refers to the operating life of this relay, not forever or guaranteed indefinite storage.</p>
+<ul>
+<li>Up to <strong>60 accepted publishes per minute</strong> and <strong>5,000 per day</strong> per paid Nostr pubkey (in-memory limits; may reset after a server restart).</li>
+<li>Maximum event size <strong>64 KiB</strong>; excessive tags, subscriptions, and large query requests are rejected or limited.</li>
+<li>No flooding, automated abuse, event spam, unauthorized resale, or bulk event mirroring that overloads the service.</li>
+<li>Storage, retention, connectivity and uptime are best-effort. Back up your Nostr events to other relays. Lifetime purchases cannot guarantee permanent operation.</li>
+<li>Privacy-wrapper event types remain supported, with usage charged to an authenticated paid identity.</li>
+</ul>
+</section>
+
+<footer><p>Glowstr is interoperable Nostr infrastructure, not a custodial wallet. Payments are confirmed on-chain and tied to the public key you provide. Don't send XMR to a static donation address for access.</p></footer>
+</main>
+<script>
+'use strict';
+const relay = 'wss://' + location.host + '/';
+document.getElementById('relay-url').textContent = relay;
+document.getElementById('copy-relay').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(relay);
+    document.getElementById('copy-relay').textContent = 'Copied!';
+  } catch {
+    document.getElementById('copy-relay').textContent = 'Copy manually above';
+  }
+});
+const statusEl = document.getElementById('status');
+const buy = document.getElementById('buy');
+const buyButton = document.getElementById('buy-button');
+const invoiceEl = document.getElementById('invoice');
+let paymentTimer = null;
+function xmrAmount(atomicValue) {
+  const amount = BigInt(String(atomicValue));
+  const whole = amount / 1000000000000n;
+  const fraction = String(amount % 1000000000000n).padStart(12, '0').replace(/0+$/, '');
+  return String(whole) + (fraction ? '.' + fraction : '');
+}
+function line(parent, tag, text) {
+  const element = document.createElement(tag);
+  element.textContent = text;
+  parent.append(element);
+  return element;
+}
+fetch('/xmr-commerce/v1/features', {cache:'no-store'})
+  .then(async response => {
+    if (!response.ok) throw Error('unavailable');
+    const data = await response.json();
+    if (!data.features?.relay_365d || !data.features?.relay_lifetime) throw Error('outdated backend');
+    statusEl.textContent = 'Payment service online · annual and lifetime memberships available';
+  })
+  .catch(() => {
+    statusEl.textContent = 'Payment service unavailable or not updated. Do not send XMR until it is online.';
+    buyButton.disabled = true;
+  });
+buy.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (paymentTimer) { clearTimeout(paymentTimer); paymentTimer = null; }
+  const pubkey = document.getElementById('pubkey').value.trim().toLowerCase();
+  const feature = document.querySelector('input[name="plan"]:checked').value;
+  if (!/^[0-9a-f]{64}$/.test(pubkey)) return;
+  buyButton.disabled = true;
+  invoiceEl.replaceChildren();
+  line(invoiceEl, 'p', 'Creating your private invoice…');
+  try {
+    const res = await fetch('/xmr-commerce/v1/invoices', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({pubkey, feature, target:location.hostname})
+    });
+    const data = await res.json();
+    if (!res.ok) throw Error(data.error || 'Invoice unavailable');
+    invoiceEl.replaceChildren();
+    line(invoiceEl, 'h3', feature === 'relay_lifetime' ? 'Lifetime invoice' : 'Annual invoice');
+    line(invoiceEl, 'p', 'Pay exactly ' + xmrAmount(data.amount_atomic) + ' XMR');
+    const address = line(invoiceEl, 'address', data.address);
+    address.style.marginBottom = '16px';
+    const wallet = document.createElement('a');
+    wallet.href = data.uri;
+    wallet.textContent = 'Open Cake Wallet or other Monero wallet';
+    invoiceEl.append(wallet);
+    line(invoiceEl, 'p', 'Invoice ID: ' + data.id);
+    const progress = line(invoiceEl, 'p', 'Waiting for payment…');
+    const poll = async () => {
+      try {
+        const res = await fetch('/xmr-commerce/v1/invoices/' + encodeURIComponent(data.id), {
+          headers:{Authorization:'Bearer ' + data.token}, cache:'no-store'
+        });
+        if (!res.ok) throw Error('status unavailable');
+        const state = await res.json();
+        if (state.status === 'PAID') {
+          progress.textContent = 'Payment confirmed — publishing access activated. Add the relay URL to your Nostr client and authenticate.';
+          buyButton.disabled = false;
+          return;
+        }
+        if (state.status === 'EXPIRED') {
+          progress.textContent = 'Invoice expired. Create a fresh one; do not reuse this payment address.';
+          buyButton.disabled = false;
+          return;
+        }
+        progress.textContent = 'Payment: ' + (state.status || 'WAITING') +
+          ' · confirmations: ' + (state.confirmations ?? 0) + ' / ' + data.confirmations_required;
+      } catch {
+        progress.textContent = 'Payment status temporarily unavailable; verification continues server-side.';
+      }
+      paymentTimer = setTimeout(poll, 15000);
+    };
+    poll();
+  } catch (error) {
+    invoiceEl.replaceChildren();
+    line(invoiceEl, 'p', 'Could not create invoice: ' + error.message);
+    buyButton.disabled = false;
+  }
+});
+</script>
+</body></html>

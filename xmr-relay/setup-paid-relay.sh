@@ -202,6 +202,14 @@ install_deps() {
     fi
   done
 
+  # Monero deliberately requires an explicit trust source when daemon SSL is enabled.
+  # Ensure Ubuntu's trusted CA bundle exists for HTTPS remote nodes.
+  if [[ "$WALLET_MODE" == "local-view" && "$REMOTE_DAEMON" == https://* &&
+        ! -s /etc/ssl/certs/ca-certificates.crt ]]; then
+    missing+=("ca-certificates")
+    packages+=("ca-certificates")
+  fi
+
   if [[ "$WALLET_MODE" == "local-view" ]] && ! command -v systemctl >/dev/null 2>&1; then
     missing+=("systemctl")
     packages+=("systemd")
@@ -369,6 +377,8 @@ write_wallet_config() {
   daemon_host="${daemon_host%/}"
   if [[ "$REMOTE_DAEMON" == https://* ]]; then
     daemon_ssl=enabled
+    [[ -s /etc/ssl/certs/ca-certificates.crt ]] ||
+      die "Missing Ubuntu CA bundle. Install ca-certificates before configuring an HTTPS Monero daemon."
   else
     daemon_ssl=disabled
   fi
@@ -384,6 +394,12 @@ log-level=0
 log-file=$MONERO_WALLET_DIR/wallet-rpc.log
 max-log-files=2
 EOF
+  if [[ "$daemon_ssl" == "enabled" ]]; then
+    # Verify remote Monero daemon TLS chains using trusted system CAs.
+    # Do not use daemon-ssl-allow-any-cert: that disables authentication.
+    printf '%s\\n' 'daemon-ssl-ca-certificates=/etc/ssl/certs/ca-certificates.crt' \
+      'daemon-ssl-allow-chained=1' >> "$MONERO_CONFIG"
+  fi
   if [[ "$mode" == "bootstrap" ]]; then
     printf '%s\n' "wallet-dir=$MONERO_WALLET_DIR" >> "$MONERO_CONFIG"
   else

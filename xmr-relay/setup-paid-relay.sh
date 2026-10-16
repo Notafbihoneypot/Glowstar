@@ -584,6 +584,7 @@ GLOWSTR_GATE_MAX_GRACE_WRITES=8
 # Per-paid-pubkey fair use, both plans. In-memory counters reset on restart.
 GLOWSTR_GATE_MAX_WRITES_PER_MINUTE=60
 GLOWSTR_GATE_MAX_WRITES_PER_DAY=5000
+GLOWSTR_GATE_MAX_BYTES_PER_DAY=2097152
 GLOWSTR_ALLOW_PRIVACY_WRAPPERS=true
 
 # NIP-17 notifier intentionally disabled in the 512 MB relay profile.
@@ -684,7 +685,7 @@ Plans:
   USD 40 equivalent in XMR — one-time access for the operating life of this relay
   2 confirmations required for either plan
   reading remains public/free
-  fair use (both plans): 60 accepted events/minute, 5000/day per paid pubkey
+  fair use (both plans): 60 accepted events/minute, 5000/day and 2 MiB/day per paid pubkey
   maximum event size: 64 KiB, subject to relay filtering
   no guaranteed permanent storage or uptime; no resale, flood, or bulk mirroring
 

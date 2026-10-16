@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Glowstr Monero Commerce service.
 
-Annual XMR-paid relay access with server-side payment reconciliation.
+Annual and one-time lifetime XMR-paid relay access with server-side payment reconciliation.
 Keep monero-wallet-rpc on loopback. Never expose wallet RPC to the browser.
 """
 from __future__ import annotations
@@ -27,6 +27,9 @@ from urllib.request import (
 
 ATOMIC = 10**12
 YEAR_SECONDS = 365 * 86400
+# Operational lifetime of this relay, not a promise that the service will exist forever.
+# Store as a large SQLite integer so both plans use the existing entitlement schema.
+LIFETIME_UNTIL = 253402300799
 
 
 def read_secret(env_name, file_env_name):
@@ -54,6 +57,7 @@ PRICE_URL = os.getenv(
 ).strip()
 PRICE_OVERRIDE = os.getenv("GLOWSTR_XMR_USD_OVERRIDE", "").strip()
 RELAY_USD_CENTS = max(1, int(os.getenv("GLOWSTR_RELAY_USD_CENTS", "1000")))
+LIFETIME_USD_CENTS = max(1, int(os.getenv("GLOWSTR_RELAY_LIFETIME_USD_CENTS", "4000")))
 RELAY_SECONDS = max(60, int(os.getenv("GLOWSTR_RELAY_SECONDS", str(YEAR_SECONDS))))
 RELAY_TARGET = os.getenv("GLOWSTR_RELAY_TARGET", "relay.glowstr.com").strip().lower()
 if not RELAY_TARGET or any(c not in "abcdefghijklmnopqrstuvwxyz0123456789.-" for c in RELAY_TARGET):
@@ -76,8 +80,15 @@ FEATURES = {
     "relay_365d": {
         "usd_cents": RELAY_USD_CENTS,
         "seconds": RELAY_SECONDS,
+        "lifetime": False,
         "label": "Glowstr relay - 1 year",
-    }
+    },
+    "relay_lifetime": {
+        "usd_cents": LIFETIME_USD_CENTS,
+        "seconds": None,
+        "lifetime": True,
+        "label": "Glowstr relay - lifetime of service",
+    },
 }
 
 _rate_lock = threading.Lock()
@@ -310,8 +321,9 @@ def refresh_invoice(c, row):
                WHERE pubkey=? AND feature=? AND target=?""",
             (row["pubkey"], row["feature"], row["target"]),
         ).fetchone()
-        base = max(now, int(current["valid_until"]) if current else now)
-        until = base + spec["seconds"]
+        until = entitlement_valid_until(
+            now, current["valid_until"] if current else 0, spec
+        )
         c.execute(
             """INSERT INTO entitlements(pubkey,feature,target,valid_until,invoice_id)
                VALUES(?,?,?,?,?)
@@ -328,6 +340,13 @@ def refresh_invoice(c, row):
         )
     c.commit()
     return c.execute("SELECT * FROM invoices WHERE id=?", (row["id"],)).fetchone()
+
+
+def entitlement_valid_until(now, current_until, spec):
+    """Annual memberships extend; lifetime memberships do not expire while hosted."""
+    if spec.get("lifetime"):
+        return LIFETIME_UNTIL
+    return max(now, int(current_until or 0)) + int(spec["seconds"])
 
 
 def reconcile_once():
@@ -436,6 +455,16 @@ class H(BaseHTTPRequestHandler):
                     return self.out({"error": "invalid_relay_target"}, 400)
 
                 spec = FEATURES[feature]
+                if spec.get("lifetime"):
+                    c = db()
+                    current = c.execute(
+                        """SELECT 1 FROM entitlements WHERE pubkey=? AND feature=?
+                           AND target=? AND valid_until>?""",
+                        (pubkey, feature, target, int(time.time())),
+                    ).fetchone()
+                    c.close()
+                    if current:
+                        return self.out({"error": "already_lifetime_member"}, 409)
                 price = xmr_usd_price()
                 amount = usd_cents_to_atomic(spec["usd_cents"], price)
                 inv = secrets.token_urlsafe(18)
@@ -482,6 +511,8 @@ class H(BaseHTTPRequestHandler):
                         "id": inv,
                         "token": token,
                         "status": "WAITING",
+                        "feature": feature,
+                        "lifetime": bool(spec.get("lifetime")),
                         "address": address,
                         "amount_atomic": amount,
                         "usd_cents": spec["usd_cents"],
@@ -556,6 +587,7 @@ class H(BaseHTTPRequestHandler):
                     k: {
                         "usd_cents": v["usd_cents"],
                         "seconds": v["seconds"],
+                        "lifetime": bool(v.get("lifetime")),
                         "label": v["label"],
                     }
                     for k, v in FEATURES.items()
@@ -586,6 +618,8 @@ class H(BaseHTTPRequestHandler):
                     {
                         "id": row["id"],
                         "status": row["status"],
+                        "feature": row["feature"],
+                        "lifetime": bool(FEATURES.get(row["feature"], {}).get("lifetime")),
                         "amount_atomic": row["amount"],
                         "usd_cents": row["usd_cents"],
                         "address": row["address"],

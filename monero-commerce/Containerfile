@@ -6,4 +6,5 @@ RUN mkdir -p /data && chown -R glowstr:glowstr /data /app
 USER glowstr
 ENV GLOWSTR_COMMERCE_HOST=0.0.0.0 GLOWSTR_COMMERCE_PORT=8787 GLOWSTR_COMMERCE_DB=/data/commerce.sqlite3
 EXPOSE 8787
-CMD ["python3","/app/server.py"]
+ENV PYTHONUNBUFFERED=1
+CMD ["python3","-u","/app/server.py"]

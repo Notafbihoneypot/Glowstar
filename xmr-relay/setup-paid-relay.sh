@@ -23,6 +23,8 @@ RPC_USER="${MONERO_RPC_USER:-}"
 RPC_PASS="${MONERO_RPC_PASS:-}"
 
 AUTO_INSTALL="${AUTO_INSTALL:-1}"
+# Opt-in rotation for leaked wallet RPC/admin credentials, without changing wallet keys.
+ROTATE_SECRETS="${ROTATE_SECRETS:-0}"
 AUTO_SWAP="${AUTO_SWAP:-1}"
 SKIP_DNS_CHECK="${SKIP_DNS_CHECK:-0}"
 ALLOW_PROXMOX_HOST="${ALLOW_PROXMOX_HOST:-0}"
@@ -356,8 +358,12 @@ ensure_wallet_user() {
 generate_wallet_credentials() {
   [[ "$WALLET_MODE" == "local-view" ]] || return
   RPC_USER="${RPC_USER:-glowstr}"
-  [[ -n "$RPC_PASS" ]] || RPC_PASS="$(env_value MONERO_RPC_PASS)"
-  [[ -n "$RPC_PASS" ]] || RPC_PASS="$(openssl rand -hex 24)"
+  if bool_enabled "$ROTATE_SECRETS"; then
+    RPC_PASS="$(openssl rand -hex 32)"
+  else
+    [[ -n "$RPC_PASS" ]] || RPC_PASS="$(env_value MONERO_RPC_PASS)"
+    [[ -n "$RPC_PASS" ]] || RPC_PASS="$(openssl rand -hex 24)"
+  fi
 
   local wallet_password
   if [[ -s "$MONERO_PASSWORD_FILE" ]]; then
@@ -547,6 +553,9 @@ check_wallet_rpc() {
 write_env() {
   local admin
   admin="$(env_value GLOWSTR_COMMERCE_ADMIN_TOKEN)"
+  if bool_enabled "$ROTATE_SECRETS"; then
+    admin="$(openssl rand -hex 32)"
+  fi
   if [[ ! "$admin" =~ ^[A-Za-z0-9_-]{32,}$ && ! "$admin" =~ ^[0-9a-fA-F]{64,}$ ]]; then
     admin="$(openssl rand -hex 32)"
   fi
@@ -647,9 +656,32 @@ EOF
 }
 
 start_stack() {
-  say "Building and starting Glowstr paid relay"
+  say "Building and starting Glowstr paid relay (Commerce, strfry, gate, Caddy)"
   cd "$HERE"
-  "${COMPOSE[@]}" -f compose.yaml -f compose.paid-relay.yaml up -d --build
+  # podman-compose 1.0.x prints full -e KEY=VALUE CLI arguments, including
+  # passwords and admin bearer tokens. Redact those strings in streamed output.
+  # Use explicit services: old podman-compose versions ignore Compose profiles
+  # and accidentally start the optional notifier on this 512 MB VPS.
+  local admin logline
+  admin="$(env_value GLOWSTR_COMMERCE_ADMIN_TOKEN)"
+  "${COMPOSE[@]}" -f compose.yaml -f compose.paid-relay.yaml up -d --build \
+    commerce relay relay-gate caddy 2>&1 | {
+      while IFS= read -r logline || [[ -n "$logline" ]]; do
+        if [[ -n "$RPC_PASS" ]]; then
+          logline="${logline//"$RPC_PASS"/[REDACTED-RPC-PASSWORD]}"
+        fi
+        if [[ -n "$admin" ]]; then
+          logline="${logline//"$admin"/[REDACTED-ADMIN-TOKEN]}"
+        fi
+        printf '%s\n' "$logline"
+      done
+    }
+  # Older compose providers may have started the optional notifier previously.
+  # Keep its volume/credentials intact, but do not consume RAM when disabled.
+  if [[ -z "$(env_value GLOWSTR_NIP17_PUBLIC_KEY)" ]] &&
+     podman container exists xmr-relay_notifier_1; then
+    podman stop xmr-relay_notifier_1 >/dev/null 2>&1 || true
+  fi
 }
 
 healthcheck() {
@@ -663,7 +695,20 @@ healthcheck() {
     fi
     sleep 2
   done
-  (( ok == 1 )) || die "Local relay/payment services did not become healthy"
+  if (( ok != 1 )); then
+    warn "One or more local services did not become healthy."
+    local commerce_status gate_status
+    commerce_status="$(curl -s --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:8787/ready || true)"
+    gate_status="$(curl -s --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:7778/health || true)"
+    warn "Commerce /ready HTTP: ${commerce_status:-unreachable}; relay-gate /health HTTP: ${gate_status:-unreachable}"
+    podman ps -a --filter label=io.podman.compose.project=xmr-relay \
+      --format 'table {{.Names}}\t{{.Status}}' || true
+    warn "Inspect the failing service without exposing passwords:"
+    warn "  podman logs --tail 60 xmr-relay_commerce_1"
+    warn "  podman logs --tail 60 xmr-relay_relay-gate_1"
+    warn "  podman logs --tail 60 xmr-relay_relay_1"
+    die "Local relay/payment health check failed; containers and wallet data preserved"
+  fi
 
   curl -fsS --retry 12 --retry-delay 3 "https://$RELAY_DOMAIN/" | grep -q "GLOWSTR RELAY" ||
     die "Public static relay website is not reachable"

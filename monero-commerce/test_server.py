@@ -1,9 +1,13 @@
+import hashlib
 import importlib.util
 import os
+import re
 import tempfile
+import threading
 import time
 import unittest
 from decimal import Decimal
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 MODULE_PATH = Path(__file__).with_name("server.py")
@@ -62,6 +66,64 @@ class CommerceTests(unittest.TestCase):
         )
         c.commit()
         return c, c.execute("SELECT * FROM invoices WHERE id='inv1'").fetchone()
+
+
+    def test_digest_authenticated_wallet_rpc_handshake(self):
+        """Mirror Monero wallet RPC's HTTP Digest challenge and POST response."""
+        realm, nonce = "monero-wallet-rpc", "test-nonce"
+        username, password = "glowstr", "unit-test-password"
+
+        class WalletRPCHandler(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def do_POST(self):
+                header = self.headers.get("Authorization", "")
+                fields = {}
+                for key, quoted, plain in re.findall(
+                    r'(\\w+)=(?:"([^"]*)"|([^,\\s]+))', header
+                ):
+                    fields[key] = quoted or plain
+                ha1 = hashlib.md5(
+                    f"{username}:{realm}:{password}".encode()
+                ).hexdigest()
+                ha2 = hashlib.md5(
+                    f"POST:{fields.get('uri', '')}".encode()
+                ).hexdigest()
+                expected = hashlib.md5(
+                    (f"{ha1}:{nonce}:{fields.get('nc', '')}:"
+                     f"{fields.get('cnonce', '')}:auth:{ha2}").encode()
+                ).hexdigest()
+                if fields.get("response") != expected:
+                    self.send_response(401)
+                    self.send_header(
+                        "WWW-Authenticate",
+                        f'Digest realm="{realm}", nonce="{nonce}", '
+                        'qop="auth", algorithm=MD5',
+                    )
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(
+                    b'{"jsonrpc":"2.0","result":{"version":12345}}'
+                )
+
+        server = HTTPServer(("127.0.0.1", 0), WalletRPCHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        old = (commerce.RPC, commerce.RPC_USER, commerce.RPC_PASS)
+        try:
+            commerce.RPC = f"http://127.0.0.1:{server.server_port}/json_rpc"
+            commerce.RPC_USER, commerce.RPC_PASS = username, password
+            self.assertEqual(commerce.rpc("get_version"), {"version": 12345})
+        finally:
+            commerce.RPC, commerce.RPC_USER, commerce.RPC_PASS = old
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
 
     def test_client_ip_uses_caddy_header_only_on_loopback(self):
         self.assertEqual(commerce.client_ip("127.0.0.1", "203.0.113.21"), "203.0.113.21")

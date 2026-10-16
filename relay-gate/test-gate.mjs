@@ -115,3 +115,12 @@ test('fair-use limit applies across sockets for the same paid key', () => {
   assert.equal(consumeFairUse(limits, 'b'.repeat(64), 2, 3, 181).ok, true)
   assert.equal(consumeFairUse(limits, pk, 2, 3, 86400).ok, true)
 })
+
+test('daily upload byte budget is enforced for every paid key', () => {
+  const limits = new Map()
+  const pk = 'd'.repeat(64)
+  assert.equal(consumeFairUse(limits, pk, 10, 100, 100, 700, 1000).ok, true)
+  assert.equal(consumeFairUse(limits, pk, 10, 100, 101, 301, 1000).ok, false)
+  assert.equal(consumeFairUse(limits, pk, 10, 100, 102, 300, 1000).ok, true)
+  assert.equal(consumeFairUse(limits, pk, 10, 100, 86400, 1000, 1000).ok, true)
+})

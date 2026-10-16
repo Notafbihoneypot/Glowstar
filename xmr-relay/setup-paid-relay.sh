@@ -701,6 +701,11 @@ healthcheck() {
     commerce_status="$(curl -s --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:8787/ready || true)"
     gate_status="$(curl -s --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:7778/health || true)"
     warn "Commerce /ready HTTP: ${commerce_status:-unreachable}; relay-gate /health HTTP: ${gate_status:-unreachable}"
+    local readiness_json
+    readiness_json="$(curl -s --max-time 5 http://127.0.0.1:8787/ready || true)"
+    if [[ "$readiness_json" == *'"component"'* ]]; then
+      warn "Commerce readiness details: $readiness_json"
+    fi
     podman ps -a --filter label=io.podman.compose.project=xmr-relay \
       --format 'table {{.Names}}\t{{.Status}}' || true
     warn "Inspect the failing service without exposing passwords:"

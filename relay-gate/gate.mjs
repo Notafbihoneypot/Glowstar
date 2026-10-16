@@ -13,6 +13,7 @@ const AUTH_MAX_SKEW_SECONDS = 600
 const DEFAULT_CACHE_SECONDS = 15
 const DEFAULT_MAX_WRITES_MINUTE = 60
 const DEFAULT_MAX_WRITES_DAY = 5000
+const DEFAULT_MAX_BYTES_DAY = 2097152
 const MAX_TRACKED_PUBKEYS = 10000
 
 function envInt(name, fallback, min = 1, max = Number.MAX_SAFE_INTEGER) {
@@ -113,7 +114,8 @@ export function decideWrite(event, authedPubkeys, paidPubkeys, allowPrivacyWrapp
 // Shared in-process across sockets, not merely a per-connection counter.
 // Counts reset with the process; this is a resource safeguard, not billing.
 export function consumeFairUse(limits, pubkey, perMinute = DEFAULT_MAX_WRITES_MINUTE,
-  perDay = DEFAULT_MAX_WRITES_DAY, timestamp = Math.floor(Date.now() / 1000)) {
+  perDay = DEFAULT_MAX_WRITES_DAY, timestamp = Math.floor(Date.now() / 1000),
+  eventBytes = 0, maxBytesDay = DEFAULT_MAX_BYTES_DAY) {
   const minute = Math.floor(timestamp / 60)
   const day = Math.floor(timestamp / 86400)
   let state = limits.get(pubkey)
@@ -126,19 +128,23 @@ export function consumeFairUse(limits, pubkey, perMinute = DEFAULT_MAX_WRITES_MI
     if (limits.size >= MAX_TRACKED_PUBKEYS) {
       return { ok: false, reason: 'rate-limited: fair-use tracker at capacity' }
     }
-    state = { minute, day, minuteCount: 0, dayCount: 0 }
+    state = { minute, day, minuteCount: 0, dayCount: 0, bytesDay: 0 }
     limits.set(pubkey, state)
   }
   if (state.minute !== minute) { state.minute = minute; state.minuteCount = 0 }
-  if (state.day !== day) { state.day = day; state.dayCount = 0 }
+  if (state.day !== day) { state.day = day; state.dayCount = 0; state.bytesDay = 0 }
   if (state.minuteCount >= perMinute) {
     return { ok: false, reason: 'rate-limited: publishing exceeds minute fair-use limit' }
   }
   if (state.dayCount >= perDay) {
     return { ok: false, reason: 'rate-limited: publishing exceeds daily fair-use limit' }
   }
+  if (state.bytesDay + eventBytes > maxBytesDay) {
+    return { ok: false, reason: 'rate-limited: publishing exceeds daily byte allowance' }
+  }
   state.minuteCount++
   state.dayCount++
+  state.bytesDay += eventBytes
   return { ok: true }
 }
 
@@ -241,6 +247,7 @@ async function main() {
   const maxGraceWrites = envInt('GLOWSTR_GATE_MAX_GRACE_WRITES', 8, 1, 64)
   const maxWritesMinute = envInt('GLOWSTR_GATE_MAX_WRITES_PER_MINUTE', DEFAULT_MAX_WRITES_MINUTE, 1, 2000)
   const maxWritesDay = envInt('GLOWSTR_GATE_MAX_WRITES_PER_DAY', DEFAULT_MAX_WRITES_DAY, 1, 100000)
+  const maxBytesDay = envInt('GLOWSTR_GATE_MAX_BYTES_PER_DAY', DEFAULT_MAX_BYTES_DAY, 65536, 1073741824)
   const fairUse = new Map()
   if (!adminToken) throw new Error('GLOWSTR_COMMERCE_ADMIN_TOKEN[_FILE] is required')
 
@@ -395,7 +402,8 @@ async function main() {
         // use ephemeral authors; charge the first paid authenticated sponsor.
         const billedPubkey = (allowPrivacyWrappers && isPrivacyWrapperKind(event.kind))
           ? paid.values().next().value : event.pubkey
-        const quota = consumeFairUse(fairUse, billedPubkey, maxWritesMinute, maxWritesDay)
+        const quota = consumeFairUse(fairUse, billedPubkey, maxWritesMinute, maxWritesDay,
+          Math.floor(Date.now() / 1000), Buffer.byteLength(JSON.stringify(event)), maxBytesDay)
         if (!quota.ok) {
           sendJson(client, ['OK', event.id, false, quota.reason])
           return

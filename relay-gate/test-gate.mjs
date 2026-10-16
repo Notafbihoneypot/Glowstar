@@ -5,6 +5,7 @@ import { finalizeEvent, generateSecretKey, getPublicKey } from 'nostr-tools/pure
 
 import {
   decideWrite,
+  consumeFairUse,
   isPrivacyWrapperKind,
   normalizeRelayUrl,
   validateAuthEvent,
@@ -101,4 +102,16 @@ test('privacy wrapper exception can be disabled', () => {
   const stream = generateSecretKey()
   const payerPk = getPublicKey(payer)
   assert.equal(decideWrite(event(stream, 1059), new Set([payerPk]), new Set([payerPk]), false).ok, false)
+})
+
+test('fair-use limit applies across sockets for the same paid key', () => {
+  const limits = new Map()
+  const pk = 'a'.repeat(64)
+  assert.equal(consumeFairUse(limits, pk, 2, 3, 120).ok, true)
+  assert.equal(consumeFairUse(limits, pk, 2, 3, 121).ok, true)
+  assert.equal(consumeFairUse(limits, pk, 2, 3, 121).ok, false)
+  assert.equal(consumeFairUse(limits, pk, 2, 3, 180).ok, true)
+  assert.equal(consumeFairUse(limits, pk, 2, 3, 181).ok, false)
+  assert.equal(consumeFairUse(limits, 'b'.repeat(64), 2, 3, 181).ok, true)
+  assert.equal(consumeFairUse(limits, pk, 2, 3, 86400).ok, true)
 })

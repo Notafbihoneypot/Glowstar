@@ -11,6 +11,9 @@ import { WebSocket, WebSocketServer } from 'ws'
 const MAX_FRAME_BYTES = 262144
 const AUTH_MAX_SKEW_SECONDS = 600
 const DEFAULT_CACHE_SECONDS = 15
+const DEFAULT_MAX_WRITES_MINUTE = 60
+const DEFAULT_MAX_WRITES_DAY = 5000
+const MAX_TRACKED_PUBKEYS = 10000
 
 function envInt(name, fallback, min = 1, max = Number.MAX_SAFE_INTEGER) {
   const n = Number.parseInt(process.env[name] || '', 10)
@@ -91,7 +94,7 @@ export function decideWrite(event, authedPubkeys, paidPubkeys, allowPrivacyWrapp
     return { ok: false, reason: 'auth-required: authenticate before publishing' }
   }
   if (!paidPubkeys || paidPubkeys.size === 0) {
-    return { ok: false, reason: 'restricted: Glowstr annual relay membership required' }
+    return { ok: false, reason: 'restricted: active Glowstr relay membership required' }
   }
 
   const privacy = allowPrivacyWrappers && isPrivacyWrapperKind(event.kind)
@@ -106,11 +109,44 @@ export function decideWrite(event, authedPubkeys, paidPubkeys, allowPrivacyWrapp
   return { ok: true }
 }
 
+// Fair-use limits apply to both annual and lifetime paid pubkeys.
+// Shared in-process across sockets, not merely a per-connection counter.
+// Counts reset with the process; this is a resource safeguard, not billing.
+export function consumeFairUse(limits, pubkey, perMinute = DEFAULT_MAX_WRITES_MINUTE,
+  perDay = DEFAULT_MAX_WRITES_DAY, timestamp = Math.floor(Date.now() / 1000)) {
+  const minute = Math.floor(timestamp / 60)
+  const day = Math.floor(timestamp / 86400)
+  let state = limits.get(pubkey)
+  if (!state) {
+    if (limits.size >= MAX_TRACKED_PUBKEYS) {
+      for (const [key, value] of limits) {
+        if (value.day !== day) limits.delete(key)
+      }
+    }
+    if (limits.size >= MAX_TRACKED_PUBKEYS) {
+      return { ok: false, reason: 'rate-limited: fair-use tracker at capacity' }
+    }
+    state = { minute, day, minuteCount: 0, dayCount: 0 }
+    limits.set(pubkey, state)
+  }
+  if (state.minute !== minute) { state.minute = minute; state.minuteCount = 0 }
+  if (state.day !== day) { state.day = day; state.dayCount = 0 }
+  if (state.minuteCount >= perMinute) {
+    return { ok: false, reason: 'rate-limited: publishing exceeds minute fair-use limit' }
+  }
+  if (state.dayCount >= perDay) {
+    return { ok: false, reason: 'rate-limited: publishing exceeds daily fair-use limit' }
+  }
+  state.minuteCount++
+  state.dayCount++
+  return { ok: true }
+}
+
 class EntitlementCache {
-  constructor({ adminUrl, adminToken, feature, target, ttlSeconds }) {
+  constructor({ adminUrl, adminToken, features, target, ttlSeconds }) {
     this.adminUrl = adminUrl.replace(/\/$/, '')
     this.adminToken = adminToken
-    this.feature = feature
+    this.features = new Set(features)
     this.target = target
     this.ttlMs = ttlSeconds * 1000
     this.entries = new Map()
@@ -135,7 +171,7 @@ class EntitlementCache {
       const now = Math.floor(Date.now() / 1000)
       let validUntil = 0
       for (const ent of Array.isArray(data.entitlements) ? data.entitlements : []) {
-        if (ent.feature !== this.feature) continue
+        if (!this.features.has(ent.feature)) continue
         if (ent.target !== this.target) continue
         const until = Number(ent.valid_until || 0)
         if (until > now && until > validUntil) validUntil = until
@@ -191,7 +227,9 @@ async function main() {
   const upstreamUrl = process.env.GLOWSTR_GATE_UPSTREAM || 'ws://127.0.0.1:7777'
   const adminUrl = process.env.GLOWSTR_COMMERCE_ADMIN_URL || 'http://127.0.0.1:8787/v1/admin'
   const adminToken = await readSecret('GLOWSTR_COMMERCE_ADMIN_TOKEN', 'GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE')
-  const feature = process.env.GLOWSTR_RELAY_FEATURE || 'relay_365d'
+  const features = [...new Set((process.env.GLOWSTR_RELAY_FEATURES ||
+    ((process.env.GLOWSTR_RELAY_FEATURE || 'relay_365d') + ',relay_lifetime'))
+    .split(',').map(x => x.trim()).filter(Boolean))]
   const target = process.env.GLOWSTR_RELAY_TARGET || 'relay.glowstr.com'
   const allowPrivacyWrappers = !['0', 'false', 'no', 'off'].includes(
     String(process.env.GLOWSTR_ALLOW_PRIVACY_WRAPPERS || 'true').toLowerCase(),
@@ -201,12 +239,15 @@ async function main() {
   const maxConnectionsPerIp = envInt('GLOWSTR_GATE_MAX_CONNECTIONS_PER_IP', 12, 1, 64)
   const authGraceMs = envInt('GLOWSTR_GATE_PRIVACY_AUTH_GRACE_MS', 15000, 0, 60000)
   const maxGraceWrites = envInt('GLOWSTR_GATE_MAX_GRACE_WRITES', 8, 1, 64)
+  const maxWritesMinute = envInt('GLOWSTR_GATE_MAX_WRITES_PER_MINUTE', DEFAULT_MAX_WRITES_MINUTE, 1, 2000)
+  const maxWritesDay = envInt('GLOWSTR_GATE_MAX_WRITES_PER_DAY', DEFAULT_MAX_WRITES_DAY, 1, 100000)
+  const fairUse = new Map()
   if (!adminToken) throw new Error('GLOWSTR_COMMERCE_ADMIN_TOKEN[_FILE] is required')
 
   const entitlements = new EntitlementCache({
     adminUrl,
     adminToken,
-    feature,
+    features,
     target,
     ttlSeconds: envInt('GLOWSTR_ENTITLEMENT_CACHE_SECONDS', DEFAULT_CACHE_SECONDS, 1, 300),
   })
@@ -348,6 +389,15 @@ async function main() {
         const decision = decideWrite(event, authed, paid, allowPrivacyWrappers)
         if (!decision.ok) {
           sendJson(client, ['OK', event.id, false, decision.reason])
+          return
+        }
+        // Ordinary events are charged to the author. Privacy wrappers may
+        // use ephemeral authors; charge the first paid authenticated sponsor.
+        const billedPubkey = (allowPrivacyWrappers && isPrivacyWrapperKind(event.kind))
+          ? paid.values().next().value : event.pubkey
+        const quota = consumeFairUse(fairUse, billedPubkey, maxWritesMinute, maxWritesDay)
+        if (!quota.ok) {
+          sendJson(client, ['OK', event.id, false, quota.reason])
           return
         }
       }

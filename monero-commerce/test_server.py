@@ -225,6 +225,11 @@ class CommerceTests(unittest.TestCase):
                VALUES(?,?,?,?,?)""",
             ("a" * 64, "relay_365d", "relay.glowstr.com", existing, "annual"),
         )
+        c.execute(
+            """INSERT INTO reminders(pubkey,feature,target,valid_until,created_at)
+               VALUES(?,?,?,?,?)""",
+            ("a" * 64, "relay_365d", "relay.glowstr.com", existing, int(time.time())),
+        )
         c.commit()
         conf = {"value": 1}
         old_rpc = commerce.rpc
@@ -254,6 +259,9 @@ class CommerceTests(unittest.TestCase):
             self.assertEqual(c.execute(
                 "SELECT valid_until FROM entitlements WHERE feature='relay_365d'"
             ).fetchone()["valid_until"], existing)
+            reminder = c.execute("SELECT cancelled_at,last_error FROM reminders").fetchone()
+            self.assertIsNotNone(reminder["cancelled_at"])
+            self.assertIn("lifetime", reminder["last_error"])
         finally:
             commerce.rpc = old_rpc
             c.close()
@@ -266,6 +274,31 @@ class CommerceTests(unittest.TestCase):
             ("b" * 64, "relay_lifetime", "relay.glowstr.com",
              commerce.LIFETIME_UNTIL, "lifetime"),
         )
+        c.commit()
+        c.close()
+        old_rpc = commerce.rpc
+        commerce.rpc = lambda method, params=None: {}
+        try:
+            commerce.reconcile_once()
+            c = commerce.db()
+            self.assertIsNone(c.execute("SELECT * FROM reminders").fetchone())
+            c.close()
+        finally:
+            commerce.rpc = old_rpc
+
+
+
+    def test_annual_reminder_suppressed_when_lifetime_exists(self):
+        c = commerce.db()
+        expiry = int(time.time()) + 10 * 86400
+        for feature, until in [
+            ("relay_365d", expiry), ("relay_lifetime", commerce.LIFETIME_UNTIL)
+        ]:
+            c.execute(
+                """INSERT INTO entitlements(pubkey,feature,target,valid_until,invoice_id)
+                   VALUES(?,?,?,?,?)""",
+                ("c" * 64, feature, "relay.glowstr.com", until, feature),
+            )
         c.commit()
         c.close()
         old_rpc = commerce.rpc

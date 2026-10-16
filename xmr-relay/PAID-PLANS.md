@@ -65,8 +65,8 @@ If lifetime is active for a relay/pubkey combination, requests for another annua
 ## Regression tests (for a development environment)
 
 ```sh
-python3 monero-commerce/test_server.py
-cd relay-gate && npm ci && npm test
+python3 ../monero-commerce/test_server.py
+cd ../relay-gate && npm ci && npm test
 ```
 
 These tests simulate payment states and exercise fair-use logic. They do **not** verify live RPC wallet connectivity, successful Monero confirmations, or external HTTPS deployment. Do an end-to-end staging checkout before announcing paid access.

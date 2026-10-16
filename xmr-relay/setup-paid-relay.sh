@@ -607,6 +607,16 @@ $RELAY_DOMAIN {
 
     # Static public landing page; no tracking, cookies, or JavaScript dependencies.
     root * /srv/glowstr-site
+    # Preserve NIP-11 discovery for third-party Nostr clients sharing the
+    # root path with the browser homepage.
+    @nip11 {
+        path /
+        header Accept *application/nostr+json*
+    }
+    handle @nip11 {
+        reverse_proxy 127.0.0.1:7777
+    }
+
     @home path /
     handle @home {
         rewrite * /index.html
@@ -662,6 +672,10 @@ healthcheck() {
     die "Public payment API is not reachable through Caddy/TLS"
   grep -q '"relay_lifetime"' /tmp/glowstr-features.json ||
     die "Payment API is running an older build without lifetime membership"
+  # Standard Nostr clients must receive NIP-11 JSON, not homepage HTML.
+  curl -fsS --retry 4 --retry-delay 2 -H 'Accept: application/nostr+json' \
+    "https://$RELAY_DOMAIN/" | grep -q '"name"' ||
+    die "NIP-11 metadata is not accessible at the relay root"
 }
 
 print_finish() {

@@ -397,7 +397,7 @@ EOF
   if [[ "$daemon_ssl" == "enabled" ]]; then
     # Verify remote Monero daemon TLS chains using trusted system CAs.
     # Do not use daemon-ssl-allow-any-cert: that disables authentication.
-    printf '%s\\n' 'daemon-ssl-ca-certificates=/etc/ssl/certs/ca-certificates.crt' \
+    printf '%s\n' 'daemon-ssl-ca-certificates=/etc/ssl/certs/ca-certificates.crt' \
       'daemon-ssl-allow-chained=1' >> "$MONERO_CONFIG"
   fi
   if [[ "$mode" == "bootstrap" ]]; then

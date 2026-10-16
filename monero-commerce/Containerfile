@@ -1,4 +1,7 @@
 FROM python:3.13-alpine
+# Monero wallet-RPC requires HTTP Digest auth; requests handles its challenge
+# reliably where Python 3.13 urllib repeatedly returns HTTP 401.
+RUN pip install --no-cache-dir --disable-pip-version-check 'requests==2.32.5'
 RUN addgroup -S glowstr && adduser -S -G glowstr glowstr
 WORKDIR /app
 COPY server.py /app/server.py

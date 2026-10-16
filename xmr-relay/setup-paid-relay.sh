@@ -655,9 +655,50 @@ $RELAY_DOMAIN {
 EOF
 }
 
+# podman-compose 1.0.6 cannot replace a container while another Podman
+# container was created with --requires=<old-container>. It may silently
+# restart the OLD image even after building the new one. Before a managed
+# upgrade, remove only this project's containers in reverse dependency order.
+# Named Podman volumes, wallet files, and .env are never removed here.
+recreate_project_containers() {
+  local name owner
+  local managed=(
+    xmr-relay_caddy_1
+    xmr-relay_relay-gate_1
+    xmr-relay_notifier_1
+    xmr-relay_relay_1
+    xmr-relay_commerce_1
+  )
+  # Verify all known container names belong to us BEFORE removing any.
+  for name in "${managed[@]}"; do
+    if podman container exists "$name"; then
+      owner="$(podman inspect --type container \
+        --format '{{ index .Config.Labels "io.podman.compose.project" }}' "$name")" ||
+        die "Cannot inspect $name; refusing to replace any containers"
+      [[ "$owner" == "xmr-relay" ]] ||
+        die "Container $name is not labeled as xmr-relay; refusing to replace it"
+    fi
+  done
+  local found=0
+  for name in "${managed[@]}"; do
+    if podman container exists "$name"; then
+      (( found += 1 ))
+      say "Replacing old container: $name (preserving named volumes)"
+      # -f stops a running container and removes only its container object.
+      # Do NOT use podman rm -v or podman volume rm.
+      podman rm -f "$name" >/dev/null ||
+        die "Cannot remove $name in dependency order; refusing stale-image restart"
+    fi
+  done
+  if (( found > 0 )); then
+    say "Removed $found outdated Podman containers; named volumes remain intact"
+  fi
+}
+
 start_stack() {
   say "Building and starting Glowstr paid relay (Commerce, strfry, gate, Caddy)"
   cd "$HERE"
+  recreate_project_containers
   # podman-compose 1.0.x prints full -e KEY=VALUE CLI arguments, including
   # passwords and admin bearer tokens. Redact those strings in streamed output.
   # Use explicit services: old podman-compose versions ignore Compose profiles
@@ -676,12 +717,16 @@ start_stack() {
         printf '%s\n' "$logline"
       done
     }
-  # Older compose providers may have started the optional notifier previously.
-  # Keep its volume/credentials intact, but do not consume RAM when disabled.
-  if [[ -z "$(env_value GLOWSTR_NIP17_PUBLIC_KEY)" ]] &&
-     podman container exists xmr-relay_notifier_1; then
-    podman stop xmr-relay_notifier_1 >/dev/null 2>&1 || true
-  fi
+  # Guard against podman-compose returning success when an internal Podman
+  # command failed, as seen with exit code 125 during container replacement.
+  local required
+  for required in xmr-relay_commerce_1 xmr-relay_relay_1 \
+                  xmr-relay_relay-gate_1 xmr-relay_caddy_1; do
+    podman container exists "$required" ||
+      die "Compose returned without creating required container $required"
+    [[ "$(podman inspect --type container --format '{{.State.Running}}' "$required")" == "true" ]] ||
+      die "Required container $required is not running; check podman logs"
+  done
 }
 
 healthcheck() {

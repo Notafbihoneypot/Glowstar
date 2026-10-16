@@ -331,13 +331,23 @@ def refresh_invoice(c, row):
                DO UPDATE SET valid_until=excluded.valid_until,invoice_id=excluded.invoice_id""",
             (row["pubkey"], row["feature"], row["target"], until, row["id"]),
         )
-        c.execute(
-            """UPDATE reminders
-               SET cancelled_at=?, last_error='superseded by confirmed renewal'
-               WHERE pubkey=? AND feature=? AND target=?
-                 AND sent_at IS NULL AND cancelled_at IS NULL AND valid_until<>?""",
-            (now, row["pubkey"], row["feature"], row["target"], until),
-        )
+        if spec.get("lifetime"):
+            # Upgrading from annual must cancel any queued renewal message.
+            c.execute(
+                """UPDATE reminders
+                   SET cancelled_at=?, last_error='superseded by lifetime access'
+                   WHERE pubkey=? AND target=? AND feature='relay_365d'
+                     AND sent_at IS NULL AND cancelled_at IS NULL""",
+                (now, row["pubkey"], row["target"]),
+            )
+        else:
+            c.execute(
+                """UPDATE reminders
+                   SET cancelled_at=?, last_error='superseded by confirmed renewal'
+                   WHERE pubkey=? AND feature=? AND target=?
+                     AND sent_at IS NULL AND cancelled_at IS NULL AND valid_until<>?""",
+                (now, row["pubkey"], row["feature"], row["target"], until),
+            )
     c.commit()
     return c.execute("SELECT * FROM invoices WHERE id=?", (row["id"],)).fetchone()
 
@@ -366,9 +376,16 @@ def reconcile_once():
 
     window_end = now + REMINDER_SECONDS
     expiring = c.execute(
-        """SELECT pubkey,feature,target,valid_until FROM entitlements
-           WHERE feature='relay_365d' AND valid_until>? AND valid_until<=?""",
-        (now, window_end),
+        """SELECT pubkey,feature,target,valid_until FROM entitlements AS annual
+           WHERE feature='relay_365d' AND valid_until>? AND valid_until<=?
+             AND NOT EXISTS (
+               SELECT 1 FROM entitlements AS lifetime
+               WHERE lifetime.pubkey=annual.pubkey
+                 AND lifetime.target=annual.target
+                 AND lifetime.feature='relay_lifetime'
+                 AND lifetime.valid_until>?
+             )""",
+        (now, window_end, now),
     ).fetchall()
     for ent in expiring:
         c.execute(
@@ -455,16 +472,17 @@ class H(BaseHTTPRequestHandler):
                     return self.out({"error": "invalid_relay_target"}, 400)
 
                 spec = FEATURES[feature]
-                if spec.get("lifetime"):
-                    c = db()
-                    current = c.execute(
-                        """SELECT 1 FROM entitlements WHERE pubkey=? AND feature=?
-                           AND target=? AND valid_until>?""",
-                        (pubkey, feature, target, int(time.time())),
-                    ).fetchone()
-                    c.close()
-                    if current:
-                        return self.out({"error": "already_lifetime_member"}, 409)
+                # Lifetime replaces any need to renew annual access.
+                # Check both products before issuing any new paid invoice.
+                c = db()
+                current = c.execute(
+                    """SELECT 1 FROM entitlements WHERE pubkey=?
+                       AND feature='relay_lifetime' AND target=? AND valid_until>?""",
+                    (pubkey, target, int(time.time())),
+                ).fetchone()
+                c.close()
+                if current:
+                    return self.out({"error": "already_lifetime_member"}, 409)
                 price = xmr_usd_price()
                 amount = usd_cents_to_atomic(spec["usd_cents"], price)
                 inv = secrets.token_urlsafe(18)

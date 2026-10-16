@@ -608,6 +608,8 @@ class H(BaseHTTPRequestHandler):
                 except Exception as exc:
                     error_type = type(exc).__name__
                     status = getattr(exc, "code", None)
+                    if not isinstance(status, int):
+                        status = getattr(getattr(exc, "response", None), "status_code", None)
                     http_status = status if isinstance(status, int) else None
                     # Do not log/return RPC URL, credentials, or raw RPC error.
                     print(

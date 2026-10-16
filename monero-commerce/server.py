@@ -589,10 +589,39 @@ class H(BaseHTTPRequestHandler):
             if path == "/health":
                 return self.out({"ok": True})
             if path == "/ready":
-                c = db()
-                c.execute("SELECT 1").fetchone()
-                c.close()
-                rpc("get_version")
+                try:
+                    c = db()
+                    try:
+                        c.execute("SELECT 1").fetchone()
+                    finally:
+                        c.close()
+                except Exception as exc:
+                    error_type = type(exc).__name__
+                    print(f"readiness database failure: {error_type}", flush=True)
+                    return self.out(
+                        {"ok": False, "component": "database", "error": error_type}, 503
+                    )
+                try:
+                    rpc("get_version")
+                except Exception as exc:
+                    error_type = type(exc).__name__
+                    status = getattr(exc, "code", None)
+                    http_status = status if isinstance(status, int) else None
+                    # Do not log/return RPC URL, credentials, or raw RPC error.
+                    print(
+                        f"readiness wallet_rpc failure: {error_type}"
+                        + (f" HTTP {http_status}" if http_status else ""),
+                        flush=True,
+                    )
+                    return self.out(
+                        {
+                            "ok": False,
+                            "component": "wallet_rpc",
+                            "error": error_type,
+                            "http_status": http_status,
+                        },
+                        503,
+                    )
                 return self.out({"ok": True})
             if path == "/v1/notifier":
                 configured = valid_pubkey(NOTIFIER_PUBKEY)

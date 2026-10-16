@@ -24,14 +24,14 @@ services:
       GLOWSTR_RECONCILE_SECONDS: ${GLOWSTR_RECONCILE_SECONDS:-20}
       GLOWSTR_NIP17_PUBLIC_KEY: ${GLOWSTR_NIP17_PUBLIC_KEY:-}
     volumes:
-      - glowstr-commerce:/data
+      - glowstr-commerce:/data:U
 
   relay:
     build: .
     restart: unless-stopped
     network_mode: host
     volumes:
-      - glowstr-relay:/app/strfry-db
+      - glowstr-relay:/app/strfry-db:U
 
   relay-gate:
     build: ../relay-gate

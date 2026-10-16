@@ -16,6 +16,7 @@ Both require 2 on-chain Monero confirmations by default. No automatic recurring 
 ## Fair-use and anti-abuse policy (both plans)
 
 - Maximum **60 relay-gate-accepted EVENT requests per minute** and **5,000 per day**, per paid pubkey, across current connections. This is a *best-effort, in-memory* throttle, not a durable usage ledger; counters reset on process restart.
+- Up to **2 MiB of uploaded event data per day** per paid pubkey. This is tracked in memory and can reset after a process restart; it is not a durable disk quota.
 - Events may not exceed **64 KiB** as enforced by strfry; limits on tags, subscriptions, query filters, concurrent sockets, and message buffers still apply.
 - No event floods, harassment via automated spam, bulk mirror traffic that overwhelms the VPS, or access resale. Limitations apply equally to annual and lifetime subscriptions.
 - A privacy wrapper (NIP-59/Concord) may be published under a derived author key when an authenticated paid member is on the same connection; its traffic counts against that paid member.
@@ -42,6 +43,7 @@ GLOWSTR_RELAY_USD_CENTS=1000
 GLOWSTR_RELAY_LIFETIME_USD_CENTS=4000
 GLOWSTR_GATE_MAX_WRITES_PER_MINUTE=60
 GLOWSTR_GATE_MAX_WRITES_PER_DAY=5000
+GLOWSTR_GATE_MAX_BYTES_PER_DAY=2097152
 ```
 
 Compose passes `GLOWSTR_RELAY_FEATURES=relay_365d,relay_lifetime` to the gate.

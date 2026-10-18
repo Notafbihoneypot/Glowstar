@@ -10,8 +10,8 @@ android {
         applicationId 'org.glowstr.meshbridge'
         minSdk 29
         targetSdk 36
-        versionCode 25
-        versionName '0.3.13'
+        versionCode 26
+        versionName '0.3.14'
     }
 
     def signingEnv = ['GLOWSTR_RELEASE_STORE_FILE', 'GLOWSTR_RELEASE_STORE_PASSWORD',
@@ -41,7 +41,14 @@ android {
         debug {
             applicationIdSuffix '.debug'
             versionNameSuffix '-debug'
-            resValue 'string', 'app_name', 'Glowstr FROSTR 0.3.13'
+            resValue 'string', 'app_name', 'Glowstr 0.3.14'
+        }
+        mediafix {
+            initWith debug
+            debuggable false
+            applicationIdSuffix '.mediafix'
+            versionNameSuffix '-mediafix'
+            resValue 'string', 'app_name', 'Glowstr Media Fix 0.3.14'
         }
     }
 
@@ -60,6 +67,8 @@ android {
 dependencies {
     implementation 'com.google.zxing:core:3.5.3'
     implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.16.1'
 }
 
 def syncGlowstrAsset = tasks.register('syncGlowstrAsset', Copy) {

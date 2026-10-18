@@ -24,6 +24,15 @@ public final class TrustedWebContentSelfTest {
         }
         check(TrustedWebContent.isAppDocument("https://app.glowstr.local/"), "Bundled document refused");
         check(TrustedWebContent.isAppDocument("https://app.glowstr.local/#keys"), "Local fragment refused");
+        String address = "4" + "a".repeat(94);
+        check(TrustedWebContent.isMoneroPayment("monero:" + address), "Monero wallet handoff refused");
+        check(TrustedWebContent.isMoneroPayment("monero://" + address + "?tx_amount=0.1"), "Hierarchical wallet URI refused");
+        check(TrustedWebContent.isMoneroPayment("monero:8" + "a".repeat(94)), "Subaddress refused");
+        check(TrustedWebContent.isMoneroPayment("monero:4" + "a".repeat(105)), "Integrated address refused");
+        for (String payment : new String[]{"intent:" + address, "monero:bad", "monero:" + address + "a",
+                "monero:" + address + "#Intent;end", "file:///private", "monero://evil.test/" + address}) {
+            check(!TrustedWebContent.isMoneroPayment(payment), "Unsafe payment URI accepted: " + payment);
+        }
         for (String url : new String[]{"https://app.glowstr.local/evil", "https://app.glowstr.local/?html=evil",
                 "https://app.glowstr.local.evil/", "https://user@app.glowstr.local/", "https://app.glowstr.local:444/",
                 "http://app.glowstr.local/", "data:text/html,evil", "blob:https://app.glowstr.local/abc", "about:blank"}) {

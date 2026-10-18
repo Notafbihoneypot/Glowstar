@@ -7,7 +7,7 @@
 <title>GLOWSTR // v5.3 Bluetooth Direct</title>
 <meta name="description" content="Glowstr — a retro privacy-first Nostr PWA client">
 <meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-q8O3Cw6nI+qLx5BF+vWtbju3rI2BEzF+nlCgS2I9rxs='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-laBGoekB9ush5iWz9F0koRq8YVtMHfkIc+bScSMXIU4='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkdMT1dTVFIiLCAic2hvcnRfbmFtZSI6ICJHTE9XU1RSIiwgImRlc2NyaXB0aW9uIjogIlNlZSBUaHJvdWdoIHRoZSBOb2lzZSBcdTIwMTQgUHJpdmFjeS1maXJzdCBOb3N0ciBjbGllbnQiLCAic3RhcnRfdXJsIjogIi4iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMGEwYSIsICJ0aGVtZV9jb2xvciI6ICIjRkY2NjAwIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCMmFXVjNRbTk0UFNJd0lEQWdNVGt5SURFNU1pSStDanh5WldOMElIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCbWFXeHNQU0lqTUdFd1lUQmhJaTgrQ2p4eVpXTjBJSGc5SWpnaUlIazlJamdpSUhkcFpIUm9QU0l4TnpZaUlHaGxhV2RvZEQwaU1UYzJJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlOR1JqWTJNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlOQ0l2UGdvOGRHVjRkQ0I0UFNJNU5pSWdlVDBpTVRFd0lpQm1iMjUwTFdaaGJXbHNlVDBpYlc5dWIzTndZV05sSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUJtYjI1MExYZGxhV2RvZEQwaVltOXNaQ0lnWm1sc2JEMGlJMFpHTmpZd01DSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krUnp3dmRHVjRkRDRLUEhSbGVIUWdlRDBpT1RZaUlIazlJakUxTUNJZ1ptOXVkQzFtWVcxcGJIazlJbTF2Ym05emNHRmpaU0lnWm05dWRDMXphWHBsUFNJeE5pSWdabWxzYkQwaUkyTmpOVEl3TUNJZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSStSMHhQVjFOVVVqd3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
@@ -10811,10 +10811,36 @@ function contactSeller(pubkey, listingTitle) {
   }, 200);
 }
 
+function glowstrIsMoneroAddress(address) {
+  return typeof address === 'string' && /^(?:[48][1-9A-HJ-NP-Za-km-z]{94}|4[1-9A-HJ-NP-Za-km-z]{105})$/.test(address);
+}
+
+function glowstrBuildMoneroUri(address, amount, label) {
+  if (!glowstrIsMoneroAddress(address)) throw new Error('Invalid mainnet XMR address format');
+  const value = String(amount ?? '').trim(), params = [];
+  if (value) {
+    if (!/^(?:0|[1-9][0-9]*)(?:\.[0-9]{1,12})?$/.test(value) || !Number.isFinite(Number(value))) {
+      throw new Error('Use a non-negative XMR amount with up to 12 decimal places');
+    }
+    if (Number(value) > 0) params.push('tx_amount=' + value);
+  }
+  if (label) params.push('tx_description=' + encodeURIComponent(String(label)));
+  return 'monero:' + address + (params.length ? '?' + params.join('&') : '');
+}
+
+function glowstrOpenWalletUri(uri) {
+  if (/^monero:/i.test(uri) && typeof window.GlowstrAndroid?.openExternal === 'function') {
+    if (!window.GlowstrAndroid.openExternal(uri)) {
+      showToast('No Monero wallet could open this payment');
+      return false;
+    }
+  } else window.location.href = uri;
+  return true;
+}
+
 function openXmrPay(address, amount, label) {
-  const uri = 'monero:' + encodeURIComponent(address) + (amount && amount !== '0' ? '?tx_amount=' + encodeURIComponent(amount) : '') + (label ? (amount ? '&' : '?') + 'tx_description=' + encodeURIComponent(label) : '');
-  window.location.href = uri;
-  setTimeout(() => showToast('If nothing opened, install Cake/Monerujo/Feather'), 500);
+  try { glowstrOpenWalletUri(glowstrBuildMoneroUri(address, amount, label)); }
+  catch (e) { showToast(e.message); }
 }
 
 function showSellModal() {
@@ -11572,7 +11598,7 @@ function getProfileStats(pubkey) {
 // Build a prominent "accepts XMR" tip-jar banner with QR for a profile that has an address.
 // Returns '' if no valid address. Works with zero setup — pure client-side QR.
 function renderTipJar(pubkey, xmrAddr, isMe) {
-  if (!xmrAddr || !/^[48][1-9A-HJ-NP-Za-km-z]{94,105}$/.test(xmrAddr)) return '';
+  if (!glowstrIsMoneroAddress(xmrAddr)) return '';
   const uri = 'monero:' + xmrAddr;
   let qrSvg = '';
   try { qrSvg = generateQrSvg(uri, 4); } catch(e) { qrSvg = ''; }
@@ -11739,6 +11765,7 @@ async function saveProfile() {
     nip05: document.getElementById('edit-nip05').value.trim(),
   };
   const xmr = document.getElementById('edit-xmr').value.trim();
+  if (xmr && !glowstrIsMoneroAddress(xmr)) { showToast('Invalid mainnet XMR address format'); return; }
   if (xmr) meta.xmr = xmr;
   const music = document.getElementById('edit-music').value.trim();
   if (music) {
@@ -12442,7 +12469,7 @@ function loadWalletState() {
 function saveMyAddress() {
   const inp = document.getElementById('wallet-my-address');
   const addr = inp.value.trim();
-  if (!/^[48][1-9A-HJ-NP-Za-km-z]{94,105}$/.test(addr)) {
+  if (!glowstrIsMoneroAddress(addr)) {
     showToast('Invalid XMR address format');
     return;
   }
@@ -12701,7 +12728,7 @@ async function tryUploadHosts(blob, filename, statusInput) {
     if (url) return url;
   } catch(e) { console.warn('catbox failed:', e.message); }
 
-  return null;
+  throw new Error('No media host accepted the image; check your Blossom settings and connection');
 }
 
 async function uploadToNostrBuild(blob, filename) {
@@ -13033,7 +13060,7 @@ function xmrTip(pubkey) {
     showToast(name + ' has no XMR address in profile. Ask them to add one!');
     return;
   }
-  if (!/^[48][1-9A-HJ-NP-Za-km-z]{94,105}$/.test(xmrAddr)) {
+  if (!glowstrIsMoneroAddress(xmrAddr)) {
     showToast('Invalid XMR address format in profile');
     return;
   }
@@ -13079,22 +13106,22 @@ function updateTipUsd() {
 async function executeXmrTip() {
   const tip = state.activeTip;
   if (!tip) { showToast('No active tip'); return; }
-  const amount = parseFloat(document.getElementById('xmr-tip-amount').value) || 0;
+  const rawAmount = document.getElementById('xmr-tip-amount').value.trim();
+  const amount = Number(rawAmount) || 0;
   const message = document.getElementById('xmr-tip-message').value.trim();
 
   // 1. Build the monero: URI with optional amount + description
-  let uri = 'monero:' + tip.xmrAddr;
-  const params = [];
-  if (amount > 0) params.push('tx_amount=' + amount);
-  if (message) params.push('tx_description=' + encodeURIComponent(message.slice(0, 60)));
-  if (params.length > 0) uri += '?' + params.join('&');
+  let uri;
+  try { uri = glowstrBuildMoneroUri(tip.xmrAddr, rawAmount, message.slice(0, 60)); }
+  catch (e) { showToast(e.message); return; }
+  const params = uri.includes('?') ? uri.split('?')[1].split('&') : [];
 
   // 2. If a message was written AND user is logged in, send it as an encrypted NIP-04 DM
   if (message && state.publicKey) {
     const canEncrypt = state.privateKey || (state.signerMethod === 'nip07' && window.nostr?.nip04?.encrypt);
     if (canEncrypt) {
       try {
-        const dmText = '💸 Sent you a Monero tip' + (amount > 0 ? ' of ' + amount + ' XMR' : '') + '! ' + message;
+        const dmText = '💸 Preparing a Monero tip' + (amount > 0 ? ' of ' + amount + ' XMR' : '') + '. Payment is not yet confirmed. ' + message;
         let encrypted;
         if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
           encrypted = await nip04Encrypt(dmText, state.privateKey, tip.pubkey);
@@ -13148,7 +13175,7 @@ async function executeXmrTip() {
   }
   navigator.clipboard?.writeText(tip.xmrAddr);
   closeXmrTipModal();
-  window.open(finalUri, '_self');
+  if (!glowstrOpenWalletUri(finalUri)) return;
   showToast('Opening wallet to tip ' + tip.name + (amount > 0 ? ' (' + amount + ' XMR)' : ''));
 }
 
@@ -14398,7 +14425,32 @@ async function glowstrGetBlossomServersForPubkey(pubkey){state.blossomByPubkey=s
 async function glowstrFetchVerifiedImage(url,expectedHash){const c=new AbortController(),timer=setTimeout(()=>c.abort(),18000);let res;try{res=await fetch(url,{method:'GET',credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer',signal:c.signal});}finally{clearTimeout(timer);}if(!res.ok)throw new Error('HTTP '+res.status);const len=Number(res.headers.get('Content-Length')||0);if(len>30*1024*1024)throw new Error('Media too large');const blob=await res.blob();if(blob.size>30*1024*1024)throw new Error('Media too large');if(!String(blob.type||res.headers.get('Content-Type')||'').toLowerCase().startsWith('image/'))throw new Error('Not an image');const hash=await sha256Blob(blob);if(hash!==expectedHash)throw new Error('SHA-256 verification failed');return blob;}
 async function glowstrLoadNoteImage(el){const raw=el.dataset.url||'',u=safeRemoteMediaUrl(raw);if(!u)throw new Error('Unsafe media URL');const hash=glowstrExtractBlobHash(u),author=el.dataset.author||'';if(!hash){const img=document.createElement('img');img.src=u;img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.style.cssText='max-width:100%;max-height:300px;border:1px solid var(--xmr-gray)';el.replaceWith(img);return;}el.textContent='🧪 Verifying SHA-256…';const ext=glowstrFileExtensionFromUrl(u),candidates=[u];if(/^[0-9a-f]{64}$/.test(author)){for(const s of await glowstrGetBlossomServersForPubkey(author)){const alt=s+'/'+hash+ext;if(!candidates.includes(alt))candidates.push(alt);}}let last;for(const candidate of candidates.slice(0,6)){try{const blob=await glowstrFetchVerifiedImage(candidate,hash),obj=URL.createObjectURL(blob),img=document.createElement('img');img.src=obj;img.alt='';img.loading='lazy';img.style.cssText='max-width:100%;max-height:300px;border:1px solid var(--xmr-gray)';img.onload=()=>setTimeout(()=>URL.revokeObjectURL(obj),1000);img.onerror=()=>URL.revokeObjectURL(obj);el.replaceWith(img);return;}catch(e){last=e;}}throw last||new Error('Verified Blossom media unavailable');}
 async function glowstrCleanComposeImage(file){if(!file||!file.type?.startsWith('image/'))throw new Error('Choose an image file');if(file.size>25*1024*1024)throw new Error('Image exceeds 25MB');return new Promise((resolve,reject)=>{const img=new Image(),obj=URL.createObjectURL(file);img.onload=()=>{try{const w=img.naturalWidth,h=img.naturalHeight;if(!w||!h||w>12000||h>12000||w*h>40000000)throw new Error('Image dimensions are too large');const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');if(!x)throw new Error('Canvas unavailable');x.drawImage(img,0,0);c.toBlob(b=>b?resolve(b):reject(new Error('Image conversion failed')),file.type==='image/png'?'image/png':'image/jpeg',0.92);}catch(e){reject(e);}finally{URL.revokeObjectURL(obj);}};img.onerror=()=>{URL.revokeObjectURL(obj);reject(new Error('Could not decode image'));};img.src=obj;});}
-async function glowstrUploadComposeMedia(input){const file=input?.files?.[0];if(!file)return;const btn=document.getElementById('compose-media-btn');if(btn)btn.disabled=true;try{showToast('Preparing image for Blossom…');const clean=await glowstrCleanComposeImage(file);const url=await glowstrUploadMedia(clean,file.name,null);const ta=document.getElementById('compose-input');if(!ta)throw new Error('Composer unavailable');const prefix=ta.value&& !ta.value.endsWith('\n')?'\n':'';ta.value+=prefix+url+'\n';ta.dispatchEvent(new Event('input',{bubbles:true}));showToast('🌸 Blossom media URL inserted');}catch(e){showToast('Media upload failed: '+(e.message||e));}finally{if(btn)btn.disabled=false;input.value='';}}
+async function glowstrUploadComposeMedia(input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  const owner = state.publicKey, signerEpoch = _glowstrSignerEpoch;
+  const checkOwner = () => {
+    if (state.publicKey !== owner || _glowstrSignerEpoch !== signerEpoch) throw new Error('Account changed; select the image again');
+  };
+  const btn = document.getElementById('compose-media-btn');
+  if (btn) btn.disabled = true;
+  try {
+    showToast('Preparing image for Blossom…');
+    const clean = await glowstrCleanComposeImage(file);
+    checkOwner();
+    const result = await glowstrUploadMedia(clean, file.name, null);
+    const url = typeof result === 'string' && /^https?:\/\//i.test(result) ? safeRemoteMediaUrl(result) : null;
+    checkOwner();
+    if (!url) throw new Error('No media upload returned a usable image URL');
+    const ta = document.getElementById('compose-input');
+    if (!ta) throw new Error('Composer unavailable');
+    const prefix = ta.value && !ta.value.endsWith('\n') ? '\n' : '';
+    ta.value += prefix + url + '\n';
+    ta.dispatchEvent(new Event('input', {bubbles:true}));
+    showToast('🌸 Blossom media URL inserted');
+  } catch (e) { showToast('Media upload failed: ' + (e.message || e)); }
+  finally { if (btn) btn.disabled = false; input.value = ''; }
+}
 function glowstrInitBlossom(){glowstrLoadBlossomSettings();glowstrUpdateBlossomUI();document.getElementById('blossom-save-local')?.addEventListener('click',glowstrSaveBlossomLocal);document.getElementById('blossom-publish-list')?.addEventListener('click',glowstrPublishBlossomList);document.getElementById('blossom-mirror-all')?.addEventListener('change',glowstrSaveBlossomLocal);document.getElementById('blossom-legacy-fallback')?.addEventListener('change',glowstrSaveBlossomLocal);document.getElementById('compose-media-btn')?.addEventListener('click',()=>document.getElementById('compose-media-file')?.click());document.getElementById('compose-media-file')?.addEventListener('change',e=>glowstrUploadComposeMedia(e.currentTarget));}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',glowstrInitBlossom,{once:true});else glowstrInitBlossom();
 // GLOWSTR_V5_1_FEATURE3_END

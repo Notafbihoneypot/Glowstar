@@ -46,6 +46,19 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
+    public boolean openExternal(String capability, String paymentUri) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
+        // Wallet handoff may follow an asynchronous signer approval. The capability
+        // restricts this to our bundled document; arbitrary Intent URIs are rejected.
+        if (!TrustedWebContent.isMoneroPayment(paymentUri)) return false;
+        try {
+            context.startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(paymentUri))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return true;
+        } catch (RuntimeException e) { return false; }
+    }
+
+    @JavascriptInterface
     public boolean notificationsEnabled(String capability) {
         if (!TrustedWebContent.authorized(this.capability, capability)) return false;
         return NativeNotifier.canPost(context);

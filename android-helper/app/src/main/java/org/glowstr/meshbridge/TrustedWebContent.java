@@ -34,6 +34,19 @@ final class TrustedWebContent {
         } catch (Exception ignored) { return false; }
     }
 
+    static boolean isMoneroPayment(String value) {
+        try {
+            if (value == null || value.length() > 4096) return false;
+            URI uri = new URI(value);
+            if (!"monero".equalsIgnoreCase(uri.getScheme()) || uri.getRawFragment() != null) return false;
+            String payment = uri.getRawSchemeSpecificPart();
+            if (payment.startsWith("//")) payment = payment.substring(2);
+            String address = payment.split("\\?", 2)[0];
+            // Mainnet primary/subaddresses (95 chars) and integrated addresses (106).
+            return address.matches("(?:[48][1-9A-HJ-NP-Za-km-z]{94}|4[1-9A-HJ-NP-Za-km-z]{105})");
+        } catch (Exception ignored) { return false; }
+    }
+
     static String bindBridge(String html, String capability) throws Exception {
         if (capability == null || !capability.matches("[A-Za-z0-9_-]{43}"))
             throw new IllegalArgumentException("Invalid bridge capability");

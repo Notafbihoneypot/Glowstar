@@ -37,6 +37,7 @@ public final class MainActivity extends Activity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private WebView webView;
+    private final FileChooserController fileChooser = new FileChooserController(this);
     private final String bridgeCapability = TrustedWebContent.newCapability();
     private boolean pendingStart;
 
@@ -60,6 +61,7 @@ public final class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
+        fileChooser.close();
         if (webView != null) {
             // Detach before destroy. Vanadium warns (and may defer teardown work)
             // when WebView.destroy() is called while still attached to a window.
@@ -91,7 +93,8 @@ public final class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
         s.setAllowFileAccess(false);
-        s.setAllowContentAccess(false);
+        // Android grants access only to the documents explicitly selected by the user.
+        s.setAllowContentAccess(true);
         s.setAllowFileAccessFromFileURLs(false);
         s.setAllowUniversalAccessFromFileURLs(false);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
@@ -109,7 +112,16 @@ public final class MainActivity extends Activity {
         webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
 
         webView.addJavascriptInterface(new AndroidBridge(this, bridgeCapability), "GlowstrNative");
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onShowFileChooser(WebView view,
+                    android.webkit.ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (!TrustedWebContent.isAppDocument(view.getUrl())) {
+                    callback.onReceiveValue(null);
+                    return true;
+                }
+                return fileChooser.open(callback, params);
+            }
+        });
         webView.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 if (!request.isForMainFrame()) return true;
@@ -147,6 +159,11 @@ public final class MainActivity extends Activity {
         // claiming the synthetic app origin. Open deliberate external links only.
         if (uri == null || !userGesture || APP_HOST.equalsIgnoreCase(uri.getHost())) return true;
         String scheme = uri.getScheme();
+        if (TrustedWebContent.isMoneroPayment(uri.toString())) {
+            try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); }
+            catch (RuntimeException e) { toast("No Monero wallet could open this payment"); }
+            return true;
+        }
         if (!("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme) ||
                 "nostr".equalsIgnoreCase(scheme) || "nostrsigner".equalsIgnoreCase(scheme))) return true;
         try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); }
@@ -452,6 +469,7 @@ public final class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (fileChooser.onActivityResult(requestCode, resultCode, data)) return;
         if (requestCode == REQ_ENABLE && pendingStart) {
             if (resultCode == RESULT_OK) startBridge();
             else {

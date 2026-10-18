@@ -113,7 +113,9 @@ public class FileChooserControllerTest {
         clips.addItem(new ClipData.Item(one));
         clips.addItem(new ClipData.Item(Uri.parse("file:///private")));
         clips.addItem(new ClipData.Item(two));
-        chooser.onActivityResult(FileChooserController.REQUEST_CODE, Activity.RESULT_OK, new Intent().setClipData(clips));
+        Intent result = new Intent();
+        result.setClipData(clips);
+        chooser.onActivityResult(FileChooserController.REQUEST_CODE, Activity.RESULT_OK, result);
         assertArrayEquals(new Uri[]{one, two}, results.get(0));
     }
 }

@@ -46,19 +46,6 @@ public final class AndroidBridge {
     }
 
     @JavascriptInterface
-    public boolean openExternal(String capability, String paymentUri) {
-        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
-        // Wallet handoff may follow an asynchronous signer approval. The capability
-        // restricts this to our bundled document; arbitrary Intent URIs are rejected.
-        if (!TrustedWebContent.isMoneroPayment(paymentUri)) return false;
-        try {
-            context.startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(paymentUri))
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-            return true;
-        } catch (RuntimeException e) { return false; }
-    }
-
-    @JavascriptInterface
     public boolean notificationsEnabled(String capability) {
         if (!TrustedWebContent.authorized(this.capability, capability)) return false;
         return NativeNotifier.canPost(context);
@@ -550,7 +537,10 @@ public final class AndroidBridge {
         try {
             Uri uri = Uri.parse(rawUrl == null ? "" : rawUrl.trim());
             String scheme = uri.getScheme();
-            if (!("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme))) return false;
+            // Wallet handoff may follow asynchronous signer approval; the launch
+            // capability restricts the API to our trusted bundled document.
+            if (!("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme) ||
+                    TrustedWebContent.isMoneroPayment(uri.toString()))) return false;
             Intent i = new Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(i);
             return true;

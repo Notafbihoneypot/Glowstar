@@ -68,6 +68,70 @@ class CommerceTests(unittest.TestCase):
         return c, c.execute("SELECT * FROM invoices WHERE id='inv1'").fetchone()
 
 
+    def test_wallet_rpc_code_zero_requires_a_valid_result(self):
+        """An empty RPC 'error' can coexist with a valid result; fail closed otherwise."""
+        from unittest.mock import patch
+
+        class Response:
+            def __init__(self, payload):
+                self.payload = payload
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return self.payload
+
+        class Session:
+            def __init__(self, payload):
+                self.payload = payload
+                self.trust_env = True
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+            def post(self, *args, **kwargs):
+                self.test_args = (args, kwargs)
+                return Response(self.payload)
+
+        result = {"in": [], "pool": []}
+        cases = [
+            ({"result": result}, True),
+            ({"error": {"code": 0, "message": ""}, "result": result}, True),
+            ({"error": {"code": 0, "message": ""}}, False),
+            ({"error": {"code": 0, "message": ""}, "result": None}, False),
+            ({"error": {"code": 0, "message": ""}, "result": []}, False),
+            ({"error": {"code": -1, "message": "error"}, "result": result}, False),
+            ({"result": None}, False),
+            ({"error": {"code": 0, "message": "something failed"}, "result": result}, False),
+        ]
+        for payload, success in cases:
+            with self.subTest(payload=payload):
+                with patch.object(commerce.requests, "Session", return_value=Session(payload)):
+                    if success:
+                        self.assertEqual(commerce.rpc("get_transfers"), result)
+                    else:
+                        with self.assertRaises(commerce.WalletRPCError):
+                            commerce.rpc("get_transfers")
+
+    def test_wallet_rpc_error_does_not_change_unpaid_invoice(self):
+        from unittest.mock import patch
+
+        conn, row = self.invoice_row()
+        try:
+            with patch.object(commerce, "rpc", side_effect=commerce.WalletRPCError(
+                    "get_transfers", "ambiguous empty error without valid result", 0)):
+                with self.assertRaises(commerce.WalletRPCError):
+                    commerce.refresh_invoice(conn, row)
+            unchanged = conn.execute("SELECT status FROM invoices WHERE id='inv1'").fetchone()
+            self.assertEqual(unchanged["status"], "WAITING")
+            self.assertIsNone(conn.execute("SELECT * FROM entitlements").fetchone())
+        finally:
+            conn.close()
+
     def test_digest_authenticated_wallet_rpc_handshake(self):
         """Mirror Monero wallet RPC's HTTP Digest challenge and POST response."""
         realm, nonce = "monero-wallet-rpc", "test-nonce"

@@ -181,28 +181,67 @@ def db():
     return c
 
 
-def rpc(method, params=None):
-    """Monero wallet JSON-RPC with proper RFC Digest challenge handling.
+class WalletRPCError(RuntimeError):
+    """Redacted wallet-RPC failure; never echo RPC addresses or credentials."""
 
-    urllib's HTTPDigestAuthHandler repeatedly fails against monero-wallet-rpc
-    on the deployment's Python 3.13 image even when curl --digest succeeds.
-    Never log or place wallet credentials in URLs.
+    def __init__(self, method, reason, code=None):
+        self.method = method
+        self.reason = reason
+        self.code = code
+        detail = f"wallet_rpc {method}: {reason}"
+        if type(code) is int:
+            detail += f" (code={code})"
+        super().__init__(detail)
+
+
+def rpc(method, params=None):
+    """Monero JSON-RPC with Digest authentication and fail-closed result checks.
+
+    Some RPC responses contain an error object with code=0 and an empty
+    message alongside a valid result. Accept this benign shape *only* when a
+    proper result object is present. An empty/missing result cannot prove a
+    payment is absent and must never be turned into an empty transfer list.
     """
     payload = {"jsonrpc": "2.0", "id": "glowstr", "method": method,
                "params": params or {}}
     auth = HTTPDigestAuth(RPC_USER, RPC_PASS) if RPC_USER else None
-    with requests.Session() as session:
-        # A local wallet RPC must not accidentally go through HTTP_PROXY.
-        session.trust_env = False
-        response = session.post(
-            RPC, json=payload, auth=auth, timeout=12, allow_redirects=False,
-        )
-        response.raise_for_status()
-        out = response.json()
-    if out.get("error"):
-        raise RuntimeError(str(out["error"]))
-    return out["result"]
+    try:
+        with requests.Session() as session:
+            # A local wallet RPC must not accidentally use an HTTP proxy.
+            session.trust_env = False
+            response = session.post(
+                RPC, json=payload, auth=auth, timeout=12, allow_redirects=False,
+            )
+            response.raise_for_status()
+            out = response.json()
+    except requests.RequestException as exc:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+        raise WalletRPCError(method, "HTTP transport failure",
+                             status if type(status) is int else None) from None
+    except (ValueError, TypeError):
+        raise WalletRPCError(method, "invalid JSON response") from None
 
+    if not isinstance(out, dict):
+        raise WalletRPCError(method, "unexpected response shape")
+
+    result = out.get("result")
+    error = out.get("error")
+    if error is not None:
+        if not isinstance(error, dict):
+            raise WalletRPCError(method, "malformed error object")
+        code = error.get("code")
+        message = error.get("message")
+        if not (type(code) is int and code == 0 and message in (None, "")
+                and isinstance(result, dict)):
+            if type(code) is int and code == 0:
+                # This is NOT proof of an empty wallet: no validated result.
+                raise WalletRPCError(method, "ambiguous empty error without valid result", 0)
+            raise WalletRPCError(method, "RPC returned an error",
+                                 code if type(code) is int else None)
+
+    if not isinstance(result, dict):
+        raise WalletRPCError(method, "missing or invalid result")
+    return result
 
 def xmr_usd_price():
     if PRICE_OVERRIDE:
@@ -580,8 +619,11 @@ class H(BaseHTTPRequestHandler):
             return self.out({"error": "not_found"}, 404)
         except ValueError as exc:
             return self.out({"error": "bad_request", "detail": str(exc)}, 400)
+        except WalletRPCError as exc:
+            print("wallet RPC request failed:", exc, flush=True)
+            return self.out({"error": "wallet_rpc_unavailable"}, 503)
         except Exception as exc:
-            print("request failed:", exc)
+            print("request failed:", type(exc).__name__, flush=True)
             return self.out({"error": "server_error"}, 500)
 
     def do_GET(self):
@@ -713,8 +755,11 @@ class H(BaseHTTPRequestHandler):
                 c.close()
                 return self.out({"reminders": [dict(x) for x in rows]})
             return self.out({"error": "not_found"}, 404)
+        except WalletRPCError as exc:
+            print("wallet RPC request failed:", exc, flush=True)
+            return self.out({"error": "wallet_rpc_unavailable"}, 503)
         except Exception as exc:
-            print("request failed:", exc)
+            print("request failed:", type(exc).__name__, flush=True)
             return self.out({"error": "server_error"}, 500)
 
 

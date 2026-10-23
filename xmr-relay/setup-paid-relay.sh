@@ -25,6 +25,8 @@ RPC_PASS="${MONERO_RPC_PASS:-}"
 AUTO_INSTALL="${AUTO_INSTALL:-1}"
 # Opt-in rotation for leaked wallet RPC/admin credentials, without changing wallet keys.
 ROTATE_SECRETS="${ROTATE_SECRETS:-0}"
+# Update the Caddy routing only; never restart Commerce/strfry/wallet.
+GLOWSTR_CADDY_ONLY="${GLOWSTR_CADDY_ONLY:-0}"
 AUTO_SWAP="${AUTO_SWAP:-1}"
 SKIP_DNS_CHECK="${SKIP_DNS_CHECK:-0}"
 ALLOW_PROXMOX_HOST="${ALLOW_PROXMOX_HOST:-0}"
@@ -614,45 +616,74 @@ $RELAY_DOMAIN {
         Referrer-Policy "no-referrer"
     }
 
-    # Static public landing page; no tracking, cookies, or JavaScript dependencies.
-    root * /srv/glowstr-site
-    # Preserve NIP-11 discovery for third-party Nostr clients sharing the
-    # root path with the browser homepage.
     @nip11 {
         path /
         header Accept *application/nostr+json*
     }
-    handle @nip11 {
-        reverse_proxy 127.0.0.1:7777
-    }
-
-    @home path /
-    handle @home {
-        rewrite * /index.html
-        file_server
-    }
-
-    # Glowstr payment API. handle_path strips /xmr-commerce before forwarding.
-    handle_path /xmr-commerce/* {
-        reverse_proxy 127.0.0.1:8787
-    }
-
-    # Paid Nostr publishing.
     @nostr_ws {
         header Connection *Upgrade*
         header Upgrade websocket
     }
 
-    handle @nostr_ws {
-        reverse_proxy 127.0.0.1:7778
-    }
-
-    # NIP-11 / ordinary HTTP.
-    handle {
-        reverse_proxy 127.0.0.1:7777
+    # Explicit priority. The default browser response is ALWAYS our payment
+    # homepage, not strfry's fallback HTML. A NIP-11 request returns JSON,
+    # and WebSocket upgrades still pass exclusively through the paid gate.
+    route {
+        handle_path /xmr-commerce/* {
+            reverse_proxy 127.0.0.1:8787
+        }
+        handle @nostr_ws {
+            reverse_proxy 127.0.0.1:7778
+        }
+        handle @nip11 {
+            header Content-Type application/nostr+json
+            header Access-Control-Allow-Origin "*"
+            respond "{\"name\":\"Glowstr XMR Relay\",\"description\":\"Public-read Nostr relay. Publishing requires an active Monero membership and NIP-42 authorization.\",\"supported_nips\":[1,11,42],\"payments_url\":\"https://$RELAY_DOMAIN/\"}" 200
+        }
+        handle / {
+            root * /srv/glowstr-site
+            rewrite * /index.html
+            file_server
+        }
+        handle {
+            root * /srv/glowstr-site
+            file_server
+        }
     }
 }
 EOF
+}
+
+repair_caddy_only() {
+  [[ "$RELAY_DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] ||
+    die "Set GLOWSTR_RELAY_DOMAIN to your existing relay hostname"
+  podman container exists xmr-relay_caddy_1 ||
+    die "Existing xmr-relay_caddy_1 container not found"
+  [[ -f "$PAID_DIR/Caddyfile" ]] ||
+    die "Existing Caddyfile not found; run the full installer for initial setup"
+
+  local backup
+  backup="$(mktemp "$PAID_DIR/Caddyfile.backup.XXXXXXXX")" ||
+    die "Cannot create a Caddyfile backup"
+  cp "$PAID_DIR/Caddyfile" "$backup"
+  write_caddy
+  if ! podman exec xmr-relay_caddy_1 \
+      caddy validate --config /etc/caddy/Caddyfile; then
+    cat "$backup" > "$PAID_DIR/Caddyfile"
+    rm -f "$backup"
+    die "New Caddy configuration failed validation; restored old file"
+  fi
+  if ! podman exec xmr-relay_caddy_1 \
+      caddy reload --config /etc/caddy/Caddyfile; then
+    cat "$backup" > "$PAID_DIR/Caddyfile"
+    podman exec xmr-relay_caddy_1 \
+      caddy reload --config /etc/caddy/Caddyfile || true
+    rm -f "$backup"
+    die "Caddy reload failed; restored prior configuration file"
+  fi
+  rm -f "$backup"
+  say "Caddy routing updated without rebuilding containers or touching wallet data"
+  say "Check the public homepage, JSON NIP-11 metadata, and payment features"
 }
 
 # podman-compose 1.0.6 cannot replace a container while another Podman
@@ -880,6 +911,10 @@ EOF
 }
 
 main() {
+  if bool_enabled "$GLOWSTR_CADDY_ONLY"; then
+    repair_caddy_only
+    return
+  fi
   collect_inputs
   validate_inputs
   install_deps

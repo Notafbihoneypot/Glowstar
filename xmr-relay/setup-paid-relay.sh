@@ -760,16 +760,28 @@ healthcheck() {
     die "Local relay/payment health check failed; containers and wallet data preserved"
   fi
 
-  curl -fsS --retry 12 --retry-delay 3 "https://$RELAY_DOMAIN/" | grep -q "GLOWSTR RELAY" ||
-    die "Public static relay website is not reachable"
+  # Do not pipe curl into grep -q with pipefail. When grep finds a match
+  # before curl finishes streaming the HTML, it closes the pipe early and
+  # curl reports error 23 (Failure writing output to destination).
+  local site_html features_json nip11_json
+  site_html="$(curl -fsS --retry 12 --retry-delay 3 \
+    --max-time 30 "https://$RELAY_DOMAIN/")" ||
+    die "Public static relay website HTTPS request failed; inspect Caddy logs"
+  [[ "$site_html" == *"GLOWSTR RELAY"* ]] ||
+    die "Public HTTPS site responded, but not with the expected Glowstr homepage"
 
-  curl -fsS --retry 12 --retry-delay 3 "https://$RELAY_DOMAIN/xmr-commerce/v1/features" >/tmp/glowstr-features.json ||
+  features_json="$(curl -fsS --retry 12 --retry-delay 3 \
+    --max-time 30 "https://$RELAY_DOMAIN/xmr-commerce/v1/features")" ||
     die "Public payment API is not reachable through Caddy/TLS"
-  grep -q '"relay_lifetime"' /tmp/glowstr-features.json ||
-    die "Payment API is running an older build without lifetime membership"
+  [[ "$features_json" == *'"relay_lifetime"'* && "$features_json" == *'"relay_365d"'* ]] ||
+    die "Public payment API is missing annual or lifetime membership"
+
   # Standard Nostr clients must receive NIP-11 JSON, not homepage HTML.
-  curl -fsS --retry 4 --retry-delay 2 -H 'Accept: application/nostr+json' \
-    "https://$RELAY_DOMAIN/" | grep -q '"name"' ||
+  nip11_json="$(curl -fsS --retry 4 --retry-delay 2 \
+    --max-time 30 -H 'Accept: application/nostr+json' \
+    "https://$RELAY_DOMAIN/")" ||
+    die "Public NIP-11 metadata request failed"
+  [[ "$nip11_json" == *'"name"'* ]] ||
     die "NIP-11 metadata is not accessible at the relay root"
 }
 

@@ -257,7 +257,7 @@ buy.addEventListener('submit', async event => {
         progress.textContent = 'Payment: ' + (state.status || 'WAITING') +
           ' · confirmations: ' + (state.confirmations ?? 0) + ' / ' + data.confirmations_required;
       } catch {
-        progress.textContent = 'Payment status temporarily unavailable; verification continues server-side.';
+        progress.textContent = 'Payment verification unavailable. Do not send XMR until the status checker is working. If you already paid, do not pay again; contact the relay operator.';
       }
       paymentTimer = setTimeout(poll, 15000);
     };

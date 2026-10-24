@@ -202,6 +202,47 @@ class CommerceTests(unittest.TestCase):
             100_000_000_000,
         )
 
+    def test_confirmed_only_transfer_lookup_avoids_pool_refresh(self):
+        """Default payment monitoring must not invoke broken daemon mempool RPC."""
+        from unittest.mock import patch
+
+        c, row = self.invoice_row()
+        called = []
+        def fake_rpc(method, params=None):
+            called.append((method, params))
+            return {"in": [], "pool": []}
+
+        try:
+            with patch.object(commerce, "CHECK_MEMPOOL", False):
+                with patch.object(commerce, "rpc", side_effect=fake_rpc):
+                    latest = commerce.refresh_invoice(c, row)
+            self.assertEqual(latest["status"], "WAITING")
+            self.assertEqual(len(called), 1)
+            self.assertEqual(called[0][0], "get_transfers")
+            self.assertTrue(called[0][1]["in"])
+            self.assertIs(called[0][1]["pool"], False)
+        finally:
+            c.close()
+
+    def test_mempool_scan_is_explicit_opt_in(self):
+        """Mempool access is optional and does not affect the confirmation rule."""
+        from unittest.mock import patch
+
+        c, row = self.invoice_row()
+        called = []
+        def fake_rpc(method, params=None):
+            called.append(params)
+            return {"in": [], "pool": []}
+
+        try:
+            with patch.object(commerce, "CHECK_MEMPOOL", True):
+                with patch.object(commerce, "rpc", side_effect=fake_rpc):
+                    latest = commerce.refresh_invoice(c, row)
+            self.assertEqual(latest["status"], "WAITING")
+            self.assertIs(called[0]["pool"], True)
+        finally:
+            c.close()
+
     def test_one_confirmation_does_not_grant_access(self):
         c, row = self.invoice_row()
         old_rpc = commerce.rpc

@@ -576,6 +576,8 @@ MONERO_RPC_PASS=$RPC_PASS
 
 # Paid plans: USD 10 for 365 days and USD 40 one-time for service lifetime.
 GLOWSTR_XMR_CONFIRMATIONS=2
+# Default confirmed-only Monero checks; pool scanning can fail with remote daemons.
+GLOWSTR_XMR_CHECK_MEMPOOL=0
 GLOWSTR_RELAY_USD_CENTS=1000
 GLOWSTR_RELAY_LIFETIME_USD_CENTS=4000
 GLOWSTR_XMR_USD_URL=https://api.kraken.com/0/public/Ticker?pair=XMRUSD

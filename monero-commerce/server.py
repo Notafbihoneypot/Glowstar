@@ -48,6 +48,10 @@ CONFIRMATIONS = max(1, int(os.getenv("GLOWSTR_XMR_CONFIRMATIONS", "2")))
 INVOICE_SECONDS = max(300, int(os.getenv("GLOWSTR_INVOICE_SECONDS", "1800")))
 LATE_GRACE_SECONDS = max(0, int(os.getenv("GLOWSTR_LATE_PAYMENT_GRACE_SECONDS", "300")))
 RECONCILE_SECONDS = max(5, int(os.getenv("GLOWSTR_RECONCILE_SECONDS", "20")))
+# Default to confirmed transfers. On Monero 0.18.x, pool:true invokes a
+# daemon mempool refresh that may fail and break even unpaid invoice polling.
+# Opt in only after verifying pool-inclusive get_transfers on the live wallet.
+CHECK_MEMPOOL = os.getenv("GLOWSTR_XMR_CHECK_MEMPOOL", "0").strip().lower() in ("1", "true", "yes", "on")
 PRICE_URL = os.getenv(
     "GLOWSTR_XMR_USD_URL",
     "https://api.kraken.com/0/public/Ticker?pair=XMRUSD",
@@ -313,7 +317,10 @@ def refresh_invoice(c, row):
         "get_transfers",
         {
             "in": True,
-            "pool": True,
+            # Confirmed-only by default: this avoids the optional daemon
+            # mempool-refresh path without weakening the two-confirmation
+            # entitlement rule. WAITING may persist until the first block.
+            "pool": CHECK_MEMPOOL,
             "account_index": row["account_index"],
             "subaddr_indices": [row["address_index"]],
         },

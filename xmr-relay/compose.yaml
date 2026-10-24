@@ -12,6 +12,9 @@ services:
       GLOWSTR_COMMERCE_ADMIN_TOKEN: ${GLOWSTR_COMMERCE_ADMIN_TOKEN:?set GLOWSTR_COMMERCE_ADMIN_TOKEN}
       GLOWSTR_ALLOWED_ORIGIN: ${GLOWSTR_ALLOWED_ORIGIN:-https://glowstr.com}
       GLOWSTR_XMR_CONFIRMATIONS: ${GLOWSTR_XMR_CONFIRMATIONS:-2}
+      # Older Monero wallet-RPC versions can fail while refreshing the mempool.
+      # A verified on-chain transaction still activates at two confirmations.
+      GLOWSTR_XMR_CHECK_MEMPOOL: ${GLOWSTR_XMR_CHECK_MEMPOOL:-0}
       GLOWSTR_RELAY_TARGET: ${GLOWSTR_RELAY_TARGET:-relay.glowstr.com}
       GLOWSTR_RELAY_USD_CENTS: ${GLOWSTR_RELAY_USD_CENTS:-1000}
       GLOWSTR_RELAY_LIFETIME_USD_CENTS: ${GLOWSTR_RELAY_LIFETIME_USD_CENTS:-4000}

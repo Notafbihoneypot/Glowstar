@@ -265,7 +265,7 @@ class CommerceTests(unittest.TestCase):
                 self.assertEqual(obj["active_paid_pubkeys"], 1)
                 self.assertEqual(obj["gross_usd_cents_at_invoice"], 1000)
                 for secret_key in ("pubkey", "address", "txid", "token", "invoice_id"):
-                    self.assertNotIn(secret_key, str(obj))
+                    self.assertNotIn(secret_key, obj)
         finally:
             server.shutdown()
             server.server_close()

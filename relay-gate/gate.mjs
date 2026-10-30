@@ -16,6 +16,33 @@ const DEFAULT_MAX_WRITES_DAY = 5000
 const DEFAULT_MAX_BYTES_DAY = 2097152
 const MAX_TRACKED_PUBKEYS = 10000
 
+const MAX_MESSAGES_PER_CONNECTION_MINUTE = 240
+const MAX_MESSAGES_PER_CONNECTION_BURST = 50
+
+// Signed events with malformed nested fields must be rejected, never allowed
+// to raise an uncaught exception from an untrusted WebSocket message handler.
+export function safelyVerifyEvent(event) {
+  try { return verifyEvent(event) } catch { return false }
+}
+
+export function consumeSocketTraffic(state, now = Date.now(),
+  perMinute = MAX_MESSAGES_PER_CONNECTION_MINUTE,
+  perFiveSeconds = MAX_MESSAGES_PER_CONNECTION_BURST) {
+  if (now - state.minuteStart >= 60000) {
+    state.minuteStart = now
+    state.minuteCount = 0
+  }
+  if (now - state.burstStart >= 5000) {
+    state.burstStart = now
+    state.burstCount = 0
+  }
+  if (state.minuteCount >= perMinute || state.burstCount >= perFiveSeconds) return false
+  state.minuteCount++
+  state.burstCount++
+  return true
+}
+
+
 function envInt(name, fallback, min = 1, max = Number.MAX_SAFE_INTEGER) {
   const n = Number.parseInt(process.env[name] || '', 10)
   return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback
@@ -69,7 +96,7 @@ export function validateAuthEvent(event, challenge, relayUrl, now = Math.floor(D
   } catch {
     return { ok: false, error: 'invalid AUTH relay URL' }
   }
-  if (!verifyEvent(event)) return { ok: false, error: 'invalid AUTH signature' }
+  if (!safelyVerifyEvent(event)) return { ok: false, error: 'invalid AUTH signature' }
   return { ok: true, pubkey: event.pubkey }
 }
 
@@ -298,6 +325,8 @@ async function main() {
     const challenge = randomBytes(32).toString('base64url')
     const authed = new Set()
     let graceWrites = 0
+    const traffic = { minuteStart: Date.now(), burstStart: Date.now(),
+      minuteCount: 0, burstCount: 0 }
     const upstream = new WebSocket(upstreamUrl, {
       maxPayload: MAX_FRAME_BYTES,
       perMessageDeflate: false,
@@ -321,6 +350,10 @@ async function main() {
     })
 
     client.on('message', async (data, isBinary) => {
+      if (!consumeSocketTraffic(traffic)) {
+        sendJson(client, ['NOTICE', 'rate-limited: too many relay messages'])
+        return closePair(client, upstream, 1008, 'message rate limit')
+      }
       if (isBinary || data.length > MAX_FRAME_BYTES) {
         return closePair(client, upstream, 1009, 'text frame required')
       }
@@ -353,7 +386,7 @@ async function main() {
 
       if (msg[0] === 'EVENT') {
         const event = msg[1]
-        if (!basicEventShape(event) || !verifyEvent(event)) {
+        if (!basicEventShape(event) || !safelyVerifyEvent(event)) {
           const id = basicEventShape(event) ? event.id : ''
           if (id) sendJson(client, ['OK', id, false, 'invalid: event signature or shape'])
           else sendJson(client, ['NOTICE', 'invalid: malformed event'])

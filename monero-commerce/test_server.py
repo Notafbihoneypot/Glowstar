@@ -202,6 +202,60 @@ class CommerceTests(unittest.TestCase):
             100_000_000_000,
         )
 
+    def test_verification_status_needs_recent_successful_scan(self):
+        c, row = self.invoice_row()
+        try:
+            now = int(time.time())
+            self.assertFalse(commerce.verification_healthy(row, now))
+            c.execute(
+                "UPDATE invoices SET last_checked_at=? WHERE id='inv1'",
+                (now,),
+            )
+            current = c.execute("SELECT * FROM invoices WHERE id='inv1'").fetchone()
+            self.assertTrue(commerce.verification_healthy(current, now))
+            self.assertFalse(commerce.verification_healthy(
+                current, now + max(3 * commerce.RECONCILE_SECONDS, 90) + 1
+            ))
+            c.execute("UPDATE invoices SET status='PAID' WHERE id='inv1'")
+            paid = c.execute("SELECT * FROM invoices WHERE id='inv1'").fetchone()
+            self.assertTrue(commerce.verification_healthy(
+                paid, now + 10_000
+            ))
+        finally:
+            c.close()
+
+    def test_invoice_poll_does_not_call_wallet_rpc(self):
+        """A known invoice bearer can only read cached status, not force RPC scans."""
+        import json
+        from unittest.mock import patch
+        from urllib.request import Request, urlopen
+
+        c, row = self.invoice_row()
+        token = "unit-test-invoice-token"
+        c.execute("UPDATE invoices SET token_hash=? WHERE id='inv1'",
+                  (commerce.token_hash(token),))
+        c.commit()
+        c.close()
+
+        server = HTTPServer(("127.0.0.1", 0), commerce.H)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with patch.object(commerce, "rpc", side_effect=AssertionError("RPC not allowed")):
+                request = Request(
+                    f"http://127.0.0.1:{server.server_port}/v1/invoices/inv1",
+                    headers={"Authorization": "Bearer " + token},
+                )
+                with urlopen(request, timeout=5) as response:
+                    self.assertEqual(response.status, 200)
+                    body = json.load(response)
+            self.assertEqual(body["status"], "WAITING")
+            self.assertIs(body["verification_healthy"], False)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+
     def test_confirmed_only_transfer_lookup_avoids_pool_refresh(self):
         """Default payment monitoring must not invoke broken daemon mempool RPC."""
         from unittest.mock import patch

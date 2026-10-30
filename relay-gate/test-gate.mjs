@@ -10,6 +10,8 @@ import {
   normalizeRelayUrl,
   validateAuthEvent,
   requestClientIp,
+  consumeSocketTraffic,
+  safelyVerifyEvent,
 } from './gate.mjs'
 
 function authEvent(sk, challenge, relay, createdAt = Math.floor(Date.now() / 1000)) {
@@ -123,4 +125,22 @@ test('daily upload byte budget is enforced for every paid key', () => {
   assert.equal(consumeFairUse(limits, pk, 10, 100, 101, 301, 1000).ok, false)
   assert.equal(consumeFairUse(limits, pk, 10, 100, 102, 300, 1000).ok, true)
   assert.equal(consumeFairUse(limits, pk, 10, 100, 86400, 1000, 1000).ok, true)
+})
+
+test('per-connection Nostr frame budget prevents read flood', () => {
+  const traffic = { minuteStart: 0, burstStart: 0, minuteCount: 0, burstCount: 0 }
+  for (let i = 0; i < 50; i++) {
+    assert.equal(consumeSocketTraffic(traffic, 1000), true)
+  }
+  assert.equal(consumeSocketTraffic(traffic, 1000), false)
+  assert.equal(consumeSocketTraffic(traffic, 6000), true)
+  traffic.minuteCount = 240
+  assert.equal(consumeSocketTraffic(traffic, 6001), false)
+  assert.equal(consumeSocketTraffic(traffic, 60001), true)
+})
+
+test('invalid nested Nostr events cannot crash signature verification', () => {
+  assert.equal(safelyVerifyEvent(null), false)
+  assert.equal(safelyVerifyEvent({ kind: 1, tags: [null] }), false)
+  assert.equal(safelyVerifyEvent({}), false)
 })

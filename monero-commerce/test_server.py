@@ -224,6 +224,53 @@ class CommerceTests(unittest.TestCase):
         finally:
             c.close()
 
+    def test_stats_require_admin_and_return_only_aggregates(self):
+        """Operator metrics must not expose wallet or Nostr identity fields."""
+        import json
+        from unittest.mock import patch
+        from urllib.error import HTTPError
+        from urllib.request import Request, urlopen
+
+        c, row = self.invoice_row()
+        now = int(time.time())
+        c.execute(
+            "UPDATE invoices SET status='PAID', usd_cents=1000 WHERE id='inv1'"
+        )
+        c.execute(
+            """INSERT INTO entitlements(pubkey,feature,target,valid_until,invoice_id)
+               VALUES(?,?,?,?,?)""",
+            ("a" * 64, "relay_365d", commerce.RELAY_TARGET, now + 86400, "inv1"),
+        )
+        c.execute("UPDATE invoices SET target=? WHERE id='inv1'",
+                  (commerce.RELAY_TARGET,))
+        c.commit()
+        c.close()
+
+        server = HTTPServer(("127.0.0.1", 0), commerce.H)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        url = f"http://127.0.0.1:{server.server_port}/v1/admin/stats"
+        try:
+            with patch.object(commerce, "ADMIN_TOKEN", "temporary-test-admin-token"):
+                with self.assertRaises(HTTPError) as exc:
+                    urlopen(url, timeout=5)
+                self.assertEqual(exc.exception.code, 401)
+                req = Request(url, headers={
+                    "Authorization": "Bearer temporary-test-admin-token"
+                })
+                with urlopen(req, timeout=5) as response:
+                    obj = json.load(response)
+                self.assertEqual(obj["paid_invoices"], 1)
+                self.assertEqual(obj["annual_payments"], 1)
+                self.assertEqual(obj["active_paid_pubkeys"], 1)
+                self.assertEqual(obj["gross_usd_cents_at_invoice"], 1000)
+                for secret_key in ("pubkey", "address", "txid", "token", "invoice_id"):
+                    self.assertNotIn(secret_key, str(obj))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+
     def test_invoice_poll_does_not_call_wallet_rpc(self):
         """A known invoice bearer can only read cached status, not force RPC scans."""
         import json

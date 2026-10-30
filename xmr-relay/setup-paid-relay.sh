@@ -616,6 +616,9 @@ $RELAY_DOMAIN {
         Strict-Transport-Security "max-age=31536000"
         X-Content-Type-Options "nosniff"
         Referrer-Policy "no-referrer"
+        X-Frame-Options "DENY"
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; form-action 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'"
     }
 
     @nip11 {
@@ -669,6 +672,21 @@ repair_caddy_only() {
     die "Cannot create a Caddyfile backup"
   cp "$PAID_DIR/Caddyfile" "$backup"
   write_caddy
+  # Older Caddy containers only bind-mounted index.html. Copy the new
+  # locally bundled JS files into those running containers without recreating
+  # Commerce, relay-gate, or strfry. New Caddy containers bind them directly.
+  local asset mounted
+  mounted="$(podman inspect xmr-relay_caddy_1 --format '{{range .Mounts}}{{println .Destination}}{{end}}')" ||
+    die "Cannot inspect Caddy mounts"
+  for asset in app.js qrcode.min.js; do
+    [[ -s "$PAID_DIR/$asset" ]] || die "Missing QR asset $PAID_DIR/$asset"
+    if ! grep -Fxq "/srv/glowstr-site/$asset" <<< "$mounted"; then
+      podman cp "$PAID_DIR/$asset" "xmr-relay_caddy_1:/srv/glowstr-site/$asset" ||
+        die "Unable to load Caddy asset $asset"
+    fi
+    podman exec xmr-relay_caddy_1 test -s "/srv/glowstr-site/$asset" ||
+      die "Caddy checkout asset missing: $asset"
+  done
   if ! podman exec xmr-relay_caddy_1 \
       caddy validate --config /etc/caddy/Caddyfile; then
     cat "$backup" > "$PAID_DIR/Caddyfile"

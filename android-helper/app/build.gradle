@@ -699,7 +699,7 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
           __glowstrFinishMeshSigning(new Error('Could not open Amber signer'));
           return;
         }
-        showToast('Offline note ready — approve it in Amber');
+        showToast(requested.kind === 22242 ? 'Relay authentication — approve in Amber' : 'Offline note ready — approve it in Amber');
         __glowstrStartAmberPoll('mesh');
       } catch(e) {
         __glowstrFinishMeshSigning(new Error('Amber signing failed: ' + (e.message || e)));
@@ -725,6 +725,13 @@ if (window.GlowstrAndroid && typeof window.GlowstrAndroid.amberGetPublicKey === 
   setTimeout(() => __glowstrMaybeDrainQueue(false), 1200);
 }
 '''
+        // NIP-42 on Android must use the verified native Amber NIP-55 request/
+        // result path. The web client cannot synchronously sign in intent mode.
+        def oldNip42Signer = '''const signed=await signEventUniversal(tpl); if(!signed)return false; ws._glowstrAuthEventV42=signed.id;'''
+        def newNip42Signer = '''const signed=(state.signerMethod==='amber-nip55' && typeof window.glowstrAmberSignForMesh==='function') ? await window.glowstrAmberSignForMesh(tpl) : await signEventUniversal(tpl); if(!signed)return false; ws._glowstrAuthEventV42=signed.id;'''
+        if (!text.contains(oldNip42Signer)) throw new GradleException('Could not locate NIP-42 signer for native Amber support')
+        text = text.replace(oldNip42Signer, newNip42Signer)
+
         if (!text.contains('</script>')) throw new GradleException('Could not locate closing Glowstr script tag')
         text = text.replace('</script>', nativeAmber + '\n' + nativeQr + '\n</script>')
 

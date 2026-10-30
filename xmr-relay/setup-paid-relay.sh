@@ -127,7 +127,7 @@ collect_inputs() {
     ask_default RELAY_DOMAIN "Glowstr paid relay domain" "relay.glowstr.com"
   fi
   if [[ -z "$ALLOWED_ORIGIN" ]]; then
-    ask_default ALLOWED_ORIGIN "Glowstr web/app origin allowed to use the payment API" "https://glowstr.com"
+    ask_default ALLOWED_ORIGIN "Comma-separated HTTPS origins for Commerce (includes Android)" "https://glowstr.com,https://app.glowstr.local"
   fi
 
   if [[ -z "$WALLET_MODE" ]]; then

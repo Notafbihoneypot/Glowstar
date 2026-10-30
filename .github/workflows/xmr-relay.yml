@@ -51,6 +51,7 @@ jobs:
         run: |
           bash -n xmr-relay/setup-staging.sh
           bash -n xmr-relay/setup-paid-relay.sh
+          bash -n xmr-relay/fix-android-commerce-origin.sh
 
       - name: Test NIP-17 renewal notifier
         run: |

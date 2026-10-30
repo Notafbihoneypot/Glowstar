@@ -86,7 +86,7 @@ if [[ "$relay_domain" =~ ^[A-Za-z0-9.-]+$ ]]; then
       echo "Public preflight unreachable. Check DNS/TLS/Caddy and try again." >&2
       exit 2
     }
-  if printf '%s\n' "$headers" | grep -qi '^Access-Control-Allow-Origin: https://app\.glowstr\.local\r\?$'; then
+  if printf '%s\n' "$headers" | tr -d '\r' | grep -Fqi 'Access-Control-Allow-Origin: https://app.glowstr.local'; then
     echo "PASS: Public Commerce API permits the Glowstr Android origin."
   else
     echo "FAIL: HTTPS endpoint did not return Android Access-Control-Allow-Origin." >&2

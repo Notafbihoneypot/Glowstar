@@ -33,6 +33,7 @@ assert.ok(client.includes("'sha256-" + hash + "'"), 'Inline script CSP hash is s
 
 assert.ok(gradle.includes("from('../../glowstr-v5.4-relay-domain-secure.html')"), 'Android packaging still reads old source');
 assert.ok(gradle.includes("applicationIdSuffix '.relayrewire'"), 'Isolated APK package missing');
+assert.ok(gradle.includes('window.glowstrAmberSignForMesh(tpl)'), 'Native Amber NIP-55 relay AUTH path missing');
 assert.ok(gradle.includes("versionName '0.3.15'"), 'Android version not updated');
 assert.ok(workflow.includes(':app:assembleRelayrewire'), 'Relay-rewire build task not in CI');
 assert.ok(workflow.includes('Glowstr-Android-0.3.15-relayrewire.apk'), 'APK artifact not in CI');

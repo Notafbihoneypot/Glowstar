@@ -749,6 +749,47 @@ class H(BaseHTTPRequestHandler):
                         "access_valid_until": int(ent["valid_until"]) if ent else None,
                     }
                 )
+            if path == "/v1/admin/stats":
+                if not self.admin():
+                    return self.out({"error": "unauthorized"}, 401)
+                # Aggregates only: no IP addresses, txids, wallet addresses,
+                # Nostr identities, or invoice bearer tokens in the response.
+                now = int(time.time())
+                c = db()
+                try:
+                    sales = c.execute(
+                        """SELECT COUNT(*) AS paid_invoices,
+                                  COALESCE(SUM(usd_cents),0) AS gross_usd_cents_at_invoice,
+                                  COALESCE(SUM(CASE WHEN feature='relay_365d' THEN 1 ELSE 0 END),0)
+                                    AS annual_payments,
+                                  COALESCE(SUM(CASE WHEN feature='relay_lifetime' THEN 1 ELSE 0 END),0)
+                                    AS lifetime_payments
+                           FROM invoices WHERE status='PAID' AND target=?""",
+                        (RELAY_TARGET,),
+                    ).fetchone()
+                    paid_pubkeys = c.execute(
+                        """SELECT COUNT(DISTINCT pubkey) FROM entitlements
+                           WHERE target=? AND valid_until>?
+                             AND feature IN ('relay_365d','relay_lifetime')""",
+                        (RELAY_TARGET, now),
+                    ).fetchone()[0]
+                    pending = c.execute(
+                        """SELECT COUNT(*) FROM invoices
+                           WHERE target=? AND status IN ('WAITING','MEMPOOL','CONFIRMING')
+                             AND expires_at + ? > ?""",
+                        (RELAY_TARGET, LATE_GRACE_SECONDS, now),
+                    ).fetchone()[0]
+                finally:
+                    c.close()
+                return self.out({
+                    "paid_invoices": sales["paid_invoices"],
+                    "annual_payments": sales["annual_payments"],
+                    "lifetime_payments": sales["lifetime_payments"],
+                    "active_paid_pubkeys": paid_pubkeys,
+                    "pending_invoices": pending,
+                    "gross_usd_cents_at_invoice": sales["gross_usd_cents_at_invoice"],
+                    "note": "Gross USD invoice values at creation; not net revenue or actual XMR market value.",
+                })
             if path.startswith("/v1/admin/entitlements/"):
                 if not self.admin():
                     return self.out({"error": "unauthorized"}, 401)

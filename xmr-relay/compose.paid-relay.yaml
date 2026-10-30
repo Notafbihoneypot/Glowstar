@@ -18,6 +18,8 @@ services:
     volumes:
       - ./paid-relay/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./paid-relay/index.html:/srv/glowstr-site/index.html:ro
+      - ./paid-relay/app.js:/srv/glowstr-site/app.js:ro
+      - ./paid-relay/qrcode.min.js:/srv/glowstr-site/qrcode.min.js:ro
       - glowstr-paid-caddy-data:/data
       - glowstr-paid-caddy-config:/config
 

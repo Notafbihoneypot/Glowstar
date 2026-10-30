@@ -154,6 +154,8 @@ def db():
         c.execute("ALTER TABLE invoices ADD COLUMN usd_cents INTEGER NOT NULL DEFAULT 0")
     if "xmr_usd_micros" not in columns:
         c.execute("ALTER TABLE invoices ADD COLUMN xmr_usd_micros INTEGER NOT NULL DEFAULT 0")
+    if "last_checked_at" not in columns:
+        c.execute("ALTER TABLE invoices ADD COLUMN last_checked_at INTEGER NOT NULL DEFAULT 0")
 
     c.execute(
         """CREATE TABLE IF NOT EXISTS entitlements(
@@ -357,9 +359,10 @@ def refresh_invoice(c, row):
 
     paid_at = now if status == "PAID" else None
     c.execute(
-        """UPDATE invoices SET status=?,confirmations=?,txid=?,paid_at=COALESCE(paid_at,?)
+        """UPDATE invoices SET status=?,confirmations=?,txid=?,paid_at=COALESCE(paid_at,?),
+           last_checked_at=?
            WHERE id=?""",
-        (status, best_conf, txids, paid_at, row["id"]),
+        (status, best_conf, txids, paid_at, now, row["id"]),
     )
 
     if status == "PAID":
@@ -398,6 +401,21 @@ def refresh_invoice(c, row):
             )
     c.commit()
     return c.execute("SELECT * FROM invoices WHERE id=?", (row["id"],)).fetchone()
+
+
+def verification_healthy(row, now=None):
+    """Only a successful wallet transfer lookup marks an invoice as monitored.
+
+    Paid invoices retain their committed status. Unpaid invoices need a recent
+    background scan; an RPC outage must not masquerade as WAITING forever.
+    """
+    if row["status"] == "PAID":
+        return True
+    if now is None:
+        now = int(time.time())
+    return 0 < int(row["last_checked_at"] or 0) and (
+        now - int(row["last_checked_at"]) <= max(3 * RECONCILE_SECONDS, 90)
+    )
 
 
 def entitlement_valid_until(now, current_until, spec):
@@ -707,7 +725,8 @@ class H(BaseHTTPRequestHandler):
                 ):
                     c.close()
                     return self.out({"error": "unauthorized"}, 401)
-                row = refresh_invoice(c, row)
+                # Never let public polling trigger wallet-RPC; the reconciler
+                # performs verified checks at a bounded background cadence.
                 ent = c.execute(
                     """SELECT valid_until FROM entitlements
                        WHERE pubkey=? AND feature=? AND target=?""",
@@ -726,6 +745,7 @@ class H(BaseHTTPRequestHandler):
                         "confirmations": row["confirmations"],
                         "confirmations_required": CONFIRMATIONS,
                         "expires_at": row["expires_at"],
+                        "verification_healthy": verification_healthy(row),
                         "access_valid_until": int(ent["valid_until"]) if ent else None,
                     }
                 )

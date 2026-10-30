@@ -202,8 +202,12 @@ buy.addEventListener('submit', async event => {
           buyButton.disabled = false;
           return;
         }
-        progress.textContent = 'Payment: ' + (state.status || 'WAITING') +
-          ' · confirmations: ' + (state.confirmations ?? 0) + ' / ' + data.confirmations_required;
+        if (state.verification_healthy === false) {
+          progress.textContent = 'Payment monitor has not yet completed a recent successful scan. Do not send XMR until verification is healthy.';
+        } else {
+          progress.textContent = 'Payment: ' + (state.status || 'WAITING') +
+            ' · confirmations: ' + (state.confirmations ?? 0) + ' / ' + data.confirmations_required;
+        }
       } catch {
         progress.textContent = 'Payment verification unavailable. Do not send XMR until the status checker is working. If you already paid, do not pay again; contact the relay operator.';
       }

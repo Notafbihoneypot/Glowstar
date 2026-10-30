@@ -27,6 +27,8 @@ AUTO_INSTALL="${AUTO_INSTALL:-1}"
 ROTATE_SECRETS="${ROTATE_SECRETS:-0}"
 # Update the Caddy routing only; never restart Commerce/strfry/wallet.
 GLOWSTR_CADDY_ONLY="${GLOWSTR_CADDY_ONLY:-0}"
+# Update existing Podman services without rewriting remote daemon, wallet, or .env.
+GLOWSTR_STACK_UPDATE_ONLY="${GLOWSTR_STACK_UPDATE_ONLY:-0}"
 AUTO_SWAP="${AUTO_SWAP:-1}"
 SKIP_DNS_CHECK="${SKIP_DNS_CHECK:-0}"
 ALLOW_PROXMOX_HOST="${ALLOW_PROXMOX_HOST:-0}"
@@ -932,7 +934,25 @@ EOF
 
 main() {
   if bool_enabled "$GLOWSTR_CADDY_ONLY"; then
+    RELAY_DOMAIN="${RELAY_DOMAIN:-$(env_value GLOWSTR_RELAY_TARGET)}"
     repair_caddy_only
+    return
+  fi
+  if bool_enabled "$GLOWSTR_STACK_UPDATE_ONLY"; then
+    [[ -s "$ENV_FILE" ]] || die "Existing .env missing: cannot safely update stack"
+    RELAY_DOMAIN="${RELAY_DOMAIN:-$(env_value GLOWSTR_RELAY_TARGET)}"
+    [[ "$RELAY_DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] ||
+      die "Invalid existing relay hostname in .env"
+    [[ -z "$ROTATE_SECRETS" || "$ROTATE_SECRETS" == "0" ]] ||
+      die "Secret rotation is not supported in stack-update-only mode"
+    # Read into memory for compose output redaction; do not print credentials.
+    RPC_PASS="$(env_value MONERO_RPC_PASS)"
+    [[ -n "$RPC_PASS" ]] || die "Existing wallet RPC password not found; refusing unsafe update"
+    detect_compose
+    write_caddy
+    start_stack
+    healthcheck
+    say "Existing Podman services updated; wallet, remote daemon and .env unchanged"
     return
   fi
   collect_inputs

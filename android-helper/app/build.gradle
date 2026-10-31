@@ -10,8 +10,8 @@ android {
         applicationId 'org.glowstr.meshbridge'
         minSdk 29
         targetSdk 36
-        versionCode 27
-        versionName '0.3.15'
+        versionCode 28
+        versionName '0.3.16'
     }
 
     def signingEnv = ['GLOWSTR_RELEASE_STORE_FILE', 'GLOWSTR_RELEASE_STORE_PASSWORD',
@@ -41,21 +41,28 @@ android {
         debug {
             applicationIdSuffix '.debug'
             versionNameSuffix '-debug'
-            resValue 'string', 'app_name', 'Glowstr 0.3.15'
+            resValue 'string', 'app_name', 'Glowstr 0.3.16'
         }
         mediafix {
             initWith debug
             debuggable false
             applicationIdSuffix '.mediafix'
             versionNameSuffix '-mediafix'
-            resValue 'string', 'app_name', 'Glowstr Media Fix 0.3.15'
+            resValue 'string', 'app_name', 'Glowstr Media Fix 0.3.16'
         }
         relayrewire {
             initWith debug
             debuggable false
             applicationIdSuffix '.relayrewire'
             versionNameSuffix '-relayrewire'
-            resValue 'string', 'app_name', 'Glowstr Relay 0.3.15'
+            resValue 'string', 'app_name', 'Glowstr Relay 0.3.16'
+        }
+        integrated {
+            initWith debug
+            debuggable false
+            applicationIdSuffix '.integrated'
+            versionNameSuffix '-integrated'
+            resValue 'string', 'app_name', 'Glowstr FROSTR + Relay 0.3.16'
         }
     }
 
@@ -79,7 +86,7 @@ dependencies {
 }
 
 def syncGlowstrAsset = tasks.register('syncGlowstrAsset', Copy) {
-    from('../../glowstr-v5.4-relay-domain-secure.html')
+    from('../../glowstr-v5.5-relay-frostr-media.html')
     into("$buildDir/generated/glowstrAssets")
     rename { 'glowstr.html' }
 

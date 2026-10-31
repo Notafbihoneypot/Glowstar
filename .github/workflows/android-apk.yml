@@ -8,10 +8,10 @@ on:
         type: boolean
         default: false
   pull_request:
-    paths: ['android-helper/**', 'tests/**', 'monero-commerce/**', 'glowstr-v5.3-bluetooth-direct.html', 'glowstr-v5.4-relay-domain-secure.html', '.github/workflows/android-apk.yml']
+    paths: ['android-helper/**', 'tests/**', 'monero-commerce/**', 'glowstr-v5.3-bluetooth-direct.html', 'glowstr-v5.4-relay-domain-secure.html', 'glowstr-v5.5-relay-frostr-media.html', '.github/workflows/android-apk.yml']
   push:
     branches: [main]
-    paths: ['android-helper/**', 'tests/**', 'monero-commerce/**', 'glowstr-v5.3-bluetooth-direct.html', 'glowstr-v5.4-relay-domain-secure.html', '.github/workflows/android-apk.yml']
+    paths: ['android-helper/**', 'tests/**', 'monero-commerce/**', 'glowstr-v5.3-bluetooth-direct.html', 'glowstr-v5.4-relay-domain-secure.html', 'glowstr-v5.5-relay-frostr-media.html', '.github/workflows/android-apk.yml']
 
 permissions:
   contents: write
@@ -44,6 +44,8 @@ jobs:
           python3 tests/run_tests.py
           node tests/security-regression.cjs
           node tests/media-wallet-regression.cjs
+          node tests/media-wallet-regression.cjs glowstr-v5.5-relay-frostr-media.html
+          node tests/security-regression.cjs glowstr-v5.5-relay-frostr-media.html
           node tests/relay-rewire-regression.cjs
           python3 tests/test_commerce.py
       - name: Run cryptography and bridge isolation checks
@@ -57,7 +59,7 @@ jobs:
           java -cp android-helper/build/crypto-tests org.glowstr.meshbridge.NostrCryptoSelfTest
           java -cp android-helper/build/crypto-tests org.glowstr.meshbridge.TrustedWebContentSelfTest
       - name: Test Android scoped file picker
-        run: gradle -p android-helper --no-daemon --stacktrace :app:testMediafixUnitTest
+        run: gradle -p android-helper --no-daemon --stacktrace :app:testMediafixUnitTest :app:testIntegratedUnitTest
       - name: Build non-debuggable release APK for verification
         run: gradle -p android-helper --no-daemon --stacktrace :app:assembleRelease :app:lintRelease
       - name: Verify release manifest
@@ -78,17 +80,17 @@ jobs:
           set -euo pipefail
           gradle -p android-helper --no-daemon --stacktrace :app:assembleMediafix
           mkdir -p dist
-          cp android-helper/app/build/outputs/apk/mediafix/app-mediafix.apk dist/Glowstr-Android-0.3.15-mediafix.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs dist/Glowstr-Android-0.3.15-mediafix.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging dist/Glowstr-Android-0.3.15-mediafix.apk
-          sha256sum dist/Glowstr-Android-0.3.15-mediafix.apk > dist/Glowstr-Android-0.3.15-mediafix.apk.sha256
+          cp android-helper/app/build/outputs/apk/mediafix/app-mediafix.apk dist/Glowstr-Android-0.3.16-mediafix.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs dist/Glowstr-Android-0.3.16-mediafix.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging dist/Glowstr-Android-0.3.16-mediafix.apk
+          sha256sum dist/Glowstr-Android-0.3.16-mediafix.apk > dist/Glowstr-Android-0.3.16-mediafix.apk.sha256
       - name: Upload installable media-fix test APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: Glowstr-Android-Media-Fix
           path: |
-            dist/Glowstr-Android-0.3.15-mediafix.apk
-            dist/Glowstr-Android-0.3.15-mediafix.apk.sha256
+            dist/Glowstr-Android-0.3.16-mediafix.apk
+            dist/Glowstr-Android-0.3.16-mediafix.apk.sha256
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
@@ -98,34 +100,68 @@ jobs:
           set -euo pipefail
           gradle -p android-helper --no-daemon --stacktrace :app:assembleRelayrewire
           mkdir -p dist
-          cp android-helper/app/build/outputs/apk/relayrewire/app-relayrewire.apk dist/Glowstr-Android-0.3.15-relayrewire.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs dist/Glowstr-Android-0.3.15-relayrewire.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging dist/Glowstr-Android-0.3.15-relayrewire.apk | grep "package: name='org.glowstr.meshbridge.relayrewire'"
-          sha256sum dist/Glowstr-Android-0.3.15-relayrewire.apk > dist/Glowstr-Android-0.3.15-relayrewire.apk.sha256
+          cp android-helper/app/build/outputs/apk/relayrewire/app-relayrewire.apk dist/Glowstr-Android-0.3.16-relayrewire.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs dist/Glowstr-Android-0.3.16-relayrewire.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging dist/Glowstr-Android-0.3.16-relayrewire.apk | grep "package: name='org.glowstr.meshbridge.relayrewire'"
+          sha256sum dist/Glowstr-Android-0.3.16-relayrewire.apk > dist/Glowstr-Android-0.3.16-relayrewire.apk.sha256
       - name: Upload relay-rewire preview APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: Glowstr-Android-Relay-Rewire-Preview
           path: |
-            dist/Glowstr-Android-0.3.15-relayrewire.apk
-            dist/Glowstr-Android-0.3.15-relayrewire.apk.sha256
+            dist/Glowstr-Android-0.3.16-relayrewire.apk
+            dist/Glowstr-Android-0.3.16-relayrewire.apk.sha256
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
 
       - name: Publish relay-rewire preview APK prerelease
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: false # Superseded by the consolidated integrated preview
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           TAG="v0.3.15-relay-rewire-${GITHUB_RUN_NUMBER}"
           gh release create "$TAG" \
-            dist/Glowstr-Android-0.3.15-relayrewire.apk \
-            dist/Glowstr-Android-0.3.15-relayrewire.apk.sha256 \
+            dist/Glowstr-Android-0.3.16-relayrewire.apk \
+            dist/Glowstr-Android-0.3.16-relayrewire.apk.sha256 \
             --target "$GITHUB_SHA" \
             --title "Glowstr Android 0.3.15 Relay Rewire Preview" \
             --notes "Test-signed side-by-side APK (org.glowstr.meshbridge.relayrewire), not a production signing-key upgrade. Bundles Glowstr v5.4 with the live wss://notafbihoneypotrelay.com relay, /xmr-commerce/v1 payments, annual and lifetime XMR relay plans, and a fail-closed USD 4 NIP-05 name storefront. NIP-05 remains unavailable until the operator deploys the name-service backend and configures the real domain. Keep your existing APK installed and back up any local signing key before switching applications." \
+            --prerelease
+
+      - name: Build combined media / FROSTR / relay APK
+        run: |
+          set -euo pipefail
+          gradle -p android-helper --no-daemon --stacktrace :app:assembleIntegrated
+          mkdir -p dist
+          cp android-helper/app/build/outputs/apk/integrated/app-integrated.apk dist/Glowstr-Android-0.3.16-integrated.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs dist/Glowstr-Android-0.3.16-integrated.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging dist/Glowstr-Android-0.3.16-integrated.apk | grep "package: name='org.glowstr.meshbridge.integrated'"
+          sha256sum dist/Glowstr-Android-0.3.16-integrated.apk > dist/Glowstr-Android-0.3.16-integrated.apk.sha256
+      - name: Upload combined Android APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Glowstr-Android-FROSTR-Media-Relay-Integrated
+          path: |
+            dist/Glowstr-Android-0.3.16-integrated.apk
+            dist/Glowstr-Android-0.3.16-integrated.apk.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - name: Publish combined Android APK prerelease
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="v0.3.16-integrated-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" \
+            dist/Glowstr-Android-0.3.16-integrated.apk \
+            dist/Glowstr-Android-0.3.16-integrated.apk.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "Glowstr Android 0.3.16 FROSTR + Media + Relay" \
+            --notes "Test-signed, non-debuggable, side-by-side preview (org.glowstr.meshbridge.integrated). Includes FROSTR/Igloo NIP-46 threshold signer, hardened Android media chooser and Blossom uploads, and live Monero relay checkout with NIP-05 purchase disabled until server configuration. Does not alter the running VPS. Back up your login/recovery material; existing test-signed packages cannot be upgraded if signed with different CI keys." \
             --prerelease
 
   signed-release:

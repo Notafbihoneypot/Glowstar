@@ -26,7 +26,7 @@ includes('frostr-connect-btn', 'FROSTR panel');
 includes('function glowstrIsRemoteSignerMethod(', 'FROSTR transport routing');
 includes('function glowstrUploadComposeMedia(', 'Media upload draft protection');
 includes('id="compose-media-file"', 'Media picker');
-includes("name='glowstr-relay-plan'", 'Relay checkout plans');
+includes('name="glowstr-relay-plan"', 'Relay checkout plans');
 assert.ok(!client.includes('relay.glowstr.com'), 'Old relay hostname still present');
 assert.ok(!client.includes('/api/xmr/'), 'Obsolete Commerce prototype endpoint still present');
 

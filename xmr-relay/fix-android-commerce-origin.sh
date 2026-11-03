@@ -70,19 +70,80 @@ export GLOWSTR_ALLOWED_ORIGIN
 # Compose supplies only the singular; avoid a stale host override.
 unset GLOWSTR_ALLOWED_ORIGINS || true
 
-# Only recreate Commerce. Do not recreate monero-wallet-rpc, relay, or relay gate.
-if podman compose version >/dev/null 2>&1; then
-  COMPOSE=(podman compose)
-elif command -v podman-compose >/dev/null 2>&1; then
+# Previous deployments used podman-compose versions that could not replace
+# Commerce while Caddy/relay-gate still had Podman --requires references to it.
+# Force-recreate could report success but leave the OLD Commerce environment.
+# Replacing only the affected container objects in dependent order fixes this.
+# We NEVER touch the Monero wallet, strfry relay storage, or named data volumes.
+
+if command -v podman-compose >/dev/null 2>&1; then
   COMPOSE=(podman-compose)
+elif podman compose version >/dev/null 2>&1; then
+  COMPOSE=(podman compose)
 else
-  echo "No Podman Compose provider; manually restart just the commerce service." >&2
-  echo "Private backup: $BACKUP" >&2
+  echo "No Podman Compose provider found." >&2
   exit 1
 fi
 
-"${COMPOSE[@]}" -f compose.yaml -f compose.paid-relay.yaml up -d --no-deps --force-recreate commerce
-echo "Commerce service recreated. Private backup: $BACKUP"
+android_origin_active() {
+  podman exec xmr-relay_commerce_1 python3 -c '
+import os, sys
+raw = os.getenv("GLOWSTR_ALLOWED_ORIGINS", os.getenv("GLOWSTR_ALLOWED_ORIGIN", ""))
+sys.exit(0 if "https://app.glowstr.local" in
+         [x.strip() for x in raw.split(",")] else 1)
+' >/dev/null 2>&1
+}
+
+if android_origin_active; then
+  echo "Commerce already allows Glowstr Android; no service restart needed."
+else
+  # Caddy requires relay-gate and Commerce; the gate requires Commerce.
+  # Check ownership BEFORE removing anything and reject unexpected containers.
+  managed=(xmr-relay_caddy_1 xmr-relay_relay-gate_1 xmr-relay_commerce_1)
+  for name in "${managed[@]}"; do
+    podman container exists "$name" ||
+      { echo "Expected $name missing; refusing partial recreation" >&2; exit 1; }
+    owner="$(podman inspect --type container --format \
+      '{{ index .Config.Labels "io.podman.compose.project" }}' "$name")" ||
+      { echo "Cannot inspect $name; refusing recreation" >&2; exit 1; }
+    [[ "$owner" == "xmr-relay" ]] ||
+      { echo "Unexpected owner for $name; refusing recreation" >&2; exit 1; }
+  done
+  if podman container exists xmr-relay_notifier_1; then
+    echo "Optional notifier container exists; refusing an automatic replacement that might disrupt its dependencies." >&2
+    exit 1
+  fi
+
+  # Avoid exposing wallet-RPC and Commerce admin secrets from podman-compose
+  # command output: it may print all its -e KEY=VALUE arguments.
+  echo "Replacing stale Caddy, relay-gate and Commerce containers (brief connection interruption)."
+  for name in "${managed[@]}"; do
+    podman rm -f "$name" >/dev/null ||
+      { echo "Could not remove $name; named volumes are untouched" >&2; exit 1; }
+  done
+  compose_log="$(mktemp "$HERE/.cors-compose.XXXXXXXX.log")"
+  chmod 600 "$compose_log"
+  if ! "${COMPOSE[@]}" -f compose.yaml -f compose.paid-relay.yaml \
+      up -d --no-deps commerce relay-gate caddy >"$compose_log" 2>&1; then
+    echo "Could not restart Commerce/gate/Caddy. Private provider log: $compose_log" >&2
+    echo "Do not paste that log: it can contain wallet-RPC or admin secrets." >&2
+    exit 1
+  fi
+  rm -f "$compose_log"
+  for name in xmr-relay_commerce_1 xmr-relay_relay-gate_1 xmr-relay_caddy_1; do
+    podman container exists "$name" ||
+      { echo "Expected new $name missing after Compose" >&2; exit 1; }
+    [[ "$(podman inspect --type container --format '{{.State.Running}}' "$name")" == "true" ]] ||
+      { echo "New $name is not running; inspect its logs (redact secrets)" >&2; exit 1; }
+  done
+  if ! android_origin_active; then
+    echo "Commerce still has the wrong CORS origins; check Compose config (do not share secrets)." >&2
+    exit 2
+  fi
+  echo "Commerce recreated with the Android origin; named volumes preserved."
+fi
+
+echo "Private .env backup: $BACKUP"
 echo "Do not share .env or the backup; they contain wallet RPC credentials."
 
 # Confirm effective container configuration before testing public HTTPS.

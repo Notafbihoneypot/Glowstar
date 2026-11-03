@@ -10,8 +10,8 @@ android {
         applicationId 'org.glowstr.meshbridge'
         minSdk 29
         targetSdk 36
-        versionCode 28
-        versionName '0.3.16'
+        versionCode 29
+        versionName '0.3.17'
     }
 
     def signingEnv = ['GLOWSTR_RELEASE_STORE_FILE', 'GLOWSTR_RELEASE_STORE_PASSWORD',

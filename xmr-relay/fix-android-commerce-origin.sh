@@ -60,6 +60,16 @@ finally:
 print("Added/verified Glowstr Android HTTPS origin; no wallet settings changed.")
 PY
 
+# Host shell variables take precedence over .env in most Compose providers.
+# Export the value we just wrote, not a possibly stale inherited environment.
+GLOWSTR_ALLOWED_ORIGIN="$(sed -n 's/^GLOWSTR_ALLOWED_ORIGIN=//p' "$ENV_FILE" | tail -n1)"
+[[ ",$GLOWSTR_ALLOWED_ORIGIN," == *",https://app.glowstr.local,"* ]] ||
+  { echo "Android origin absent from updated .env; refusing to restart Commerce." >&2; exit 1; }
+export GLOWSTR_ALLOWED_ORIGIN
+# The backend gives this optional plural variable precedence over the singular.
+# Compose supplies only the singular; avoid a stale host override.
+unset GLOWSTR_ALLOWED_ORIGINS || true
+
 # Only recreate Commerce. Do not recreate monero-wallet-rpc, relay, or relay gate.
 if podman compose version >/dev/null 2>&1; then
   COMPOSE=(podman compose)
@@ -75,23 +85,51 @@ fi
 echo "Commerce service recreated. Private backup: $BACKUP"
 echo "Do not share .env or the backup; they contain wallet RPC credentials."
 
-# Public unauthenticated CORS preflight; never creates an invoice or spends XMR.
-relay_domain="$(sed -n 's/^GLOWSTR_RELAY_TARGET=//p' "$ENV_FILE" | tail -n1)"
-if [[ "$relay_domain" =~ ^[A-Za-z0-9.-]+$ ]]; then
+# Confirm effective container configuration before testing public HTTPS.
+# This prints ONLY public CORS origins, never env secrets or RPC credentials.
+echo "Commerce active origin settings:"
+podman exec xmr-relay_commerce_1 python3 -c '
+import os
+single = os.getenv("GLOWSTR_ALLOWED_ORIGIN", "")
+plural = os.getenv("GLOWSTR_ALLOWED_ORIGINS")
+effective = plural if plural is not None else single
+print("  active origins:", effective)
+print("  Android origin allowed:", "https://app.glowstr.local" in
+      [x.strip() for x in effective.split(",")])
+' || { echo "Cannot inspect Commerce CORS settings" >&2; exit 2; }
+
+# Check loopback before public HTTPS: different results identify Caddy issues.
+# OPTIONS requests never create an invoice or interact with your Monero wallet.
+check_preflight() {
+  local url="$1" headers
   headers="$(curl --silent --show-error --max-time 12 --dump-header - --output /dev/null \
     -X OPTIONS -H 'Origin: https://app.glowstr.local' \
     -H 'Access-Control-Request-Method: POST' \
     -H 'Access-Control-Request-Headers: content-type' \
-    "https://$relay_domain/xmr-commerce/v1/invoices")" || {
-      echo "Public preflight unreachable. Check DNS/TLS/Caddy and try again." >&2
-      exit 2
-    }
-  if printf '%s\n' "$headers" | tr -d '\r' | grep -Fqi 'Access-Control-Allow-Origin: https://app.glowstr.local'; then
+    "$url")" || return 1
+  if printf '%s\n' "$headers" | tr -d '\r' |
+      grep -Fqi 'Access-Control-Allow-Origin: https://app.glowstr.local'; then
+    return 0
+  fi
+  printf '%s\n' "$headers" | grep -iE '^(HTTP/|Access-Control-|Location:)' >&2 || true
+  return 1
+}
+
+if check_preflight 'http://127.0.0.1:8787/v1/invoices'; then
+  echo "PASS: Local Commerce API allows Glowstr Android origin."
+else
+  echo "FAIL: Local Commerce did not allow the Android origin; check effective container settings above." >&2
+  exit 2
+fi
+
+relay_domain="$(sed -n 's/^GLOWSTR_RELAY_TARGET=//p' "$ENV_FILE" | tail -n1)"
+if [[ "$relay_domain" =~ ^[A-Za-z0-9.-]+$ ]]; then
+  if check_preflight "https://$relay_domain/xmr-commerce/v1/invoices"; then
     echo "PASS: Public Commerce API permits the Glowstr Android origin."
   else
-    echo "FAIL: HTTPS endpoint did not return Android Access-Control-Allow-Origin." >&2
-    echo "Check Caddy routing and Commerce logs. HTTP response headers:" >&2
-    printf '%s\n' "$headers" | grep -iE '^(HTTP/|Access-Control-|Location:)' >&2 || true
+    echo "FAIL: Local CORS passed but public HTTPS failed; inspect Caddy headers/routing." >&2
     exit 2
   fi
+else
+  echo "NOTE: Invalid/missing relay target; skipping public HTTPS check." >&2
 fi

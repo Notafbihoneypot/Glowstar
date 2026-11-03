@@ -41,28 +41,28 @@ android {
         debug {
             applicationIdSuffix '.debug'
             versionNameSuffix '-debug'
-            resValue 'string', 'app_name', 'Glowstr 0.3.16'
+            resValue 'string', 'app_name', 'Glowstr'
         }
         mediafix {
             initWith debug
             debuggable false
             applicationIdSuffix '.mediafix'
             versionNameSuffix '-mediafix'
-            resValue 'string', 'app_name', 'Glowstr Media Fix 0.3.16'
+            resValue 'string', 'app_name', 'Glowstr'
         }
         relayrewire {
             initWith debug
             debuggable false
             applicationIdSuffix '.relayrewire'
             versionNameSuffix '-relayrewire'
-            resValue 'string', 'app_name', 'Glowstr Relay 0.3.16'
+            resValue 'string', 'app_name', 'Glowstr'
         }
         integrated {
             initWith debug
             debuggable false
             applicationIdSuffix '.integrated'
             versionNameSuffix '-integrated'
-            resValue 'string', 'app_name', 'Glowstr FROSTR + Relay 0.3.16'
+            resValue 'string', 'app_name', 'Glowstr'
         }
     }
 

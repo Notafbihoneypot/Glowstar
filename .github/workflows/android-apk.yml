@@ -2,11 +2,6 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
-    inputs:
-      signed:
-        description: Build with the configured production signing key
-        type: boolean
-        default: false
   pull_request:
     paths: ['android-helper/**', 'tests/**', 'monero-commerce/**', 'glowstr-v5.3-bluetooth-direct.html', 'glowstr-v5.4-relay-domain-secure.html', 'glowstr-v5.5-relay-frostr-media.html', '.github/workflows/android-apk.yml']
   push:
@@ -14,7 +9,7 @@ on:
     paths: ['android-helper/**', 'tests/**', 'monero-commerce/**', 'glowstr-v5.3-bluetooth-direct.html', 'glowstr-v5.4-relay-domain-secure.html', 'glowstr-v5.5-relay-frostr-media.html', '.github/workflows/android-apk.yml']
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -149,68 +144,3 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
-      - name: Publish combined Android APK prerelease
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          TAG="v0.3.16-integrated-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" \
-            dist/Glowstr-Android-0.3.16-integrated.apk \
-            dist/Glowstr-Android-0.3.16-integrated.apk.sha256 \
-            --target "$GITHUB_SHA" \
-            --title "Glowstr Android 0.3.16 FROSTR + Media + Relay" \
-            --notes "Test-signed, non-debuggable, side-by-side preview (org.glowstr.meshbridge.integrated). Includes FROSTR/Igloo NIP-46 threshold signer, hardened Android media chooser and Blossom uploads, and live Monero relay checkout with NIP-05 purchase disabled until server configuration. Does not alter the running VPS. Back up your login/recovery material; existing test-signed packages cannot be upgraded if signed with different CI keys." \
-            --prerelease
-
-  signed-release:
-    if: github.event_name == 'workflow_dispatch' && inputs.signed
-    needs: build
-    runs-on: ubuntu-24.04
-    environment: android-release
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          persist-credentials: false
-      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a
-        with:
-          gradle-version: '8.13'
-      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
-        with:
-          packages: 'platforms;android-36 build-tools;35.0.0'
-          log-accepted-android-sdk-licenses: false
-      - name: Build and verify signed production APK
-        env:
-          GLOWSTR_RELEASE_KEYSTORE_BASE64: ${{ secrets.GLOWSTR_RELEASE_KEYSTORE_BASE64 }}
-          GLOWSTR_RELEASE_STORE_PASSWORD: ${{ secrets.GLOWSTR_RELEASE_STORE_PASSWORD }}
-          GLOWSTR_RELEASE_KEY_ALIAS: ${{ secrets.GLOWSTR_RELEASE_KEY_ALIAS }}
-          GLOWSTR_RELEASE_KEY_PASSWORD: ${{ secrets.GLOWSTR_RELEASE_KEY_PASSWORD }}
-          GLOWSTR_REQUIRE_RELEASE_SIGNING: 'true'
-        run: |
-          set -euo pipefail
-          umask 077
-          export GLOWSTR_RELEASE_STORE_FILE="$RUNNER_TEMP/glowstr-release.jks"
-          trap 'rm -f "$GLOWSTR_RELEASE_STORE_FILE"' EXIT
-          test -n "$GLOWSTR_RELEASE_KEYSTORE_BASE64"
-          printf '%s' "$GLOWSTR_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$GLOWSTR_RELEASE_STORE_FILE"
-          gradle -p android-helper --no-daemon :app:assembleRelease
-          mkdir -p dist
-          cp android-helper/app/build/outputs/apk/release/app-release.apk dist/Glowstr-Android-release.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/Glowstr-Android-release.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump xmltree dist/Glowstr-Android-release.apk AndroidManifest.xml > /tmp/glowstr-manifest.txt
-          python3 tests/check_release_manifest.py /tmp/glowstr-manifest.txt
-          sha256sum dist/Glowstr-Android-release.apk > dist/Glowstr-Android-release.apk.sha256
-      - name: Upload signed production APK
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: Glowstr-Android-Signed-Release
-          path: dist/
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 30

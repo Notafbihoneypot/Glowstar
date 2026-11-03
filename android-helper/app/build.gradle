@@ -14,27 +14,14 @@ android {
         versionName '0.3.17'
     }
 
-    def signingEnv = ['GLOWSTR_RELEASE_STORE_FILE', 'GLOWSTR_RELEASE_STORE_PASSWORD',
-                      'GLOWSTR_RELEASE_KEY_ALIAS', 'GLOWSTR_RELEASE_KEY_PASSWORD']
-    def hasReleaseSigning = signingEnv.every { System.getenv(it) }
-    if (System.getenv('GLOWSTR_REQUIRE_RELEASE_SIGNING') == 'true' && !hasReleaseSigning) {
-        throw new GradleException('Production APK requires all four GLOWSTR_RELEASE signing variables')
-    }
-    if (hasReleaseSigning) {
-        signingConfigs {
-            production {
-                storeFile file(System.getenv('GLOWSTR_RELEASE_STORE_FILE'))
-                storePassword System.getenv('GLOWSTR_RELEASE_STORE_PASSWORD')
-                keyAlias System.getenv('GLOWSTR_RELEASE_KEY_ALIAS')
-                keyPassword System.getenv('GLOWSTR_RELEASE_KEY_PASSWORD')
-            }
-        }
-    }
+    // Owner-held signing key lives in offline Qubes only. Release artifacts
+    // from GitHub and local Gradle builds MUST stay unsigned.
+    // Do not reintroduce GitHub Actions keystore secrets.
 
     buildTypes {
         release {
             debuggable false
-            if (hasReleaseSigning) signingConfig signingConfigs.production
+            signingConfig = null  // signed later using apksigner inside offline Qubes
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }

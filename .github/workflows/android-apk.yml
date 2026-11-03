@@ -62,6 +62,8 @@ jobs:
           APK=android-helper/app/build/outputs/apk/release/app-release-unsigned.apk
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump xmltree "$APK" AndroidManifest.xml > /tmp/glowstr-manifest.txt
           python3 tests/check_release_manifest.py /tmp/glowstr-manifest.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='org.glowstr.meshbridge'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-label:'Glowstr'"
       - name: Record unsigned APK SHA-256
         run: |
           cd android-helper/app/build/outputs/apk/release

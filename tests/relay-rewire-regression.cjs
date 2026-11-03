@@ -39,7 +39,17 @@ assert.ok(client.includes("'sha256-" + hash + "'"), 'Inline script CSP hash is s
 assert.ok(gradle.includes("from('../../glowstr-v5.5-relay-frostr-media.html')"), 'Android packaging still reads old source');
 assert.ok(gradle.includes("applicationIdSuffix '.integrated'"), 'Isolated integrated APK package missing');
 assert.ok(gradle.includes('window.glowstrAmberSignForMesh(tpl)'), 'Native Amber NIP-55 relay AUTH path missing');
-assert.ok(gradle.includes("versionName '0.3.16'"), 'Android version not updated');
+// Derive the APK version from Gradle, rather than freezing the test at an
+// older release number every time the owner-signed production app is updated.
+const version = gradle.match(/^\s*versionName\s+'(\d+\.\d+\.\d+)'/m)?.[1];
+const code = Number(gradle.match(/^\s*versionCode\s+(\d+)/m)?.[1]);
+assert.ok(version && /^\d+\.\d+\.\d+$/.test(version) && code >= 29,
+  'Android versionCode/versionName missing or lower than owner-signing baseline');
 assert.ok(workflow.includes(':app:assembleIntegrated'), 'Relay-rewire build task not in CI');
-assert.ok(workflow.includes('Glowstr-Android-0.3.16-integrated.apk'), 'APK artifact not in CI');
+assert.ok(workflow.includes(`Glowstr-Android-${version}-integrated.apk`),
+  'Integrated preview artifact version does not match Gradle');
+assert.ok(workflow.includes('app-release-unsigned.apk'),
+  'Owner-signed production workflow must emit an unsigned release');
+assert.ok(/signingConfig\s*=\s*null/.test(gradle),
+  'Production APK must remain unsigned for offline Qubes signing');
 console.log('Glowstr v5.5 relay, checkout, NIP-05, FROSTR, media, CSP and APK build wiring OK');

@@ -2,7 +2,7 @@
 
 Production Android package: org.glowstr.meshbridge
 Display name: Glowstr
-Target release: versionCode 29, versionName 0.3.17.
+Target release: versionCode 30, versionName 0.3.18.
 
 This procedure never transfers a private signing key, keystore or keystore password to GitHub, CI, the VPS, or another online device.
 
@@ -47,27 +47,27 @@ umask 077
 cd /path/to/unsigned-apk
 sha256sum -c app-release-unsigned.apk.sha256
 
-zipalign -P 16 -f -v 4 app-release-unsigned.apk Glowstr-0.3.17-aligned.apk
+zipalign -P 16 -f -v 4 app-release-unsigned.apk Glowstr-0.3.18-aligned.apk
 
 apksigner sign \
   --ks /offline/keys/glowstr-release.jks \
   --ks-key-alias MY_GLOWSTR_ALIAS \
-  --out Glowstr-0.3.17.apk \
-  Glowstr-0.3.17-aligned.apk
+  --out Glowstr-0.3.18.apk \
+  Glowstr-0.3.18-aligned.apk
 
-apksigner verify --verbose --print-certs Glowstr-0.3.17.apk
-zipalign -c -P 16 -v 4 Glowstr-0.3.17.apk
-aapt dump badging Glowstr-0.3.17.apk | head -5
-sha256sum Glowstr-0.3.17.apk > Glowstr-0.3.17.apk.sha256
+apksigner verify --verbose --print-certs Glowstr-0.3.18.apk
+zipalign -c -P 16 -v 4 Glowstr-0.3.18.apk
+aapt dump badging Glowstr-0.3.18.apk | head -5
+sha256sum Glowstr-0.3.18.apk > Glowstr-0.3.18.apk.sha256
 ~~~
 
-Check the package is org.glowstr.meshbridge, versionCode at least 29, app label Glowstr, and signer SHA-256 certificate fingerprint exactly matches the keystore's certificate fingerprint.
+Check the package is org.glowstr.meshbridge, versionCode at least 30, app label Glowstr, and signer SHA-256 certificate fingerprint exactly matches the keystore's certificate fingerprint.
 
 ## 4. Release and update
 
 Transfer ONLY signed APK and checksum back to the online distribution qube. Publish those files in GitHub Releases/decentralized app stores with exact source commit, versionCode, build tool versions and public certificate fingerprint.
 
-Test with adb install -r Glowstr-0.3.17.apk on a noncritical Android device. If INSTALL_FAILED_UPDATE_INCOMPATIBLE occurs, do not force installation. Verify recovery material before uninstalling the old app.
+Test with adb install -r Glowstr-0.3.18.apk on a noncritical Android device. If INSTALL_FAILED_UPDATE_INCOMPATIBLE occurs, do not force installation. Verify recovery material before uninstalling the old app.
 
 For each following release, increment versionCode (30, 31, ...), keep org.glowstr.meshbridge, and sign with the SAME Qubes private key. Back up your private key encrypted/offline in two separate physical locations and test restoration in an isolated qube. Do not upload keystores or passwords to GitHub Actions.
 

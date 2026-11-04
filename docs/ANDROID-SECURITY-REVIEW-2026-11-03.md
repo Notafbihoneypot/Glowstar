@@ -18,7 +18,7 @@ This is a focused **static** code review, NOT a complete security audit, end-to-
 ## Required verification before production distribution
 
 - Both modified GitHub Actions workflows finish green and release APKs are positively verified **unsigned**.
-- Confirm manifest app IDs, visible labels and version codes on the produced binaries. Glowstr production: org.glowstr.meshbridge, versionCode 29. Frost bunker: org.glowstr.igloomobile, base versionCode 2 with ARM64 split-specific derived versionCode.
+- Confirm manifest app IDs, visible labels and version codes on the produced binaries. Glowstr production: org.glowstr.meshbridge, versionCode 30. Frost bunker: org.glowstr.igloomobile, base versionCode 2 with ARM64 split-specific derived versionCode.
 - Test signing verification and zip alignment entirely inside network-disabled Qubes; public certificate SHA-256 fingerprints match offline keystore and published signed APKs.
 - Test Frost group restore and recovery with a throwaway identity; verify share export/import and NIP-46/55 approval, rejection, crash/back, biometric lockout and notification behavior on actual GrapheneOS.
 - Test Glowstr NIP-42 public and paid relay auth, CORS invoice flow, signer persistence, media picker, Bluetooth/mesh, and no cleartext secret persistence.

@@ -614,37 +614,87 @@ class H(BaseHTTPRequestHandler):
                     return self.out({"error": "rate_limited"}, 429)
                 if feature not in FEATURES:
                     return self.out({"error": "unknown_feature", "features": FEATURES}, 400)
-                if target != RELAY_TARGET:
+                spec = FEATURES[feature]
+                nip05_name = None
+                if spec.get("kind") == "nip05":
+                    try:
+                        nip05_name, _domain, target = parse_nip05_target(target)
+                    except ValueError as exc:
+                        return self.out({"error": str(exc)}, 400)
+                    # Never trust a typed pubkey: sign the exact checkout
+                    # target with the account's Nostr key and verify server-side.
+                    if not verify_nip05_proof(p.get("proof"), target, pubkey):
+                        return self.out({"error": "invalid_nostr_proof"}, 401)
+                elif target != RELAY_TARGET:
                     return self.out({"error": "invalid_relay_target"}, 400)
 
-                spec = FEATURES[feature]
                 # Lifetime replaces any need to renew annual access.
                 # Check both products before issuing any new paid invoice.
-                c = db()
-                current = c.execute(
-                    """SELECT 1 FROM entitlements WHERE pubkey=?
-                       AND feature='relay_lifetime' AND target=? AND valid_until>?""",
-                    (pubkey, target, int(time.time())),
-                ).fetchone()
-                c.close()
-                if current:
-                    return self.out({"error": "already_lifetime_member"}, 409)
+                if not nip05_name:
+                    c = db()
+                    current = c.execute(
+                        """SELECT 1 FROM entitlements WHERE pubkey=?
+                           AND feature='relay_lifetime' AND target=? AND valid_until>?""",
+                        (pubkey, target, int(time.time())),
+                    ).fetchone()
+                    c.close()
+                    if current:
+                        return self.out({"error": "already_lifetime_member"}, 409)
                 price = xmr_usd_price()
                 amount = usd_cents_to_atomic(spec["usd_cents"], price)
                 inv = secrets.token_urlsafe(18)
                 token = secrets.token_urlsafe(32)
                 now = int(time.time())
 
-                a = rpc(
-                    "create_address",
-                    {"account_index": ACCOUNT, "label": "glowstr:" + inv, "count": 1},
-                )
-                address = a.get("address") or (a.get("addresses") or [None])[0]
-                idx = a.get("address_index")
-                if idx is None:
-                    idx = (a.get("address_indices") or [None])[0]
-                if not address or idx is None:
-                    raise RuntimeError("wallet RPC did not return subaddress")
+                if nip05_name:
+                    # Hold a name until invoice expiry + grace + time for two
+                    # confirmations. SQLite unique key is the collision guard.
+                    with _nip05_lock:
+                        c = db()
+                        try:
+                            c.execute("BEGIN IMMEDIATE")
+                            c.execute("DELETE FROM nip05_reservations WHERE expires_at < ?", (now,))
+                            if nip05_mapping(c, nip05_name):
+                                c.rollback()
+                                return self.out({"error": "name_taken"}, 409)
+                            current_reservation = c.execute(
+                                """SELECT 1 FROM nip05_reservations
+                                   WHERE domain=? AND name=? AND expires_at>=?""",
+                                (NIP05_DOMAIN, nip05_name, now),
+                            ).fetchone()
+                            if current_reservation:
+                                c.rollback()
+                                return self.out({"error": "name_reserved"}, 409)
+                            c.execute(
+                                """INSERT INTO nip05_reservations(
+                                   domain,name,pubkey,invoice_id,expires_at
+                                   ) VALUES(?,?,?,?,?)""",
+                                (NIP05_DOMAIN, nip05_name, pubkey, inv,
+                                 now + INVOICE_SECONDS + LATE_GRACE_SECONDS + 3600),
+                            )
+                            c.commit()
+                        finally:
+                            c.close()
+
+                try:
+                    a = rpc(
+                        "create_address",
+                        {"account_index": ACCOUNT, "label": "glowstr:" + inv, "count": 1},
+                    )
+                    address = a.get("address") or (a.get("addresses") or [None])[0]
+                    idx = a.get("address_index")
+                    if idx is None:
+                        idx = (a.get("address_indices") or [None])[0]
+                    if not address or idx is None:
+                        raise RuntimeError("wallet RPC did not return subaddress")
+                except Exception:
+                    if nip05_name:
+                        c = db()
+                        c.execute("DELETE FROM nip05_reservations WHERE domain=? AND name=? AND invoice_id=?",
+                                  (NIP05_DOMAIN, nip05_name, inv))
+                        c.commit()
+                        c.close()
+                    raise
 
                 c = db()
                 c.execute(
@@ -684,6 +734,7 @@ class H(BaseHTTPRequestHandler):
                         "uri": invoice_uri(address, amount, spec["label"]),
                         "expires_at": now + INVOICE_SECONDS,
                         "confirmations_required": CONFIRMATIONS,
+                        **({"nip05": target} if nip05_name else {}),
                     }
                 )
 

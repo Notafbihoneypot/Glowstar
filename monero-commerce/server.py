@@ -447,6 +447,38 @@ def refresh_invoice(c, row):
 
     if status == "PAID":
         spec = FEATURES[row["feature"]]
+        if spec.get("kind") == "nip05":
+            # A paid NIP-05 invoice is not a relay-write entitlement. Register
+            # only its original name+pubkey; never transfer it or overwrite a
+            # previously settled name on a late/conflicting transaction.
+            try:
+                name, domain, _ = parse_nip05_target(row["target"])
+                old = nip05_mapping(c, name)
+                reservation = c.execute(
+                    """SELECT pubkey,invoice_id FROM nip05_reservations
+                       WHERE domain=? AND name=?""", (domain, name)
+                ).fetchone()
+                safe = (not old or old["pubkey"] == row["pubkey"]) and (
+                    not reservation or reservation["invoice_id"] == row["id"]
+                )
+                if not safe:
+                    c.execute("UPDATE invoices SET status='REVIEW' WHERE id=?", (row["id"],))
+                    print("NIP-05 payment requires operator review:", row["id"], flush=True)
+                else:
+                    c.execute(
+                        """INSERT OR IGNORE INTO nip05_names(domain,name,pubkey,invoice_id,created_at)
+                           VALUES(?,?,?,?,?)""",
+                        (domain, name, row["pubkey"], row["id"], now),
+                    )
+                    c.execute(
+                        "DELETE FROM nip05_reservations WHERE domain=? AND name=? AND invoice_id=?",
+                        (domain, name, row["id"]),
+                    )
+            except ValueError:
+                c.execute("UPDATE invoices SET status='REVIEW' WHERE id=?", (row["id"],))
+                print("NIP-05 payment target invalid:", row["id"], flush=True)
+            c.commit()
+            return c.execute("SELECT * FROM invoices WHERE id=?", (row["id"],)).fetchone()
         current = c.execute(
             """SELECT valid_until FROM entitlements
                WHERE pubkey=? AND feature=? AND target=?""",
@@ -508,6 +540,8 @@ def entitlement_valid_until(now, current_until, spec):
 def reconcile_once():
     c = db()
     now = int(time.time())
+    c.execute("DELETE FROM nip05_reservations WHERE expires_at < ?", (now,))
+    c.commit()
     rows = c.execute(
         """SELECT * FROM invoices
            WHERE status IN ('WAITING','MEMPOOL','CONFIRMING')
@@ -569,7 +603,10 @@ class H(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Cache-Control", "no-store")
         origin = self.headers.get("Origin", "").strip()
-        if origin and origin in ORIGINS:
+        if urlparse(self.path).path == "/v1/nip05":
+            # NIP-05 is publicly readable by cross-origin Nostr clients.
+            self.send_header("Access-Control-Allow-Origin", "*")
+        elif origin and origin in ORIGINS:
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -846,6 +883,51 @@ class H(BaseHTTPRequestHandler):
                 return self.out(
                     {"features": public, "confirmations_required": CONFIRMATIONS}
                 )
+            if path == "/v1/nip05/availability":
+                if not NIP05_ENABLED:
+                    return self.out({"enabled": False}, 503)
+                ip = client_ip(self.client_address[0], self.headers.get("X-Forwarded-For"))
+                if not rate_limit("nip05-availability:" + ip, 120, 3600):
+                    return self.out({"error": "rate_limited"}, 429)
+                try:
+                    name = normalized_nip05_name(parse_qs(parsed.query).get("name", [""])[0])
+                except ValueError:
+                    return self.out({"error": "invalid_nip05_name"}, 400)
+                now = int(time.time())
+                c = db()
+                try:
+                    owner = nip05_mapping(c, name)
+                    reservation = c.execute(
+                        "SELECT 1 FROM nip05_reservations WHERE domain=? AND name=? AND expires_at>=?",
+                        (NIP05_DOMAIN, name, now),
+                    ).fetchone()
+                finally:
+                    c.close()
+                return self.out({
+                    "enabled": True, "domain": NIP05_DOMAIN, "name": name,
+                    "available": not bool(owner or reservation),
+                })
+            if path == "/v1/nip05":
+                # Public exact-name NIP-05 resolution. Never redirect, never
+                # expose buyer payment records, and never return all users.
+                if not NIP05_DOMAIN:
+                    return self.out({"names": {}}, 503)
+                try:
+                    name = normalized_nip05_name(parse_qs(parsed.query).get("name", [""])[0])
+                except ValueError:
+                    return self.out({"names": {}})
+                c = db()
+                try:
+                    owner = nip05_mapping(c, name)
+                finally:
+                    c.close()
+                if not owner:
+                    return self.out({"names": {}})
+                pubkey = owner["pubkey"]
+                return self.out({
+                    "names": {name: pubkey},
+                    "relays": {pubkey: ["wss://" + RELAY_TARGET + "/"]},
+                })
             if path.startswith("/v1/invoices/"):
                 iid = path.split("/")[-1]
                 auth = self.headers.get("Authorization", "")
@@ -879,6 +961,7 @@ class H(BaseHTTPRequestHandler):
                         "confirmations_required": CONFIRMATIONS,
                         "expires_at": row["expires_at"],
                         "verification_healthy": verification_healthy(row),
+                        "nip05": row["target"] if row["feature"] == "nip05_lifetime" else None,
                         "access_valid_until": int(ent["valid_until"]) if ent else None,
                     }
                 )

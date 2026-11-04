@@ -592,7 +592,12 @@ class CommerceTests(unittest.TestCase):
                         "alice@@fed.house", "@fed.house", "a/b@fed.house"):
                 with self.assertRaises(ValueError):
                     commerce.parse_nip05_target(bad)
-        with patch.object(commerce, "NIP05_ENABLED", False):
+        # Disabling new sales does not invalidate already-issued invoices.
+        with patch.object(commerce, "NIP05_ENABLED", False), patch.object(
+            commerce, "NIP05_DOMAIN", "fed.house"
+        ):
+            self.assertEqual(commerce.parse_nip05_target("alice@fed.house")[0], "alice")
+        with patch.object(commerce, "NIP05_DOMAIN", ""):
             with self.assertRaises(ValueError):
                 commerce.parse_nip05_target("alice@fed.house")
 

@@ -679,8 +679,7 @@ $domain {
         Referrer-Policy "no-referrer"
     }
     handle /.well-known/nostr.json {
-        header Access-Control-Allow-Origin "*"
-        header Content-Type "application/json"
+        # Commerce emits a single scoped public CORS header; do not duplicate it.
         rewrite * /v1/nip05
         reverse_proxy 127.0.0.1:8787
     }

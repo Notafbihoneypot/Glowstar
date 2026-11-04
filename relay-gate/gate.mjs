@@ -25,6 +25,23 @@ export function safelyVerifyEvent(event) {
   try { return verifyEvent(event) } catch { return false }
 }
 
+// Short-lived signed ownership proof for the optional paid NIP-05 registry.
+// Checked by the same Nostr Schnorr verifier that protects relay events.
+export function verifyNip05PurchaseClaim(event, target, pubkey, now = Math.floor(Date.now() / 1000)) {
+  if (!event || event.kind !== 27235 || event.content !== '' ||
+      event.pubkey !== pubkey || !/^[0-9a-f]{64}$/.test(pubkey) ||
+      !/^[a-z0-9._-]{1,30}@[a-z0-9.-]+$/.test(target) ||
+      !Number.isSafeInteger(event.created_at) ||
+      Math.abs(now - event.created_at) > 90 ||
+      !Array.isArray(event.tags)) return false
+  const tag = key => event.tags.filter(t => Array.isArray(t) && t[0] === key)
+  const u = tag('u'), method = tag('method'), name = tag('nip05')
+  if (u.length !== 1 || method.length !== 1 || name.length !== 1 ||
+      u[0][1] !== 'https://notafbihoneypotrelay.com/xmr-commerce/v1/invoices' ||
+      method[0][1] !== 'POST' || name[0][1] !== target) return false
+  return safelyVerifyEvent(event)
+}
+
 export function consumeSocketTraffic(state, now = Date.now(),
   perMinute = MAX_MESSAGES_PER_CONNECTION_MINUTE,
   perFiveSeconds = MAX_MESSAGES_PER_CONNECTION_BURST) {
@@ -287,6 +304,32 @@ async function main() {
   })
 
   const server = createServer((req, res) => {
+    if (req.url === '/v1/nip05/verify' && req.method === 'POST') {
+      // This server binds only to localhost. The shared service bearer also
+      // prevents unrelated local processes from using the verifier as an oracle.
+      if (req.headers.authorization !== 'Bearer ' + adminToken) {
+        res.writeHead(401, { 'Cache-Control': 'no-store' }); return res.end()
+      }
+      let raw = ''
+      req.on('data', chunk => {
+        raw += chunk.toString('utf8')
+        if (raw.length > 12288) req.destroy()
+      })
+      req.on('end', () => {
+        let accepted = false
+        try {
+          const data = JSON.parse(raw)
+          accepted = verifyNip05PurchaseClaim(data.event, data.target, data.pubkey)
+        } catch {}
+        const body = JSON.stringify({ ok: accepted })
+        res.writeHead(accepted ? 200 : 401, {
+          'Content-Type': 'application/json', 'Cache-Control': 'no-store',
+          'Content-Length': Buffer.byteLength(body),
+        })
+        res.end(body)
+      })
+      return
+    }
     if (req.url === '/health') {
       const body = JSON.stringify({ ok: true, multi_auth: true, privacy_wrappers: allowPrivacyWrappers })
       res.writeHead(200, {

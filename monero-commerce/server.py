@@ -106,7 +106,9 @@ FEATURES = {
     },
 }
 
-if NIP05_ENABLED:
+# Keep the product definition while checkout is disabled, so payments from an
+# invoice issued earlier can still reconcile into their original owner.
+if NIP05_DOMAIN:
     FEATURES["nip05_lifetime"] = {
         "usd_cents": NIP05_USD_CENTS,
         "seconds": None,
@@ -334,7 +336,7 @@ def normalized_nip05_name(raw):
 
 def parse_nip05_target(raw):
     target = str(raw or "").strip().lower()
-    if not NIP05_ENABLED or target.count("@") != 1:
+    if not NIP05_DOMAIN or target.count("@") != 1:
         raise ValueError("nip05_unavailable")
     name, domain = target.split("@", 1)
     name = normalized_nip05_name(name)
@@ -654,6 +656,8 @@ class H(BaseHTTPRequestHandler):
                 spec = FEATURES[feature]
                 nip05_name = None
                 if spec.get("kind") == "nip05":
+                    if not NIP05_ENABLED:
+                        return self.out({"error": "nip05_unavailable"}, 503)
                     try:
                         nip05_name, _domain, target = parse_nip05_target(target)
                     except ValueError as exc:
@@ -871,6 +875,8 @@ class H(BaseHTTPRequestHandler):
             if path == "/v1/features":
                 public = {}
                 for k, v in FEATURES.items():
+                    if v.get("kind") == "nip05" and not NIP05_ENABLED:
+                        continue
                     item = {
                         "usd_cents": v["usd_cents"],
                         "seconds": v["seconds"],

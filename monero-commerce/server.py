@@ -10,6 +10,7 @@ import hashlib
 import ipaddress
 import json
 import os
+import re
 import secrets
 import sqlite3
 import threading
@@ -63,6 +64,19 @@ RELAY_SECONDS = max(60, int(os.getenv("GLOWSTR_RELAY_SECONDS", str(YEAR_SECONDS)
 RELAY_TARGET = os.getenv("GLOWSTR_RELAY_TARGET", "relay.glowstr.com").strip().lower()
 if not RELAY_TARGET or any(c not in "abcdefghijklmnopqrstuvwxyz0123456789.-" for c in RELAY_TARGET):
     raise RuntimeError("GLOWSTR_RELAY_TARGET must be a DNS name")
+# Opt-in paid NIP-05 identifiers. Never advertise until the fed.house DNS,
+# HTTPS well-known endpoint, recovery and purchase flow are tested.
+NIP05_DOMAIN = os.getenv("GLOWSTR_NIP05_DOMAIN", "").lower().strip().rstrip(".")
+NIP05_ENABLED = os.getenv("GLOWSTR_NIP05_ENABLED", "0").lower() in ("1", "true", "yes")
+NIP05_USD_CENTS = max(1, int(os.getenv("GLOWSTR_NIP05_USD_CENTS", "400")))
+NIP05_NAME_RE = re.compile(r"^[a-z0-9._-]{1,30}$")
+if NIP05_DOMAIN and (len(NIP05_DOMAIN) > 253 or not re.fullmatch(
+    r"[a-z0-9]+(?:[a-z0-9.-]*[a-z0-9])?", NIP05_DOMAIN
+) or "." not in NIP05_DOMAIN or ".." in NIP05_DOMAIN):
+    raise RuntimeError("Invalid GLOWSTR_NIP05_DOMAIN")
+if NIP05_ENABLED and not NIP05_DOMAIN:
+    raise RuntimeError("Enable NIP-05 only with GLOWSTR_NIP05_DOMAIN configured")
+
 REMINDER_SECONDS = max(60, int(os.getenv("GLOWSTR_REMINDER_SECONDS", str(30 * 86400))))
 ORIGINS = {
     x.strip()
@@ -92,8 +106,19 @@ FEATURES = {
     },
 }
 
+if NIP05_ENABLED:
+    FEATURES["nip05_lifetime"] = {
+        "usd_cents": NIP05_USD_CENTS,
+        "seconds": None,
+        "lifetime": True,
+        "label": "Glowstr NIP-05 @" + NIP05_DOMAIN + " - lifetime of service",
+        "kind": "nip05",
+        "domain": NIP05_DOMAIN,
+    }
+
 _rate_lock = threading.Lock()
 _rate_buckets = {}
+_nip05_lock = threading.Lock()
 
 
 def rate_limit(key, limit, window_seconds):
@@ -162,6 +187,20 @@ def db():
         pubkey TEXT NOT NULL, feature TEXT NOT NULL, target TEXT NOT NULL DEFAULT '',
         valid_until INTEGER NOT NULL, invoice_id TEXT NOT NULL,
         PRIMARY KEY(pubkey,feature,target)
+        )"""
+    )
+    c.execute(
+        """CREATE TABLE IF NOT EXISTS nip05_names(
+        domain TEXT NOT NULL, name TEXT NOT NULL, pubkey TEXT NOT NULL,
+        invoice_id TEXT NOT NULL, created_at INTEGER NOT NULL,
+        PRIMARY KEY(domain,name)
+        )"""
+    )
+    c.execute(
+        """CREATE TABLE IF NOT EXISTS nip05_reservations(
+        domain TEXT NOT NULL, name TEXT NOT NULL, pubkey TEXT NOT NULL,
+        invoice_id TEXT NOT NULL, expires_at INTEGER NOT NULL,
+        PRIMARY KEY(domain,name)
         )"""
     )
     c.execute(
@@ -284,6 +323,47 @@ def valid_pubkey(s):
         and len(s) == 64
         and all(c in "0123456789abcdefABCDEF" for c in s)
     )
+
+
+def normalized_nip05_name(raw):
+    name = str(raw or "").strip().lower()
+    if not NIP05_NAME_RE.fullmatch(name):
+        raise ValueError("invalid_nip05_name")
+    return name
+
+
+def parse_nip05_target(raw):
+    target = str(raw or "").strip().lower()
+    if not NIP05_ENABLED or target.count("@") != 1:
+        raise ValueError("nip05_unavailable")
+    name, domain = target.split("@", 1)
+    name = normalized_nip05_name(name)
+    if domain != NIP05_DOMAIN:
+        raise ValueError("invalid_nip05_domain")
+    return name, domain, target
+
+
+def verify_nip05_proof(event, target, pubkey):
+    """Use the localhost paid relay's audited Schnorr verifier. Fail closed."""
+    if not ADMIN_TOKEN or not isinstance(event, dict):
+        return False
+    try:
+        with requests.Session() as session:
+            session.trust_env = False
+            resp = session.post(
+                "http://127.0.0.1:7778/v1/nip05/verify",
+                json={"event": event, "target": target, "pubkey": pubkey},
+                headers={"Authorization": "Bearer " + ADMIN_TOKEN},
+                timeout=4, allow_redirects=False,
+            )
+            return resp.status_code == 200 and resp.json().get("ok") is True
+    except (requests.RequestException, ValueError, TypeError, AttributeError):
+        return False
+
+
+def nip05_mapping(c, name):
+    return c.execute("SELECT pubkey,invoice_id FROM nip05_names WHERE domain=? AND name=?",
+                     (NIP05_DOMAIN, name)).fetchone()
 
 
 def invoice_uri(address, amount, label):
@@ -701,15 +781,17 @@ class H(BaseHTTPRequestHandler):
                     "pubkey": NOTIFIER_PUBKEY if configured else "",
                 })
             if path == "/v1/features":
-                public = {
-                    k: {
+                public = {}
+                for k, v in FEATURES.items():
+                    item = {
                         "usd_cents": v["usd_cents"],
                         "seconds": v["seconds"],
                         "lifetime": bool(v.get("lifetime")),
                         "label": v["label"],
                     }
-                    for k, v in FEATURES.items()
-                }
+                    if v.get("domain"):
+                        item["domain"] = v["domain"]
+                    public[k] = item
                 return self.out(
                     {"features": public, "confirmations_required": CONFIRMATIONS}
                 )

@@ -659,6 +659,37 @@ $RELAY_DOMAIN {
     }
 }
 EOF
+  # NIP-05: serve only the standard well-known JSON on an operator-owned
+  # domain. No redirects, wildcard proxy, or public Commerce admin access.
+  local domain enabled
+  domain="$(env_value GLOWSTR_NIP05_DOMAIN)"
+  enabled="$(env_value GLOWSTR_NIP05_ENABLED)"
+  if [[ "$enabled" == "1" ]]; then
+    [[ "$domain" =~ ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$ &&
+       "$domain" == *.* && "$domain" != *..* ]] ||
+      die "GLOWSTR_NIP05_DOMAIN invalid; refusing Caddy change"
+    [[ "$domain" != "$RELAY_DOMAIN" ]] ||
+      die "Use a separate NIP-05 hostname; do not replace the live relay site"
+    cat >> "$PAID_DIR/Caddyfile" <<NIP05_CADDY
+$domain {
+    encode gzip
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer"
+    }
+    handle /.well-known/nostr.json {
+        header Access-Control-Allow-Origin "*"
+        header Content-Type "application/json"
+        rewrite * /v1/nip05
+        reverse_proxy 127.0.0.1:8787
+    }
+    handle {
+        respond "not found" 404
+    }
+}
+NIP05_CADDY
+  fi
 }
 
 repair_caddy_only() {

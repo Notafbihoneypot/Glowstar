@@ -70,6 +70,9 @@ NIP05_DOMAIN = os.getenv("GLOWSTR_NIP05_DOMAIN", "").lower().strip().rstrip(".")
 NIP05_ENABLED = os.getenv("GLOWSTR_NIP05_ENABLED", "0").lower() in ("1", "true", "yes")
 NIP05_USD_CENTS = max(1, int(os.getenv("GLOWSTR_NIP05_USD_CENTS", "400")))
 NIP05_NAME_RE = re.compile(r"^[a-z0-9._-]{1,30}$")
+NIP05_RESERVED = frozenset({"_", "admin", "administrator", "support",
+    "security", "help", "billing", "moderator", "mod", "root", "nostr",
+    "relay", "glowstr", "fed", "official", "staff", "postmaster"})
 if NIP05_DOMAIN and (len(NIP05_DOMAIN) > 253 or not re.fullmatch(
     r"[a-z0-9]+(?:[a-z0-9.-]*[a-z0-9])?", NIP05_DOMAIN
 ) or "." not in NIP05_DOMAIN or ".." in NIP05_DOMAIN):
@@ -329,7 +332,7 @@ def valid_pubkey(s):
 
 def normalized_nip05_name(raw):
     name = str(raw or "").strip().lower()
-    if not NIP05_NAME_RE.fullmatch(name):
+    if not NIP05_NAME_RE.fullmatch(name) or name in NIP05_RESERVED:
         raise ValueError("invalid_nip05_name")
     return name
 

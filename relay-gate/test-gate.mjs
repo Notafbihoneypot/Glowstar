@@ -12,6 +12,7 @@ import {
   requestClientIp,
   consumeSocketTraffic,
   safelyVerifyEvent,
+  verifyNip05PurchaseClaim,
 } from './gate.mjs'
 
 function authEvent(sk, challenge, relay, createdAt = Math.floor(Date.now() / 1000)) {
@@ -143,4 +144,27 @@ test('invalid nested Nostr events cannot crash signature verification', () => {
   assert.equal(safelyVerifyEvent(null), false)
   assert.equal(safelyVerifyEvent({ kind: 1, tags: [null] }), false)
   assert.equal(safelyVerifyEvent({}), false)
+})
+
+test('NIP-05 claim requires matching target, signer, URL, method and fresh signature', () => {
+  const sk = generateSecretKey()
+  const pubkey = getPublicKey(sk)
+  const target = 'alice@fed.house'
+  const now = Math.floor(Date.now() / 1000)
+  const claim = finalizeEvent({
+    kind: 27235, content: '', created_at: now,
+    tags: [
+      ['u', 'https://notafbihoneypotrelay.com/xmr-commerce/v1/invoices'],
+      ['method', 'POST'],
+      ['nip05', target],
+    ],
+  }, sk)
+  assert.equal(verifyNip05PurchaseClaim(claim, target, pubkey, now), true)
+  assert.equal(verifyNip05PurchaseClaim(claim, 'bob@fed.house', pubkey, now), false)
+  assert.equal(verifyNip05PurchaseClaim(claim, target, 'f'.repeat(64), now), false)
+  assert.equal(verifyNip05PurchaseClaim(claim, target, pubkey, now + 100), false)
+  assert.equal(verifyNip05PurchaseClaim({...claim, content: 'spoofed'}, target, pubkey, now), false)
+  assert.equal(verifyNip05PurchaseClaim({...claim, sig: '0'.repeat(128)}, target, pubkey, now), false)
+  const badURL = finalizeEvent({...claim, tags: [['u', 'https://evil.test/'], ['method', 'POST'], ['nip05', target]]}, sk)
+  assert.equal(verifyNip05PurchaseClaim(badURL, target, pubkey, now), false)
 })

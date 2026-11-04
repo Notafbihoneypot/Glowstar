@@ -7,7 +7,7 @@
 <title>GLOWSTR // v5.3 Bluetooth Direct</title>
 <meta name="description" content="Glowstr — a retro privacy-first Nostr PWA client">
 <meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-oLDdRfJNKx0ENG6c/GQBrltNNfVMcn81SO0BId74cK4='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-EZQJN74gcOdmVG8kKu/hj7ClJwp5bC4omeCEEo7zXOE='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkdMT1dTVFIiLCAic2hvcnRfbmFtZSI6ICJHTE9XU1RSIiwgImRlc2NyaXB0aW9uIjogIlNlZSBUaHJvdWdoIHRoZSBOb2lzZSBcdTIwMTQgUHJpdmFjeS1maXJzdCBOb3N0ciBjbGllbnQiLCAic3RhcnRfdXJsIjogIi4iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMGEwYSIsICJ0aGVtZV9jb2xvciI6ICIjRkY2NjAwIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCMmFXVjNRbTk0UFNJd0lEQWdNVGt5SURFNU1pSStDanh5WldOMElIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCbWFXeHNQU0lqTUdFd1lUQmhJaTgrQ2p4eVpXTjBJSGc5SWpnaUlIazlJamdpSUhkcFpIUm9QU0l4TnpZaUlHaGxhV2RvZEQwaU1UYzJJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlOR1JqWTJNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlOQ0l2UGdvOGRHVjRkQ0I0UFNJNU5pSWdlVDBpTVRFd0lpQm1iMjUwTFdaaGJXbHNlVDBpYlc5dWIzTndZV05sSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUJtYjI1MExYZGxhV2RvZEQwaVltOXNaQ0lnWm1sc2JEMGlJMFpHTmpZd01DSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krUnp3dmRHVjRkRDRLUEhSbGVIUWdlRDBpT1RZaUlIazlJakUxTUNJZ1ptOXVkQzFtWVcxcGJIazlJbTF2Ym05emNHRmpaU0lnWm05dWRDMXphWHBsUFNJeE5pSWdabWxzYkQwaUkyTmpOVEl3TUNJZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSStSMHhQVjFOVVVqd3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
@@ -3756,14 +3756,14 @@ https://another-server.example"></textarea>
           <div class="wallet-section-title">★ NIP-05 NAME — ONE-TIME XMR PURCHASE</div>
           <div class="wallet-section-body">
             <div style="font-family:var(--font-retro);font-size:0.9rem;color:var(--xmr-text-dim);line-height:1.5;margin-bottom:12px;">
-              Buy a NIP-05 identifier such as <b style="color:var(--xmr-orange);">you@yourdomain</b> for a one-time $4 USD-equivalent payment in Monero. NIP-05 is a portable Nostr identifier, not proof of personhood. The name service becomes purchasable only after the operator configures the domain on the commerce backend.
+              Buy a NIP-05 identifier such as <b style="color:var(--xmr-orange);">you@fed.house</b> for a one-time $4 USD-equivalent payment in Monero. NIP-05 is a portable Nostr identifier, not proof of personhood. The name service becomes purchasable only after the operator configures the domain on the commerce backend.
             </div>
             <div id="username-service-status" class="info-box" style="margin-bottom:10px;">Checking name service…</div>
             <div class="profile-edit-row">
               <div class="profile-edit-label">Desired name</div>
               <div style="display:flex;gap:6px;align-items:stretch;">
                 <input class="profile-edit-input" id="username-input" placeholder="yourname" maxlength="30" style="flex:1;" data-glow-input="h0137" autocomplete="off" autocapitalize="none" spellcheck="false" />
-                <span id="username-domain-suffix" style="display:flex;align-items:center;font-family:var(--font-mono);font-size:0.85rem;color:var(--xmr-text-dim);white-space:nowrap;">@domain-not-configured</span>
+                <span id="username-domain-suffix" style="display:flex;align-items:center;font-family:var(--font-mono);font-size:0.85rem;color:var(--xmr-text-dim);white-space:nowrap;">@fed.house</span>
                 <button class="btn btn-small" data-glow-click="h0138" id="username-check-button" disabled>CHECK</button>
               </div>
               <div id="username-availability" style="font-family:var(--font-retro);font-size:0.88rem;margin-top:6px;min-height:18px;"></div>
@@ -10441,7 +10441,18 @@ async function initUsernameStorefront() {
     const features = await glowstrLoadCommerceFeaturesV54();
     const spec = features?.features?.[USERNAME_REGISTRY.feature];
     const domain = String(spec?.domain || '').trim().toLowerCase();
-    if (!domain || !/^[a-z0-9.-]+$/.test(domain)) throw new Error('not configured');
+    if (!domain || !/^[a-z0-9.-]+$/.test(domain) || Number(spec.usd_cents)!==400) throw new Error('not configured');
+    // Refuse to take payments unless public NIP-05 verification works. A
+    // broken DNS/TLS/CORS route should never charge for unusable names.
+    const c = new AbortController(); const timer = setTimeout(()=>c.abort(),6500);
+    try {
+      const probe = await fetch('https://'+domain+'/.well-known/nostr.json?name=__glowstr_probe',{
+        cache:'no-store',credentials:'omit',redirect:'error',referrerPolicy:'no-referrer',signal:c.signal
+      });
+      if(!probe.ok) throw new Error('NIP-05 endpoint unavailable');
+      const body = await probe.text();
+      if(body.length>8192 || typeof JSON.parse(body)?.names!=='object') throw new Error('Invalid NIP-05 response');
+    } finally { clearTimeout(timer); }
     USERNAME_REGISTRY.domain = domain;
     USERNAME_REGISTRY.enabled = true;
     USERNAME_REGISTRY.usdCents = Number(spec.usd_cents || 400);
@@ -10503,7 +10514,15 @@ async function submitUsernameClaim() {
   if (!name || !USERNAME_REGISTRY.enabled || !USERNAME_REGISTRY.domain) { showToast('Check an available name first'); return; }
   const target = name + '@' + USERNAME_REGISTRY.domain;
   try {
-    await glowstrStartCommerceInvoiceV54(USERNAME_REGISTRY.feature, target, {type:'nip05', name, domain:USERNAME_REGISTRY.domain});
+    // Nostr signer must prove it controls the public key that receives the
+    // name. A typed pubkey alone would allow unauthorized claims.
+    const proof = await signEventUniversal({
+      kind:27235, created_at:Math.floor(Date.now()/1000), content:'',
+      tags:[['u',GLOWSTR_RELAY_V42.api+'/invoices'],['method','POST'],['nip05',target]]
+    });
+    if(!proof || proof.pubkey!==state.publicKey) throw new Error('Signer proof did not match your account');
+    await glowstrStartCommerceInvoiceV54(USERNAME_REGISTRY.feature, target,
+      {type:'nip05', name, domain:USERNAME_REGISTRY.domain}, proof);
   } catch (e) { showToast('Could not create name invoice: ' + (e.message || 'unknown error')); }
 }
 async function glowstrVerifyNip05MappingV54(name) {
@@ -13790,6 +13809,7 @@ function glowstrRenderInvoiceV42(inv){
   const status=String(inv.status||'WAITING').toUpperCase(); const paid=status==='PAID';
   if(paid){ s.textContent='✓ PAYMENT CONFIRMED'; d.hidden=false; glowstrStopInvoicePollV54(); const ctx=_glowstrInvoiceV42.context||{}; if(ctx.type==='relay'){glowstrSetMembershipV42('PAYMENT CONFIRMED · RECONNECT/AUTH',true);const ws=glowstrFirstPartyEntryV42()?.[1]?.ws;if(ws)glowstrRetryPendingV42(ws);} if(ctx.type==='nip05'){try{sessionStorage.setItem('glowstr_paid_nip05',JSON.stringify({name:ctx.name,domain:ctx.domain,ts:Date.now()}));}catch(e){} showToast('Name payment confirmed · verify the NIP-05 mapping next');} }
   else if(status==='EXPIRED'){s.textContent='Invoice expired. Create a fresh invoice; do not reuse this address.';glowstrStopInvoicePollV54();}
+  else if(status==='REVIEW'){s.textContent='Payment requires operator review. Do not pay again; retain your invoice details.';glowstrStopInvoicePollV54();}
   else if(inv.verification_healthy===false){s.textContent='Payment monitor is temporarily unhealthy. If you already paid, do not pay again.';}
   else s.textContent='Payment: '+status;
   const amount=glowstrAtomicXmrV54(inv.amount_atomic); const a=document.getElementById('glowstr-pay-amount'),addr=document.getElementById('glowstr-pay-address'); if(a)a.textContent=amount?(amount+' XMR'):'';if(addr)addr.textContent=inv.address||'';
@@ -13801,13 +13821,14 @@ async function glowstrPollInvoiceV42(){
   try{const stateData=await glowstrCommerceFetchV54('/invoices/'+encodeURIComponent(inv.id),{bearer:inv.token});glowstrRenderInvoiceV42(stateData);const status=String(stateData.status||'').toUpperCase();if(status!=='PAID'&&status!=='EXPIRED'&&document.getElementById('glowstr-pay-backdrop')?.classList.contains('open'))_glowstrInvoicePollV42=setTimeout(glowstrPollInvoiceV42,15000);}
   catch(e){const p=document.getElementById('glowstr-pay-progress');if(p)p.textContent='Status check failed. Do not pay twice; retrying…';if(document.getElementById('glowstr-pay-backdrop')?.classList.contains('open'))_glowstrInvoicePollV42=setTimeout(glowstrPollInvoiceV42,20000);}
 }
-async function glowstrStartCommerceInvoiceV54(feature,target,context){
+async function glowstrStartCommerceInvoiceV54(feature,target,context,proof=null){
   if(!state?.publicKey||!/^[0-9a-f]{64}$/i.test(state.publicKey))throw new Error('Login with a signer first');
   await glowstrLoadCommerceFeaturesV54();
   const spec=_glowstrCommerceFeaturesV54?.features?.[feature];if(!spec)throw new Error('Product is not enabled on the payment server');
   glowstrPayOpenV42(true);glowstrStopInvoicePollV54();const s=document.getElementById('glowstr-pay-status'),d=document.getElementById('glowstr-pay-details'),row=document.getElementById('glowstr-relay-plan-row');if(row)row.style.display='none';if(s)s.textContent='Requesting a fresh Monero subaddress…';if(d)d.hidden=true;
-  const data=await glowstrCommerceFetchV54('/invoices',{method:'POST',body:{pubkey:state.publicKey.toLowerCase(),feature,target}});
+  const data=await glowstrCommerceFetchV54('/invoices',{method:'POST',body:{pubkey:state.publicKey.toLowerCase(),feature,target,...(proof?{proof}:{})}});
   if(!data?.id||!data?.token||!data?.address||!data?.uri)throw new Error('Incomplete invoice response');
+  if(feature==='nip05_lifetime' && data.nip05!==target)throw new Error('Name invoice target mismatch');
   if(!/^[A-Za-z0-9_-]{20,128}$/.test(String(data.id))||!/^[A-Za-z0-9_-]{20,128}$/.test(String(data.token)))throw new Error('Invalid invoice credentials');
   if(!/^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{95}$/.test(String(data.address)))throw new Error('Invalid Monero subaddress');
   const exactAmount=glowstrAtomicXmrV54(data.amount_atomic); if(!exactAmount)throw new Error('Invalid invoice amount');

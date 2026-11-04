@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createServer } from 'node:http'
-import { randomBytes } from 'node:crypto'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { isIP } from 'node:net'
 import { readFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
@@ -27,6 +27,13 @@ export function safelyVerifyEvent(event) {
 
 // Short-lived signed ownership proof for the optional paid NIP-05 registry.
 // Checked by the same Nostr Schnorr verifier that protects relay events.
+export function validInternalBearer(header, token) {
+  if (!token) return false
+  const actual = Buffer.from(String(header || ''), 'utf8')
+  const expected = Buffer.from('Bearer ' + token, 'utf8')
+  return actual.length === expected.length && timingSafeEqual(actual, expected)
+}
+
 export function verifyNip05PurchaseClaim(event, target, pubkey, now = Math.floor(Date.now() / 1000)) {
   if (!event || event.kind !== 27235 || event.content !== '' ||
       event.pubkey !== pubkey || !/^[0-9a-f]{64}$/.test(pubkey) ||
@@ -307,15 +314,24 @@ async function main() {
     if (req.url === '/v1/nip05/verify' && req.method === 'POST') {
       // This server binds only to localhost. The shared service bearer also
       // prevents unrelated local processes from using the verifier as an oracle.
-      if (req.headers.authorization !== 'Bearer ' + adminToken) {
+      if (!validInternalBearer(req.headers.authorization, adminToken)) {
         res.writeHead(401, { 'Cache-Control': 'no-store' }); return res.end()
       }
-      let raw = ''
+      let raw = '', oversized = false
       req.on('data', chunk => {
+        if (oversized) return
+        if (Buffer.byteLength(raw) + chunk.length > 12288) {
+          oversized = true
+          res.writeHead(413, { 'Cache-Control': 'no-store' })
+          res.end()
+          req.destroy()
+          return
+        }
         raw += chunk.toString('utf8')
-        if (raw.length > 12288) req.destroy()
       })
+      req.on('error', () => {})
       req.on('end', () => {
+        if (oversized) return
         let accepted = false
         try {
           const data = JSON.parse(raw)

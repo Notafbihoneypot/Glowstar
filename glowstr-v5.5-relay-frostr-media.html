@@ -7,7 +7,7 @@
 <title>GLOWSTR // v5.3 Bluetooth Direct</title>
 <meta name="description" content="Glowstr — a retro privacy-first Nostr PWA client">
 <meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-EZQJN74gcOdmVG8kKu/hj7ClJwp5bC4omeCEEo7zXOE='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-MsEeEnU8ia/vqnqDxL8xVEmCogs4CNFeHLToiHsvQAs='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkdMT1dTVFIiLCAic2hvcnRfbmFtZSI6ICJHTE9XU1RSIiwgImRlc2NyaXB0aW9uIjogIlNlZSBUaHJvdWdoIHRoZSBOb2lzZSBcdTIwMTQgUHJpdmFjeS1maXJzdCBOb3N0ciBjbGllbnQiLCAic3RhcnRfdXJsIjogIi4iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMGEwYSIsICJ0aGVtZV9jb2xvciI6ICIjRkY2NjAwIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCMmFXVjNRbTk0UFNJd0lEQWdNVGt5SURFNU1pSStDanh5WldOMElIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCbWFXeHNQU0lqTUdFd1lUQmhJaTgrQ2p4eVpXTjBJSGc5SWpnaUlIazlJamdpSUhkcFpIUm9QU0l4TnpZaUlHaGxhV2RvZEQwaU1UYzJJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlOR1JqWTJNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlOQ0l2UGdvOGRHVjRkQ0I0UFNJNU5pSWdlVDBpTVRFd0lpQm1iMjUwTFdaaGJXbHNlVDBpYlc5dWIzTndZV05sSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUJtYjI1MExYZGxhV2RvZEQwaVltOXNaQ0lnWm1sc2JEMGlJMFpHTmpZd01DSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krUnp3dmRHVjRkRDRLUEhSbGVIUWdlRDBpT1RZaUlIazlJakUxTUNJZ1ptOXVkQzFtWVcxcGJIazlJbTF2Ym05emNHRmpaU0lnWm05dWRDMXphWHBsUFNJeE5pSWdabWxzYkQwaUkyTmpOVEl3TUNJZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSStSMHhQVjFOVVVqd3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
@@ -4133,12 +4133,19 @@ https://another-server.example"></textarea>
         <div class="glowstr-pay-amount" id="glowstr-pay-amount"></div>
         <div id="glowstr-pay-progress" style="font-family:var(--font-retro);font-size:.88rem;color:var(--xmr-text-dim);margin:6px 0 10px;"></div>
         <div class="glowstr-pay-address" id="glowstr-pay-address"></div>
+        <div style="display:flex;justify-content:center;margin:12px 0;">
+          <img id="glowstr-pay-qr" alt="Monero payment QR containing the invoice address and exact XMR amount" hidden
+            style="background:white;padding:12px;border-radius:8px;width:250px;max-width:100%;height:auto;image-rendering:pixelated;">
+        </div>
+        <div id="glowstr-pay-qr-note" style="text-align:center;font-family:var(--font-retro);font-size:.8rem;color:var(--xmr-text-dim);">
+          If no QR appears, copy the exact payment URI to your Monero wallet.
+        </div>
         <div class="glowstr-pay-actions">
           <button class="btn btn-small" id="glowstr-pay-copy" type="button">COPY ADDRESS</button>
           <button class="btn btn-small" id="glowstr-pay-copy-uri" type="button">COPY PAYMENT LINK</button>
           <button class="btn btn-small" id="glowstr-pay-wallet" type="button">OPEN MONERO WALLET</button>
         </div>
-        <a class="btn btn-small" id="glowstr-pay-checkout" href="https://notafbihoneypotrelay.com/" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:8px;text-decoration:none;">OPEN RELAY CHECKOUT / QR</a>
+        <div class="info-box" style="margin-top:8px;">This invoice has its own unique address. Do not create or pay another invoice from a different checkout page.</div>
         <div class="info-box" style="margin-top:10px;">Each invoice uses a fresh server-side Monero subaddress. The browser never connects to monero-wallet-rpc. Verify the exact address and amount in your wallet before paying.</div>
       </div>
     </section>
@@ -13813,6 +13820,16 @@ function glowstrRenderInvoiceV42(inv){
   else if(inv.verification_healthy===false){s.textContent='Payment monitor is temporarily unhealthy. If you already paid, do not pay again.';}
   else s.textContent='Payment: '+status;
   const amount=glowstrAtomicXmrV54(inv.amount_atomic); const a=document.getElementById('glowstr-pay-amount'),addr=document.getElementById('glowstr-pay-address'); if(a)a.textContent=amount?(amount+' XMR'):'';if(addr)addr.textContent=inv.address||'';
+  const qrEl=document.getElementById('glowstr-pay-qr');
+  if(qrEl && _glowstrInvoiceV42?.uri){
+    // Android's bundled FOSS ZXing renderer works offline and never uploads
+    // the payment URI to a third-party QR-generation website.
+    let qr='';
+    try{qr=window.GlowstrAndroid?.makeNostrQrDataUrl?.(_glowstrInvoiceV42.uri)||'';}catch(e){}
+    if(/^data:image\/svg\+xml;base64,[A-Za-z0-9+/=]+$/.test(qr)){
+      if(qrEl.src!==qr)qrEl.src=qr;qrEl.hidden=false;
+    } else {qrEl.hidden=true;qrEl.removeAttribute('src');}
+  }
   if(p)p.textContent=paid?'Confirmed · access/identifier activation complete.':('Confirmations: '+Number(inv.confirmations||0)+' / '+Number(inv.confirmations_required||_glowstrInvoiceV42.confirmations_required||0)+(inv.expires_at?' · expires '+new Date(inv.expires_at*1000).toLocaleTimeString():''));
   d.hidden=!inv.address;
 }

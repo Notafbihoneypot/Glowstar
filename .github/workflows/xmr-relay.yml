@@ -43,9 +43,11 @@ jobs:
 
       - name: Test Monero commerce lifecycle
         run: |
+          python3 -m venv /tmp/glowstr-relay-tests
+          /tmp/glowstr-relay-tests/bin/pip install --disable-pip-version-check requests==2.32.5
           cd monero-commerce
-          python3 -m py_compile server.py mock_wallet.py
-          python3 -m unittest -v test_server.py
+          /tmp/glowstr-relay-tests/bin/python -m py_compile server.py mock_wallet.py
+          /tmp/glowstr-relay-tests/bin/python -m unittest -v test_server.py
 
       - name: Check relay deploy scripts
         run: |

@@ -149,7 +149,7 @@ test('invalid nested Nostr events cannot crash signature verification', () => {
 test('NIP-05 claim requires matching target, signer, URL, method and fresh signature', () => {
   const sk = generateSecretKey()
   const pubkey = getPublicKey(sk)
-  const target = 'alice@fed.house'
+  const target = 'alice@names.example'
   const now = Math.floor(Date.now() / 1000)
   const claim = finalizeEvent({
     kind: 27235, content: '', created_at: now,
@@ -160,7 +160,7 @@ test('NIP-05 claim requires matching target, signer, URL, method and fresh signa
     ],
   }, sk)
   assert.equal(verifyNip05PurchaseClaim(claim, target, pubkey, now), true)
-  assert.equal(verifyNip05PurchaseClaim(claim, 'bob@fed.house', pubkey, now), false)
+  assert.equal(verifyNip05PurchaseClaim(claim, 'bob@names.example', pubkey, now), false)
   assert.equal(verifyNip05PurchaseClaim(claim, target, 'f'.repeat(64), now), false)
   assert.equal(verifyNip05PurchaseClaim(claim, target, pubkey, now + 100), false)
   assert.equal(verifyNip05PurchaseClaim({...claim, content: 'spoofed'}, target, pubkey, now), false)

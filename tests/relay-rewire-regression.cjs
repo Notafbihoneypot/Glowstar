@@ -20,7 +20,7 @@ includes("glowstrCommerceFetchV54('/invoices'", 'server-side invoice creation');
 includes("headers.Authorization='Bearer '+bearer", 'private invoice status token');
 includes("feature: 'nip05_lifetime'", 'NIP-05 product');
 includes("USERNAME_REGISTRY.enabled = false", 'NIP-05 disabled on failure');
-includes("you@fed.house", 'fed.house checkout example');
+includes("you@your-domain.example", 'unconfigured NIP-05 domain example');
 includes("['nip05',target]", 'time-limited signed Nostr NIP-05 ownership proof');
 includes("proof.pubkey!==state.publicKey", 'proof signer must equal logged-in Nostr account');
 includes("body:{pubkey:state.publicKey.toLowerCase(),feature,target,...(proof?{proof}:{})}", 'proof included in server invoice request');

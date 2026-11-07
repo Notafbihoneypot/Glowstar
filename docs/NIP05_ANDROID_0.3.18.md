@@ -5,7 +5,7 @@ Android app: `Glowstr`, package `org.glowstr.meshbridge`, `versionCode=30`, `ver
 ## Customer feature
 
 - One-time **$4 USD-equivalent in XMR** for a name like `alice@your-purchased-domain.example`.
-- No customer renewal fee; it works only while the operator continues to host `names.example` and the registry.
+- No customer renewal fee; it works only while the operator continues to host the purchased domain and its registry.
 - Log in to Glowstr with a Nostr signer (local, Amber or FROSTR/NIP-46).
 - Open the **NIP-05 NAME — ONE-TIME XMR PURCHASE** panel.
 - The browser asks the configured Commerce service which domain and price are active and checks that `https://names.example/.well-known/nostr.json?name=__glowstr_probe` returns valid, CORS-readable JSON before enabling checkout. Until then, purchases are **disabled**.

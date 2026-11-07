@@ -584,31 +584,31 @@ class CommerceTests(unittest.TestCase):
     def test_nip05_name_validation_and_domain_isolation(self):
         from unittest.mock import patch
         with patch.object(commerce, "NIP05_ENABLED", True), patch.object(
-            commerce, "NIP05_DOMAIN", "fed.house"
+            commerce, "NIP05_DOMAIN", "names.example"
         ):
-            self.assertEqual(commerce.parse_nip05_target("Alice@fed.house"),
-                             ("alice", "fed.house", "alice@fed.house"))
-            for bad in ("alice@other.house", "_@" + "x" * 260, "a b@fed.house",
-                        "alice@@fed.house", "@fed.house", "a/b@fed.house"):
+            self.assertEqual(commerce.parse_nip05_target("Alice@names.example"),
+                             ("alice", "names.example", "alice@names.example"))
+            for bad in ("alice@other.house", "_@" + "x" * 260, "a b@names.example",
+                        "alice@@names.example", "@names.example", "a/b@names.example"):
                 with self.assertRaises(ValueError):
                     commerce.parse_nip05_target(bad)
         # Disabling new sales does not invalidate already-issued invoices.
         with patch.object(commerce, "NIP05_ENABLED", False), patch.object(
-            commerce, "NIP05_DOMAIN", "fed.house"
+            commerce, "NIP05_DOMAIN", "names.example"
         ):
-            self.assertEqual(commerce.parse_nip05_target("alice@fed.house")[0], "alice")
+            self.assertEqual(commerce.parse_nip05_target("alice@names.example")[0], "alice")
         with patch.object(commerce, "NIP05_DOMAIN", ""):
             with self.assertRaises(ValueError):
-                commerce.parse_nip05_target("alice@fed.house")
+                commerce.parse_nip05_target("alice@names.example")
 
     def test_nip05_requires_two_confirms_and_never_grants_relay_access(self):
         from unittest.mock import patch
         now = int(time.time())
         with patch.object(commerce, "NIP05_ENABLED", True), patch.object(
-            commerce, "NIP05_DOMAIN", "fed.house"
+            commerce, "NIP05_DOMAIN", "names.example"
         ):
             commerce.FEATURES["nip05_lifetime"] = {
-                "kind": "nip05", "domain": "fed.house", "usd_cents": 400,
+                "kind": "nip05", "domain": "names.example", "usd_cents": 400,
                 "seconds": None, "lifetime": True, "label": "NIP-05",
             }
             c = commerce.db()
@@ -617,13 +617,13 @@ class CommerceTests(unittest.TestCase):
                 id,token_hash,pubkey,feature,target,amount,account_index,
                 address_index,address,created_at,expires_at,usd_cents,xmr_usd_micros
                 ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                ("claim1", "hash", "a" * 64, "nip05_lifetime", "alice@fed.house",
+                ("claim1", "hash", "a" * 64, "nip05_lifetime", "alice@names.example",
                  1000, 0, 5, "monero-subaddress", now, now + 1800, 400, 0)
             )
             c.execute(
                 """INSERT INTO nip05_reservations(domain,name,pubkey,invoice_id,expires_at)
                    VALUES(?,?,?,?,?)""",
-                ("fed.house", "alice", "a" * 64, "claim1", now + 3600),
+                ("names.example", "alice", "a" * 64, "claim1", now + 3600),
             )
             c.commit()
             row = c.execute("SELECT * FROM invoices WHERE id='claim1'").fetchone()
@@ -649,24 +649,24 @@ class CommerceTests(unittest.TestCase):
         from unittest.mock import patch
         now = int(time.time())
         with patch.object(commerce, "NIP05_ENABLED", True), patch.object(
-            commerce, "NIP05_DOMAIN", "fed.house"
+            commerce, "NIP05_DOMAIN", "names.example"
         ):
             commerce.FEATURES["nip05_lifetime"] = {
-                "kind": "nip05", "domain": "fed.house", "usd_cents": 400,
+                "kind": "nip05", "domain": "names.example", "usd_cents": 400,
                 "seconds": None, "lifetime": True, "label": "NIP-05",
             }
             c = commerce.db()
             c.execute(
                 """INSERT INTO nip05_names(domain,name,pubkey,invoice_id,created_at)
                    VALUES(?,?,?,?,?)""",
-                ("fed.house", "alice", "b"*64, "old", now-60)
+                ("names.example", "alice", "b"*64, "old", now-60)
             )
             c.execute(
                 """INSERT INTO invoices(
                 id,token_hash,pubkey,feature,target,amount,account_index,
                 address_index,address,created_at,expires_at,usd_cents,xmr_usd_micros
                 ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                ("attack", "hash", "a"*64, "nip05_lifetime", "alice@fed.house",
+                ("attack", "hash", "a"*64, "nip05_lifetime", "alice@names.example",
                  1000, 0, 5, "subaddress", now-20, now+1800, 400, 0)
             )
             c.commit()

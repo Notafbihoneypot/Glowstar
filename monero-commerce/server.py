@@ -64,7 +64,7 @@ RELAY_SECONDS = max(60, int(os.getenv("GLOWSTR_RELAY_SECONDS", str(YEAR_SECONDS)
 RELAY_TARGET = os.getenv("GLOWSTR_RELAY_TARGET", "relay.glowstr.com").strip().lower()
 if not RELAY_TARGET or any(c not in "abcdefghijklmnopqrstuvwxyz0123456789.-" for c in RELAY_TARGET):
     raise RuntimeError("GLOWSTR_RELAY_TARGET must be a DNS name")
-# Opt-in paid NIP-05 identifiers. Never advertise until the fed.house DNS,
+# Opt-in paid NIP-05 identifiers. Never advertise until the purchased domain's DNS,
 # HTTPS well-known endpoint, recovery and purchase flow are tested.
 NIP05_DOMAIN = os.getenv("GLOWSTR_NIP05_DOMAIN", "").lower().strip().rstrip(".")
 NIP05_ENABLED = os.getenv("GLOWSTR_NIP05_ENABLED", "0").lower() in ("1", "true", "yes")

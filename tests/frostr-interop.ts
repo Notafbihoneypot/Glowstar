@@ -14,7 +14,7 @@ async function main() {
   const ctx=createTestContext()
   const fixture=await create_network_fixture(ctx,{group:pkg.group,shares:pkg.shares.slice(0,2),seeds:[]},{nonceCount:20,nodeConfig:{request_timeout:1500}})
   try {
-    const source=fs.readFileSync(process.argv[2] || path.resolve('glowstr-v5.3-bluetooth-direct.html'),'utf8')
+    const source=fs.readFileSync(process.argv[2] || path.resolve('glowstr-v5.5-relay-frostr-media.html'),'utf8')
     const start=source.indexOf('function hexToBytes('),end=source.indexOf('// Bech32 decoder',start)
     const c=vm.createContext({crypto:webcrypto,TextEncoder,TextDecoder,Uint8Array,console,setTimeout,clearTimeout,URL,window:{}})
     vm.runInContext(source.slice(start,end),c)

@@ -3,7 +3,7 @@ import base64, hashlib, html.parser, json, re, subprocess, sys
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
-SITE=ROOT/'glowstr-v5.3-bluetooth-direct.html'
+SITE=ROOT/'glowstr-v5.5-relay-frostr-media.html'
 JAVA=ROOT/'android-helper/app/src/main/java/org/glowstr/meshbridge'
 MANIFEST=ROOT/'android-helper/app/src/main/AndroidManifest.xml'
 

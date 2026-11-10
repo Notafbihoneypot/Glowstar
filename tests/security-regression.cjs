@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const {webcrypto} = require('node:crypto');
 const path = require('node:path');
-const source = fs.readFileSync(process.argv[2] || path.join(__dirname,'../glowstr-v5.3-bluetooth-direct.html'),'utf8');
+const source = fs.readFileSync(process.argv[2] || path.join(__dirname,'../glowstr-v5.5-relay-frostr-media.html'),'utf8');
 function section(from,to) {
   const start=source.indexOf(from), end=source.indexOf(to,start+from.length);
   assert(start>=0 && end>=0, `Missing source section: ${from}`);

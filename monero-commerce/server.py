@@ -5,7 +5,7 @@ Small dependency-free service for XMR invoices and Nostr-pubkey entitlements.
 Keep monero-wallet-rpc on loopback. Never expose wallet RPC to the browser.
 """
 from __future__ import annotations
-import base64, hashlib, json, os, secrets, sqlite3, time
+import base64, hashlib, json, os, secrets, sqlite3, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.request import build_opener, HTTPDigestAuthHandler, HTTPPasswordMgrWithDefaultRealm, Request
 
@@ -28,6 +28,22 @@ CONFIRMATIONS=max(1,int(os.getenv("GLOWSTR_XMR_CONFIRMATIONS","2")))
 ORIGINS={x.strip() for x in os.getenv("GLOWSTR_ALLOWED_ORIGINS",os.getenv("GLOWSTR_ALLOWED_ORIGIN","https://glowstr.com")).split(",") if x.strip()}
 ADMIN_TOKEN=read_secret("GLOWSTR_COMMERCE_ADMIN_TOKEN","GLOWSTR_COMMERCE_ADMIN_TOKEN_FILE")
 ATOMIC=10**12
+# Optional public tip endpoint: hands out a new subaddress of THIS wallet per
+# request, so the operator never has to publish a static address. Off by default.
+TIP_ADDRESSES=os.getenv("GLOWSTR_TIP_ADDRESS_ENABLED","0").strip()=="1"
+TIP_ADDRESSES_PER_MINUTE=max(1,int(os.getenv("GLOWSTR_TIP_ADDRESSES_PER_MINUTE","30")))
+_tip_lock=threading.Lock(); _tip_times=[]
+def tip_rate_ok(now=None):
+ now=time.time() if now is None else now
+ with _tip_lock:
+  while _tip_times and _tip_times[0]<=now-60: _tip_times.pop(0)
+  if len(_tip_times)>=TIP_ADDRESSES_PER_MINUTE: return False
+  _tip_times.append(now); return True
+def tip_address():
+ a=rpc("create_address",{"account_index":ACCOUNT,"label":"glowstr-tip:"+time.strftime("%Y-%m-%d",time.gmtime()),"count":1})
+ address=a.get("address") or (a.get("addresses") or [None])[0]
+ if not isinstance(address,str) or len(address)!=95 or address[0]!="8": raise RuntimeError("wallet RPC did not return a mainnet subaddress")
+ return address
 FEATURES={
  "relay_30d": {"amount": 20000000000, "seconds": 30*86400, "label":"30 day paid relay"},
  "room_30d": {"amount": 10000000000, "seconds": 30*86400, "label":"30 day paid room"},
@@ -108,13 +124,15 @@ def refresh_invoice(c,row):
 class H(BaseHTTPRequestHandler):
  server_version="GlowstrCommerce/0.1"
  def log_message(self,fmt,*args): print("%s - %s"%(self.address_string(),fmt%args))
- def _headers(self,code=200):
+ def _headers(self,code=200,public=False):
   self.send_response(code); self.send_header("Content-Type","application/json"); self.send_header("Cache-Control","no-store")
   origin=self.headers.get("Origin","").strip()
-  if origin and origin in ORIGINS:
+  # Only the credential-free tip endpoint is readable from any origin.
+  if public: self.send_header("Access-Control-Allow-Origin","*")
+  elif origin and origin in ORIGINS:
    self.send_header("Access-Control-Allow-Origin",origin); self.send_header("Vary","Origin")
   self.send_header("Access-Control-Allow-Headers","Content-Type, Authorization"); self.send_header("Access-Control-Allow-Methods","GET,POST,OPTIONS"); self.end_headers()
- def out(self,obj,code=200): self._headers(code); self.wfile.write(json.dumps(obj,separators=(",",":")).encode())
+ def out(self,obj,code=200,public=False): self._headers(code,public); self.wfile.write(json.dumps(obj,separators=(",",":")).encode())
  def body(self):
   n=min(int(self.headers.get("Content-Length","0")),8192); return json.loads(self.rfile.read(n) or b"{}")
  def do_OPTIONS(self): self._headers(204)
@@ -135,6 +153,10 @@ class H(BaseHTTPRequestHandler):
  def do_GET(self):
   try:
    if self.path=="/health": return self.out({"ok":True})
+   if self.path.split("?",1)[0]=="/v1/tip-address":
+    if not TIP_ADDRESSES: return self.out({"error":"not_found"},404,True)
+    if not tip_rate_ok(): return self.out({"error":"rate_limited"},429,True)
+    return self.out({"address":tip_address()},200,True)
    if self.path=="/v1/features": return self.out({"features":FEATURES,"confirmations_required":CONFIRMATIONS})
    if self.path.startswith("/v1/invoices/"):
     iid=self.path.split("/")[-1]; auth=self.headers.get("Authorization","")

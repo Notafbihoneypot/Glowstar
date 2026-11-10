@@ -19,6 +19,19 @@
 | Tests | Every suite now defaults to the client that actually ships (v5.5) instead of v5.3. New `tests/crypto-regression.cjs` runs BIP-340 vectors, tamper checks and a speed floor. |
 | Version | `0.3.19` / `versionCode 31`. |
 
+### Follow-up in 0.3.20
+
+| Area | Change |
+|---|---|
+| Permissions | No prompt at launch. Bluetooth is requested from *Enable Bluetooth mesh*; notifications the first time Notifications is opened. Users who already granted Bluetooth are unaffected. |
+| Payments | Tips now use the same payment sheet as relay plans and names. |
+| Tips | Private by default, one-time addresses via `xmr_tip`, optional published proof. See `MONERO_TIPS.md`. |
+| Theme | *Calm theme* switch in Privacy: no scanlines, glow or looping decoration; system font. |
+| Relay | NIP-11 document with price and payment URL (`xmr-relay/nip11.example.json`). |
+| Server | Optional `GET /v1/tip-address` in `monero-commerce/server.py`. |
+
+**Correction to section 5:** the client already has a five-item bottom bar on phones (Home, Search, Post, DMs, More) and hides the tab strip below 760 px. The navigation suggestion below was written without noticing that; nothing needed changing.
+
 ## 2. Security findings
 
 Severity reflects impact on a user's Nostr key or funds.
@@ -47,8 +60,8 @@ Severity reflects impact on a user's Nostr key or funds.
 **M4 — Amber handshake trusts a self-reported package.** `get_public_key` is sent as an implicit `nostrsigner:` intent, and the `package` extra in the reply is stored and trusted afterwards. A hostile app that registers the scheme can become "the signer". It cannot forge signatures (every result is verified), but it can make the user log in as the wrong identity and can deny service.
 *Fix:* show the resolved package and its signing certificate on first use, and pin both.
 
-**M5 — Remote media loads automatically.** Avatars, note images and custom emoji are fetched from whatever host the event names, which gives every such host the user's IP address and a read receipt. For a client whose pitch is privacy this is the largest everyday leak.
-*Fix:* a "load media" setting with three states (always / followed accounts only / tap to load), defaulting to followed-only; optionally an image proxy on glowstr.net.
+**M5 — Avatars and other profile media load automatically.** Images inside notes are already tap-to-load. Avatars, banners, custom emoji, and market/community/chat pictures are not: they are fetched from whatever host the event names, which gives that host the user's IP address and a read receipt.
+*Fix:* extend the existing tap-to-load rule to these, or load them only for followed accounts; optionally an image proxy on glowstr.net.
 
 **M6 — Gradle dependencies are not pinned by hash.** There is no wrapper and no `verification-metadata.xml`, so a compromised mirror or plugin release changes the APK silently.
 *Fix:* `gradle --write-verification-metadata sha256`, commit the result, commit the wrapper with its checksum.
@@ -59,7 +72,7 @@ Severity reflects impact on a user's Nostr key or funds.
 - **L2** No `FLAG_SECURE` on the key screens: the nsec and QR appear in screenshots and the recents thumbnail.
 - **L3** Subscription ids use `Math.random()`. Not a secret, but `crypto.getRandomValues` is free.
 - **L4** `openExternal` and link navigation still accept `http:`.
-- **L5** Bluetooth permission is requested 300 ms after first launch, before the user has seen the app (see UX).
+- **L5** ~~Bluetooth permission is requested 300 ms after first launch.~~ Fixed in 0.3.20: requested when the user enables Local Mesh.
 - **L6** `glowstr-v5.3-bluetooth-direct.html` is still what `deploy/podman/deploy.sh` publishes. It has none of the v5.4/v5.5 fixes. Either retire that script or port it.
 
 ### Already in good shape

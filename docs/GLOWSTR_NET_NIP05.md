@@ -1,6 +1,6 @@
 # `name@glowstr.net` — NIP-05 names sold for Monero
 
-From 0.3.19 the Android client sells names on **glowstr.net only**. The domain is a constant in the client (`GLOWSTR_NIP05_DOMAIN`); the commerce server has to advertise the same domain or checkout stays off.
+From 0.3.19 on, the Android client sells names on **glowstr.net only**. The domain is a constant in the client (`GLOWSTR_NIP05_DOMAIN`); the commerce server has to advertise the same domain or checkout stays off.
 
 Nothing in this document has been deployed or payment-tested. glowstr.net could not be reached from the environment where this was written, so DNS, TLS and the server side are unverified.
 

@@ -32,6 +32,7 @@ import java.util.List;
 public final class MainActivity extends Activity {
     private static final int REQ_BT = 420;
     private static final int REQ_ENABLE = 421;
+    private static final int REQ_NOTIFY = 422;
     private static final String APP_ORIGIN = TrustedWebContent.ORIGIN;
     private static final String APP_HOST = "app.glowstr.local";
 
@@ -51,7 +52,9 @@ public final class MainActivity extends Activity {
         }
         configureWebView();
         loadBundledGlowstr();
-        handler.postDelayed(() -> ensureBluetooth(true), 300);
+        // No permission prompt at launch. Bluetooth is requested when the user
+        // turns on Local Mesh; notifications when they first open Notifications.
+        // onResume() still starts the bridge for users who already granted it.
     }
 
     @Override protected void onResume() {
@@ -111,7 +114,9 @@ public final class MainActivity extends Activity {
         webView.setHorizontalScrollBarEnabled(false);
         webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
 
-        webView.addJavascriptInterface(new AndroidBridge(this, bridgeCapability), "GlowstrNative");
+        webView.addJavascriptInterface(new AndroidBridge(this, bridgeCapability,
+                () -> handler.post(() -> ensureBluetooth(true)),
+                () -> handler.post(this::requestNotificationPermission)), "GlowstrNative");
         webView.setWebChromeClient(new WebChromeClient() {
             @Override public boolean onShowFileChooser(WebView view,
                     android.webkit.ValueCallback<Uri[]> callback, FileChooserParams params) {
@@ -355,8 +360,32 @@ public final class MainActivity extends Activity {
                     sessionStorage.setItem('glowstr_bluetooth_token', token);
                     const input = document.getElementById('mesh-bluetooth-token');
                     if (input) { input.value = token; input.style.display = 'none'; }
+                    let meshRunning = false;
+                    try {
+                      const env = JSON.parse(GlowstrAndroid.request('GET','/v1/status',''));
+                      meshRunning = env.status === 200 && !!(env.body && env.body.running);
+                    } catch (e) {}
                     const connect = document.getElementById('mesh-bluetooth-connect');
-                    if (connect) connect.style.display = 'none';
+                    if (connect) {
+                      connect.style.display = meshRunning ? 'none' : '';
+                      if (!connect.dataset.nativeEnable) {
+                        connect.dataset.nativeEnable = '1';
+                        connect.textContent = 'ENABLE BLUETOOTH MESH';
+                        connect.addEventListener('click', ev => {
+                          ev.preventDefault(); ev.stopImmediatePropagation();
+                          try { GlowstrAndroid.request('POST','/v1/mesh/enable',''); } catch (e) {}
+                        }, true);
+                      }
+                    }
+                    if (!window.__glowstrNotifyAskWired) {
+                      window.__glowstrNotifyAskWired = true;
+                      document.addEventListener('click', ev => {
+                        const t = ev.target && ev.target.closest ? ev.target.closest('#tab-notifications,[data-mobile-view="notifications"]') : null;
+                        if (!t || window.__glowstrNotifyAsked) return;
+                        window.__glowstrNotifyAsked = true;
+                        try { if (!GlowstrAndroid.notificationsEnabled()) GlowstrAndroid.request('POST','/v1/notifications/enable',''); } catch (e) {}
+                      }, true);
+                    }
                     const disconnect = document.getElementById('mesh-bluetooth-disconnect');
                     if (disconnect) disconnect.style.display = 'none';
                   } catch (e) { console.warn('Glowstr native UI setup failed', e); }
@@ -376,7 +405,11 @@ public final class MainActivity extends Activity {
                       const env = JSON.parse(GlowstrAndroid.request('GET','/v1/status',''));
                       if (env.status === 200 && env.body && env.body.running && typeof glowstrConnectBluetoothDirect === 'function') {
                         const ok = await glowstrConnectBluetoothDirect();
-                        if (ok) return;
+                        if (ok) {
+                          const connect = document.getElementById('mesh-bluetooth-connect');
+                          if (connect) connect.style.display = 'none';
+                          return;
+                        }
                       }
                     } catch (e) {}
                     if (tries < 30) setTimeout(attempt, 1000);
@@ -454,6 +487,13 @@ public final class MainActivity extends Activity {
             p.add(Manifest.permission.POST_NOTIFICATIONS);
         }
         requestPermissions(p.toArray(new String[0]), REQ_BT);
+    }
+
+    private void requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+                checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIFY);
+        }
     }
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {

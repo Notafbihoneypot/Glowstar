@@ -85,5 +85,32 @@ class Credits(unittest.TestCase):
             self.assertEqual(commerce.refresh_invoice(c,stale)['status'],'PAID')
         self.assertEqual(self.expiry(),expiry)
 
+class TipAddresses(unittest.TestCase):
+    def setUp(self):
+        self.saved = (commerce.rpc, commerce.TIP_ADDRESSES_PER_MINUTE)
+        commerce._tip_times.clear()
+    def tearDown(self):
+        commerce.rpc, commerce.TIP_ADDRESSES_PER_MINUTE = self.saved
+        commerce._tip_times.clear()
+    def test_each_request_gets_a_new_subaddress(self):
+        issued = []
+        def rpc(method, params):
+            self.assertEqual(method, 'create_address')
+            issued.append('8' + format(len(issued), '094d').replace('0', 'A'))
+            return {'address': issued[-1], 'address_index': len(issued)}
+        commerce.rpc = rpc
+        first, second = commerce.tip_address(), commerce.tip_address()
+        self.assertNotEqual(first, second)
+        self.assertTrue(first.startswith('8') and len(first) == 95)
+    def test_primary_or_malformed_address_is_refused(self):
+        for bad in ('4' + 'A' * 94, '8' + 'A' * 10, None):
+            commerce.rpc = lambda method, params, bad=bad: {'address': bad}
+            with self.assertRaises(RuntimeError):
+                commerce.tip_address()
+    def test_rate_limit_is_a_sliding_minute(self):
+        commerce.TIP_ADDRESSES_PER_MINUTE = 3
+        self.assertEqual([commerce.tip_rate_ok(100.0 + i) for i in range(4)], [True, True, True, False])
+        self.assertTrue(commerce.tip_rate_ok(161.0))
+
 if __name__ == '__main__':
     unittest.main()

@@ -37,8 +37,17 @@ public final class AndroidBridge {
             "Glowstr local signer v1".getBytes(StandardCharsets.UTF_8);
     private final Context context;
     private final String capability;
+    private final Runnable meshStarter;
+    private final Runnable notificationAsker;
 
     AndroidBridge(Context context, String capability) {
+        this(context, capability, null, null);
+    }
+
+    /** The two callbacks let the page ask for a permission at the moment it is needed. */
+    AndroidBridge(Context context, String capability, Runnable meshStarter, Runnable notificationAsker) {
+        this.meshStarter = meshStarter;
+        this.notificationAsker = notificationAsker;
         this.capability = capability;
         this.context = context.getApplicationContext();
         NativeNotifier.ensureChannel(this.context);
@@ -553,6 +562,18 @@ public final class AndroidBridge {
     public String request(String capability, String method, String target, String body) {
         if (!TrustedWebContent.authorized(this.capability, capability)) return "";
         try {
+            if ("POST".equals(method) && "/v1/mesh/enable".equals(target)) {
+                if (meshStarter != null) meshStarter.run();
+                return new JSONObject().put("status", 202)
+                        .put("body", new JSONObject().put("ok", meshStarter != null).put("starting", true))
+                        .toString();
+            }
+            if ("POST".equals(method) && "/v1/notifications/enable".equals(target)) {
+                if (notificationAsker != null) notificationAsker.run();
+                return new JSONObject().put("status", 202)
+                        .put("body", new JSONObject().put("ok", notificationAsker != null))
+                        .toString();
+            }
             MeshService s = MeshService.current();
             if (s == null) {
                 return new JSONObject()

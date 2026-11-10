@@ -1,0 +1,24 @@
+{
+  "name": "Glowstr XMR Relay",
+  "description": "Public-read Nostr relay. Publishing requires NIP-42 authentication plus an active Monero relay membership.",
+  "pubkey": "",
+  "contact": "",
+  "supported_nips": [1, 2, 4, 9, 11, 28, 40, 42, 45, 70, 77],
+  "software": "git+https://github.com/hoytech/strfry.git",
+  "version": "REPLACE_WITH_RUNNING_STRFRY_VERSION",
+  "limitation": {
+    "auth_required": false,
+    "payment_required": true,
+    "restricted_writes": true,
+    "max_message_length": 131072
+  },
+  "payments_url": "https://relay.glowstr.com/paid-relay/",
+  "fees": {
+    "subscription": [
+      { "amount": 10, "unit": "USD, paid in XMR", "period": 31536000 }
+    ],
+    "admission": [
+      { "amount": 40, "unit": "USD, paid in XMR" }
+    ]
+  }
+}

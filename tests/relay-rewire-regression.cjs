@@ -59,4 +59,19 @@ assert.ok(workflow.includes('app-release-unsigned.apk'),
   'Owner-signed production workflow must emit an unsigned release');
 assert.ok(/signingConfig\s*=\s*null/.test(gradle),
   'Production APK must remain unsigned for offline Qubes signing');
+// Tips: private by default, shared payment sheet, one-time addresses.
+const tipFn = client.slice(client.indexOf('async function executeXmrTip()'), client.indexOf('function glowstrPaySheetMode('));
+assert.ok(tipFn.includes('sendNip17Dm(') && !tipFn.includes('kind: 4') && !tipFn.includes('nip04'), 'Tip notes must be gift-wrapped, never kind-4');
+assert.ok(tipFn.includes('glowstrOpenTipSheet(') && !tipFn.includes('glowstrOpenWalletUri('), 'Tips must go through the shared payment sheet');
+assert.ok(tipFn.includes('glowstrFetchTipAddress('), 'Tips must try the one-time address endpoint');
+includes("redirect:'error', referrerPolicy:'no-referrer', signal:c.signal});\n    if (!r.ok) return '';", 'tip endpoint fetch hardening');
+includes("return glowstrIsMoneroSubaddress(address) ? address : '';", 'tip endpoint may only return a subaddress');
+includes("html.theme-calm body::before { display: none; }", 'calm theme');
+includes('id="appearance-calm-toggle"', 'calm theme switch');
+const mainActivity = fs.readFileSync(path.join(root, 'android-helper/app/src/main/java/org/glowstr/meshbridge/MainActivity.java'), 'utf8');
+const onCreate = mainActivity.slice(mainActivity.indexOf('protected void onCreate('), mainActivity.indexOf('protected void onResume('));
+assert.ok(!/ensureBluetooth|requestPermissions/.test(onCreate), 'No permission prompt at launch');
+assert.ok(mainActivity.includes("/v1/mesh/enable") && mainActivity.includes("/v1/notifications/enable"), 'Permissions are requested on demand');
+const nip11 = JSON.parse(fs.readFileSync(path.join(root, 'xmr-relay/nip11.example.json'), 'utf8'));
+assert.ok(nip11.limitation.payment_required === true && nip11.payments_url && nip11.fees.subscription.length, 'NIP-11 must advertise price and payment URL');
 console.log('Glowstr v5.5 relay, checkout, NIP-05, FROSTR, media, CSP and APK build wiring OK');

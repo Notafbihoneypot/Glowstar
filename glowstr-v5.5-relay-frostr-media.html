@@ -7,7 +7,7 @@
 <title>GLOWSTR</title>
 <meta name="description" content="Glowstr — a retro privacy-first Nostr PWA client">
 <meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-hL4DUrOrQyq+ir7vj44ypnTV+zQDefPX40xJPNyh8RA='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-t57GQKGJyU8rUS/bzTZghV74VzC2J7XNEa6sGkvfB6c='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkdMT1dTVFIiLCAic2hvcnRfbmFtZSI6ICJHTE9XU1RSIiwgImRlc2NyaXB0aW9uIjogIlNlZSBUaHJvdWdoIHRoZSBOb2lzZSBcdTIwMTQgUHJpdmFjeS1maXJzdCBOb3N0ciBjbGllbnQiLCAic3RhcnRfdXJsIjogIi4iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMGEwYSIsICJ0aGVtZV9jb2xvciI6ICIjRkY2NjAwIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCMmFXVjNRbTk0UFNJd0lEQWdNVGt5SURFNU1pSStDanh5WldOMElIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCbWFXeHNQU0lqTUdFd1lUQmhJaTgrQ2p4eVpXTjBJSGc5SWpnaUlIazlJamdpSUhkcFpIUm9QU0l4TnpZaUlHaGxhV2RvZEQwaU1UYzJJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlOR1JqWTJNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlOQ0l2UGdvOGRHVjRkQ0I0UFNJNU5pSWdlVDBpTVRFd0lpQm1iMjUwTFdaaGJXbHNlVDBpYlc5dWIzTndZV05sSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUJtYjI1MExYZGxhV2RvZEQwaVltOXNaQ0lnWm1sc2JEMGlJMFpHTmpZd01DSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krUnp3dmRHVjRkRDRLUEhSbGVIUWdlRDBpT1RZaUlIazlJakUxTUNJZ1ptOXVkQzFtWVcxcGJIazlJbTF2Ym05emNHRmpaU0lnWm05dWRDMXphWHBsUFNJeE5pSWdabWxzYkQwaUkyTmpOVEl3TUNJZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSStSMHhQVjFOVVVqd3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
@@ -2403,6 +2403,20 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
   .offline-compose-tools { flex-wrap:wrap; gap:7px; }
 }
 
+/* Calm theme: no scanlines, glow or looping decoration; system font for reading. */
+html.theme-calm {
+  --scanline-opacity: 0;
+  --font-display: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-retro: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-pixel: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+}
+html.theme-calm body::before { display: none; }
+html.theme-calm *, html.theme-calm *::before, html.theme-calm *::after { text-shadow: none !important; }
+html.theme-calm #boot-logo, html.theme-calm .landing-enter::after, html.theme-calm .presence-dot.online,
+html.theme-calm .btn-amber, html.theme-calm .music-player-equalizer span, html.theme-calm .new-posts-pill,
+html.theme-calm .music-autoplay-banner, html.theme-calm .music-autoplay-banner-icon { animation: none !important; }
+html.theme-calm .presence-dot.online { box-shadow: none; }
+html.theme-calm .note-content { letter-spacing: 0; line-height: 1.55; }
 /* Skip layout/paint for notes that are off-screen. */
 .note-card { content-visibility: auto; contain-intrinsic-size: auto 240px; }
 @media (prefers-reduced-motion: reduce) {
@@ -2512,16 +2526,16 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
       </div>
 
       <div class="profile-edit-row">
-        <div class="profile-edit-label">Message — optional (sent as an encrypted DM)</div>
+        <div class="profile-edit-label">Private note — optional</div>
         <input class="profile-edit-input" id="xmr-tip-message" placeholder="Thanks for the post! 🙏" maxlength="280" />
         <div style="font-family:var(--font-retro);font-size:0.82rem;color:var(--xmr-text-dim);margin-top:4px;line-height:1.4;">
-          ★ If you write a message, Glowstr sends it as an encrypted NIP-04 DM so they know the tip came from you. Leave blank for a fully silent, unlinked tip.
+          ★ Tips are private: nothing is posted to Nostr. A note, if you write one, goes as a gift-wrapped DM (NIP-17) that hides who sent it to whom. Leave it blank for a silent, unlinked tip.
         </div>
       </div>
 
-      <button class="btn" data-glow-click="h0013" style="width:100%;margin-top:8px;background:linear-gradient(180deg,var(--xmr-orange),#cc5200);color:#fff;font-weight:bold;">💸 OPEN WALLET & SEND</button>
+      <button class="btn" data-glow-click="h0013" style="width:100%;margin-top:8px;background:linear-gradient(180deg,var(--xmr-orange),#cc5200);color:#fff;font-weight:bold;">CONTINUE TO PAYMENT</button>
       <div style="font-family:var(--font-retro);font-size:0.8rem;color:var(--xmr-text-dim);margin-top:8px;text-align:center;line-height:1.4;">
-        Glowstr opens your Monero wallet with the address (and amount, if set) pre-filled. You confirm and send from there — Glowstr never touches your funds.
+        Next you get the payment sheet: QR, copy, or open your wallet. You confirm and send from the wallet — Glowstr never touches your funds.
       </div>
     </div>
   </div>
@@ -3573,7 +3587,9 @@ https://another-server.example"></textarea>
           </div>
           <div class="profile-edit-row">
             <div class="profile-edit-label">Monero (XMR) Tip Address</div>
-            <input class="profile-edit-input" id="edit-xmr" placeholder="4... or 8... XMR address" />
+            <input class="profile-edit-input" id="edit-xmr" placeholder="8... subaddress (not your primary 4... address)" />
+            <input class="profile-edit-input" id="edit-xmr-tip" placeholder="Optional: https:// tip endpoint that returns a new address per tip" maxlength="512" autocapitalize="none" spellcheck="false" style="margin-top:6px;" />
+            <div style="font-family:var(--font-retro);font-size:.8rem;color:var(--xmr-text-dim);margin-top:4px;line-height:1.4;">Anything published here is public forever. Use a subaddress made only for tips, or a tip endpoint so no address is ever published.</div>
           </div>
           <div class="profile-edit-row">
             <div class="profile-edit-label">NIP-05 Identifier</div>
@@ -4037,6 +4053,10 @@ https://another-server.example"></textarea>
           <button class="privacy-switch" id="privacy-stealth-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle Stealth Mode"></button>
         </div>
         <div class="privacy-toggle-row">
+          <div class="privacy-toggle-copy"><strong>CALM THEME</strong><span>Turns off scanlines, glow and looping animations, and uses the system font. Easier to read and lighter on the battery.</span></div>
+          <button class="privacy-switch" id="appearance-calm-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle calm theme"></button>
+        </div>
+        <div class="privacy-toggle-row">
           <div class="privacy-toggle-copy"><strong>XMR MARKET DATA</strong><span>When enabled, CoinGecko is contacted only while the XMR view is open—not during Glowstr startup.</span></div>
           <button class="privacy-switch" id="privacy-market-toggle" type="button" role="switch" aria-checked="true" aria-label="Toggle XMR market data"></button>
         </div>
@@ -4147,8 +4167,23 @@ https://another-server.example"></textarea>
           <button class="btn btn-small" id="glowstr-pay-copy-uri" type="button">COPY PAYMENT LINK</button>
           <button class="btn btn-small" id="glowstr-pay-wallet" type="button">OPEN MONERO WALLET</button>
         </div>
+        <div id="glowstr-pay-invoice-notes">
         <div class="info-box" style="margin-top:8px;">This invoice has its own unique address. Do not create or pay another invoice from a different checkout page.</div>
         <div class="info-box" style="margin-top:10px;">Each invoice uses a fresh server-side Monero subaddress. The browser never connects to monero-wallet-rpc. Verify the exact address and amount in your wallet before paying.</div>
+        </div>
+        <div id="glowstr-pay-tip-notes" hidden>
+          <div class="info-box" style="margin-top:8px;">Private tip. Nothing about this payment is posted to Nostr, and Glowstr cannot see whether you paid. Check the address and amount in your wallet before sending.</div>
+          <details id="glowstr-tip-proof" style="margin-top:10px;border:1px solid var(--xmr-gray-light);padding:10px;">
+            <summary style="cursor:pointer;font-family:var(--font-retro);font-size:.9rem;color:var(--xmr-text-dim);">Publish a payment proof (optional, public, permanent)</summary>
+            <div style="font-family:var(--font-retro);font-size:.84rem;color:var(--xmr-text-dim);line-height:1.45;margin:8px 0;">
+              Only do this if you want public credit. After sending, ask your wallet for a payment proof (OutProof) for this transaction and address, using your Nostr public key as the proof message. Anyone can then check the amount; the tip stops being private.
+            </div>
+            <button class="btn btn-small" id="glowstr-tip-proof-copy-msg" type="button">COPY PROOF MESSAGE</button>
+            <input class="profile-edit-input" id="glowstr-tip-proof-txid" placeholder="Transaction ID (64 hex characters)" maxlength="64" autocomplete="off" autocapitalize="none" spellcheck="false" style="margin-top:8px;" />
+            <input class="profile-edit-input" id="glowstr-tip-proof-sig" placeholder="OutProofV2…" maxlength="2100" autocomplete="off" autocapitalize="none" spellcheck="false" style="margin-top:6px;" />
+            <button class="btn btn-small" id="glowstr-tip-proof-publish" type="button" style="margin-top:8px;width:100%;">PUBLISH PROOF PUBLICLY</button>
+          </details>
+        </div>
       </div>
     </section>
   </div>
@@ -8450,7 +8485,7 @@ function saveProfileCache() {
     const limited = entries.slice(0, 500);
     const data = {};
     limited.forEach(([k, v]) => {
-      data[k] = { name: v.name, display_name: v.display_name, picture: v.picture, about: v.about, nip05: v.nip05, xmr: v.xmr, monero: v.monero, twitter: v.twitter, _ts: v._ts };
+      data[k] = { name: v.name, display_name: v.display_name, picture: v.picture, about: v.about, nip05: v.nip05, xmr: v.xmr, monero: v.monero, xmr_tip: v.xmr_tip, twitter: v.twitter, _ts: v._ts };
     });
     sessionStorage.setItem('glowstr_profiles', JSON.stringify(data));
   } catch(e) {} // quota exceeded is fine, just skip
@@ -11771,6 +11806,7 @@ function renderProfileView(pubkey, isMe) {
     setVal('edit-about', profile.about || '');
     setVal('edit-picture', profile.picture || '');
     setVal('edit-xmr', xmrAddr);
+    setVal('edit-xmr-tip', profile.xmr_tip);
     setVal('edit-nip05', nip05);
     setVal('edit-music', profile.music || profile.audio || '');
     // Glowstr customs (NIP-78)
@@ -11805,6 +11841,7 @@ function showEditProfile() {
     setVal('edit-about', p.about);
     setVal('edit-picture', p.picture);
     setVal('edit-xmr', p.xmr || p.monero || p.xmr_address);
+    setVal('edit-xmr-tip', p.xmr_tip);
     setVal('edit-nip05', p.nip05);
     setVal('edit-music', p.music || p.audio);
     panel.scrollIntoView({ behavior: 'smooth' });
@@ -11824,6 +11861,13 @@ async function saveProfile() {
   const xmr = document.getElementById('edit-xmr').value.trim();
   if (xmr && !glowstrIsMoneroAddress(xmr)) { showToast('Invalid mainnet XMR address format'); return; }
   if (xmr) meta.xmr = xmr;
+  const xmrTipRaw = (document.getElementById('edit-xmr-tip')?.value || '').trim();
+  if (xmrTipRaw) {
+    const xmrTip = glowstrTipEndpointUrl(xmrTipRaw);
+    if (!xmrTip) { showToast('Tip endpoint must be an https:// URL without a username, password or #fragment'); return; }
+    meta.xmr_tip = xmrTip;
+  }
+  if (xmr && xmr[0] === '4' && !xmrTipRaw) showToast('Heads up: 4… is your primary address. A tips-only subaddress (8…) keeps your main wallet unlinkable.');
   const music = document.getElementById('edit-music').value.trim();
   if (music) {
     if (!/^https?:\/\//i.test(music)) { showToast('Music URL must start with https://'); return; }
@@ -13108,26 +13152,56 @@ function renderXmrCommercePanel(){
 }
 
 // ═══ TIPPING (uses chosen wallet) ═══
+// Draft receipt kind for an optional, sender-published Monero payment proof.
+// Not a merged NIP: confirm the number against the NIPs kind table before
+// other clients are asked to read it.
+const GLOWSTR_TIP_RECEIPT_KIND = 1814;
+function glowstrTipEndpointUrl(raw) {
+  const value = String(raw || '').trim();
+  if (!value || value.length > 512) return '';
+  try {
+    const u = new URL(value);
+    if (u.protocol !== 'https:' || !u.hostname || u.username || u.password || u.hash) return '';
+    return u.toString();
+  } catch (e) { return ''; }
+}
+function glowstrIsMoneroSubaddress(address) {
+  return typeof address === 'string' && /^8[1-9A-HJ-NP-Za-km-z]{94}$/.test(address);
+}
+// Asks the recipient's own tip endpoint (named in their signed profile) for a
+// one-time subaddress. Sends no sender identity, cookies or referrer.
+async function glowstrFetchTipAddress(endpoint, recipientPubkey) {
+  const base = glowstrTipEndpointUrl(endpoint);
+  if (!base || !/^[0-9a-f]{64}$/.test(recipientPubkey || '')) return '';
+  const u = new URL(base); u.searchParams.set('p', recipientPubkey);
+  const c = new AbortController(), timer = setTimeout(() => c.abort(), 6000);
+  try {
+    const r = await fetch(u.toString(), {headers:{Accept:'application/json'}, credentials:'omit', cache:'no-store', redirect:'error', referrerPolicy:'no-referrer', signal:c.signal});
+    if (!r.ok) return '';
+    const text = await r.text();
+    if (text.length > 2048) return '';
+    const address = String(JSON.parse(text)?.address || '');
+    return glowstrIsMoneroSubaddress(address) ? address : '';
+  } catch (e) { return ''; } finally { clearTimeout(timer); }
+}
 function xmrTip(pubkey) {
   const profile = state.profiles[pubkey] || {};
-  const xmrAddr = profile.xmr || profile.monero || profile.xmr_address || null;
+  let xmrAddr = profile.xmr || profile.monero || profile.xmr_address || null;
+  const tipEndpoint = glowstrTipEndpointUrl(profile.xmr_tip);
   const name = profile.display_name || profile.name || pubkey.slice(0,12) + '...';
 
-  if (!xmrAddr) {
-    showToast(name + ' has no XMR address in profile. Ask them to add one!');
-    return;
-  }
-  if (!glowstrIsMoneroAddress(xmrAddr)) {
-    showToast('Invalid XMR address format in profile');
+  if (xmrAddr && !glowstrIsMoneroAddress(xmrAddr)) xmrAddr = null;
+  if (!xmrAddr && !tipEndpoint) {
+    showToast(name + ' has no usable XMR address in profile. Ask them to add one!');
     return;
   }
 
   // Stash the active tip target for executeXmrTip
-  state.activeTip = { pubkey, xmrAddr, name };
+  state.activeTip = { pubkey, xmrAddr, name, tipEndpoint };
 
   // Populate the modal
   document.getElementById('xmr-tip-name').textContent = name;
-  document.getElementById('xmr-tip-addr').textContent = xmrAddr;
+  document.getElementById('xmr-tip-addr').textContent = tipEndpoint ? 'One-time address — requested when you continue' : xmrAddr;
   document.getElementById('xmr-tip-amount').value = '';
   document.getElementById('xmr-tip-message').value = '';
   document.getElementById('xmr-tip-usd').textContent = '';
@@ -13163,78 +13237,130 @@ function updateTipUsd() {
 async function executeXmrTip() {
   const tip = state.activeTip;
   if (!tip) { showToast('No active tip'); return; }
+  const account = state.publicKey;
   const rawAmount = document.getElementById('xmr-tip-amount').value.trim();
   const amount = Number(rawAmount) || 0;
   const message = document.getElementById('xmr-tip-message').value.trim();
 
-  // 1. Build the monero: URI with optional amount + description
+  // 1. Prefer a one-time address from the recipient's tip endpoint; fall back
+  //    to the address in their profile.
+  let address = tip.xmrAddr, oneTime = false;
+  if (tip.tipEndpoint) {
+    showToast('Requesting a one-time address…');
+    const fresh = await glowstrFetchTipAddress(tip.tipEndpoint, tip.pubkey);
+    if (state.activeTip !== tip || state.publicKey !== account) return;
+    if (fresh) { address = fresh; oneTime = true; }
+  }
+  if (!address) { showToast('Could not get an address for ' + tip.name + '. Try again later.'); return; }
+
+  // 2. Build the monero: URI. The description stays in the payer's wallet.
   let uri;
-  try { uri = glowstrBuildMoneroUri(tip.xmrAddr, rawAmount, message.slice(0, 60)); }
+  try { uri = glowstrBuildMoneroUri(address, rawAmount, message.slice(0, 60)); }
   catch (e) { showToast(e.message); return; }
   const params = uri.includes('?') ? uri.split('?')[1].split('&') : [];
 
-  // 2. If a message was written AND user is logged in, send it as an encrypted NIP-04 DM
+  // 3. Optional note, gift-wrapped (NIP-17) so relays cannot see who tipped
+  //    whom. Never the older kind-4 DM, whose tags expose both parties.
   if (message && state.publicKey) {
-    const canEncrypt = state.privateKey || (state.signerMethod === 'nip07' && window.nostr?.nip04?.encrypt);
-    if (canEncrypt) {
-      try {
-        const dmText = '💸 Preparing a Monero tip' + (amount > 0 ? ' of ' + amount + ' XMR' : '') + '. Payment is not yet confirmed. ' + message;
-        let encrypted;
-        if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
-          encrypted = await nip04Encrypt(dmText, state.privateKey, tip.pubkey);
-        } else if (window.nostr?.nip04?.encrypt) {
-          encrypted = await window.nostr.nip04.encrypt(tip.pubkey, dmText);
-        }
-        if (encrypted) {
-          const evt = {
-            kind: 4,
-            created_at: Math.floor(Date.now() / 1000),
-            tags: [['p', tip.pubkey]],
-            content: encrypted,
-          };
-          let signed;
-          if (state.signerMethod === 'nip07' && window.nostr) {
-            evt.pubkey = state.publicKey;
-            signed = await glowstrVerifiedNip07Sign(evt);
-          } else if (glowstrIsLocalSignerMethod(state.signerMethod) && state.privateKey) {
-            signed = await signEventUniversal(evt);
-          }
-          if (signed) {
-            if (typeof broadcastDmWithOutbox === 'function') {
-              await broadcastDmWithOutbox(signed, tip.pubkey);
-            } else {
-              broadcastEvent(signed);
-            }
-            // Mirror into our own DM thread
-            state.eventIds.add(signed.id);
-            state.dms = state.dms || [];
-            state.dms.push(signed);
-            showToast('🔒 Tip message sent as encrypted DM');
-          }
-        }
-      } catch(e) {
-        showToast('Could not send DM (wallet will still open): ' + e.message);
-      }
-    } else {
-      showToast('Message skipped — login with a key to send encrypted DMs');
+    try {
+      await sendNip17Dm(tip.pubkey, '💸 Sending you a Monero tip' + (amount > 0 ? ' of ' + rawAmount + ' XMR' : '') + '. Payment is not yet confirmed. ' + message);
+      showToast('🔒 Note sent as a gift-wrapped DM');
+    } catch (e) {
+      showToast('Note not sent (' + (e.message || 'signer unavailable') + '). You can still pay.');
     }
+    if (state.activeTip !== tip || state.publicKey !== account) return;
   }
 
-  // 3. Open the wallet (respect chosen default wallet deeplink)
+  // 4. Same payment sheet as relay plans and names.
   const ws = getWalletState();
   const wallet = ws.default || 'any';
-  // If the user picked a specific wallet, use its builder but append our params
-  let finalUri = uri;
+  let walletUri = uri;
   if (wallet !== 'any' && WALLET_DEEPLINK[wallet]) {
-    // Most wallet builders just take the address; append params manually if the builder returns a monero: uri
-    const built = WALLET_DEEPLINK[wallet](tip.xmrAddr);
-    finalUri = built.includes('?') ? built + '&' + params.join('&') : (params.length ? built + '?' + params.join('&') : built);
+    const built = WALLET_DEEPLINK[wallet](address);
+    walletUri = built.includes('?') ? built + '&' + params.join('&') : (params.length ? built + '?' + params.join('&') : built);
   }
-  navigator.clipboard?.writeText(tip.xmrAddr);
   closeXmrTipModal();
-  if (!glowstrOpenWalletUri(finalUri)) return;
-  showToast('Opening wallet to tip ' + tip.name + (amount > 0 ? ' (' + amount + ' XMR)' : ''));
+  glowstrOpenTipSheet({ pubkey: tip.pubkey, name: tip.name, address, uri, walletUri, amount: amount > 0 ? rawAmount : '', oneTime });
 }
+
+function glowstrPaySheetMode(mode) {
+  const tip = mode === 'tip';
+  const title = document.getElementById('glowstr-pay-title');
+  if (title && !tip) title.textContent = 'ɱ GLOWSTR MONERO CHECKOUT';
+  const invoiceNotes = document.getElementById('glowstr-pay-invoice-notes'), tipNotes = document.getElementById('glowstr-pay-tip-notes');
+  if (invoiceNotes) invoiceNotes.hidden = tip;
+  if (tipNotes) tipNotes.hidden = !tip;
+  if (!tip) {
+    for (const id of ['glowstr-tip-proof-txid', 'glowstr-tip-proof-sig']) { const el = document.getElementById(id); if (el) el.value = ''; }
+    const proof = document.getElementById('glowstr-tip-proof'); if (proof) proof.open = false;
+    // A finished tip must not linger as the "current invoice" of a later checkout.
+    if (_glowstrInvoiceV42?.context?.type === 'tip') {
+      _glowstrInvoiceV42 = null;
+      const d = document.getElementById('glowstr-pay-details'); if (d) d.hidden = true;
+    }
+  }
+}
+function glowstrOpenTipSheet(t) {
+  glowstrStopInvoicePollV54();
+  _glowstrInvoiceV42 = { address: t.address, uri: t.uri, context: { type: 'tip', pubkey: t.pubkey, name: t.name, walletUri: t.walletUri, amount: t.amount, account: state.publicKey } };
+  const $ = id => document.getElementById(id);
+  if ($('glowstr-relay-plan-row')) $('glowstr-relay-plan-row').style.display = 'none';
+  if ($('glowstr-pay-title')) $('glowstr-pay-title').textContent = 'ɱ TIP ' + String(t.name).slice(0, 40);
+  if ($('glowstr-pay-status')) $('glowstr-pay-status').textContent = t.oneTime ? 'One-time address issued for this tip' : 'Address from their profile';
+  if ($('glowstr-pay-amount')) $('glowstr-pay-amount').textContent = t.amount ? (t.amount + ' XMR') : 'Amount: choose in your wallet';
+  if ($('glowstr-pay-progress')) $('glowstr-pay-progress').textContent = 'Pay from your wallet. This sheet does not track the payment.';
+  if ($('glowstr-pay-address')) $('glowstr-pay-address').textContent = t.address;
+  const qrEl = $('glowstr-pay-qr');
+  if (qrEl) {
+    let qr = '';
+    try { qr = window.GlowstrAndroid?.makeNostrQrDataUrl?.(t.uri) || ''; } catch (e) {}
+    if (/^data:image\/svg\+xml;base64,[A-Za-z0-9+/=]+$/.test(qr)) { qrEl.src = qr; qrEl.hidden = false; }
+    else { qrEl.hidden = true; qrEl.removeAttribute('src'); }
+  }
+  if ($('glowstr-pay-details')) $('glowstr-pay-details').hidden = false;
+  glowstrPayOpenV42(true);
+  glowstrPaySheetMode('tip');
+}
+function glowstrXmrToAtomic(value) {
+  const m = /^(0|[1-9][0-9]*)(?:\.([0-9]{1,12}))?$/.exec(String(value || ''));
+  if (!m) return '';
+  return (BigInt(m[1]) * 1000000000000n + BigInt((m[2] || '').padEnd(12, '0'))).toString();
+}
+// Opt-in only. Publishes a receipt other clients can check against a Monero
+// node with check_tx_proof(txid, address, message, signature).
+async function glowstrPublishTipProof() {
+  const inv = _glowstrInvoiceV42, ctx = inv?.context;
+  if (ctx?.type !== 'tip') return;
+  if (!state.publicKey || state.publicKey !== ctx.account) { showToast('Login with the account that sent the tip'); return; }
+  const txid = (document.getElementById('glowstr-tip-proof-txid')?.value || '').trim().toLowerCase();
+  const proof = (document.getElementById('glowstr-tip-proof-sig')?.value || '').trim();
+  if (!/^[0-9a-f]{64}$/.test(txid)) { showToast('Transaction ID must be 64 hex characters'); return; }
+  if (!/^OutProofV[12][1-9A-HJ-NP-Za-km-z]{60,2000}$/.test(proof)) { showToast('Paste the OutProof from your wallet (starts with OutProofV)'); return; }
+  const tags = [['p', ctx.pubkey], ['txid', txid], ['proof', proof], ['address', inv.address], ['message', state.publicKey]];
+  const atomic = glowstrXmrToAtomic(ctx.amount);
+  if (atomic && atomic !== '0') tags.push(['amount', atomic]);
+  try {
+    const signed = await signEventUniversal({ kind: GLOWSTR_TIP_RECEIPT_KIND, created_at: Math.floor(Date.now() / 1000), tags, content: '' });
+    if (!signed) throw new Error('signer unavailable');
+    if (!broadcastEvent(signed)) throw new Error('no connected relays');
+    showToast('✓ Payment proof published');
+    glowstrPayOpenV42(false);
+  } catch (e) { showToast('Could not publish proof: ' + (e.message || 'unknown error')); }
+}
+
+// ═══ APPEARANCE ═══
+const GLOWSTR_CALM_THEME_KEY = 'glowstr_theme_calm';
+function glowstrApplyCalmTheme(on) {
+  document.documentElement.classList.toggle('theme-calm', !!on);
+  document.getElementById('appearance-calm-toggle')?.setAttribute('aria-checked', on ? 'true' : 'false');
+}
+function glowstrToggleCalmTheme() {
+  const on = !document.documentElement.classList.contains('theme-calm');
+  try { localStorage.setItem(GLOWSTR_CALM_THEME_KEY, on ? '1' : '0'); } catch (e) {}
+  glowstrApplyCalmTheme(on);
+  showToast(on ? 'Calm theme on' : 'Retro theme on');
+}
+try { glowstrApplyCalmTheme(localStorage.getItem(GLOWSTR_CALM_THEME_KEY) === '1'); } catch (e) {}
 
 // ═══ NIP-65 RELAY LIST ═══
 async function publishRelayList() {
@@ -13305,7 +13431,7 @@ function escapeJs(str) {
 function safeMeta(obj) {
   // Prevent prototype pollution from malicious relay data
   const safe = Object.create(null);
-  const allowed = ['name','display_name','about','picture','nip05','lud06','lud16','website','banner','xmr','monero','xmr_address','twitter','Twitter','music','audio'];
+  const allowed = ['name','display_name','about','picture','nip05','lud06','lud16','website','banner','xmr','monero','xmr_address','xmr_tip','twitter','Twitter','music','audio'];
   for (const key of allowed) { if (obj && obj[key] !== undefined) safe[key] = String(obj[key]).slice(0, 2000); }
   return safe;
 }
@@ -13902,7 +14028,7 @@ async function glowstrCheckMembershipV42(){
   catch(e){glowstrSetMembershipV42('SERVICE UNAVAILABLE');showToast('Payment service unavailable: '+e.message);return false;}
 }
 function glowstrStopInvoicePollV54(){if(_glowstrInvoicePollV42){clearTimeout(_glowstrInvoicePollV42);_glowstrInvoicePollV42=null;}}
-function glowstrPayOpenV42(open){const b=document.getElementById('glowstr-pay-backdrop');if(!b)return;b.classList.toggle('open',!!open);b.setAttribute('aria-hidden',open?'false':'true');if(!open)glowstrStopInvoicePollV54();}
+function glowstrPayOpenV42(open){const b=document.getElementById('glowstr-pay-backdrop');if(!b)return;b.classList.toggle('open',!!open);b.setAttribute('aria-hidden',open?'false':'true');if(!open){glowstrStopInvoicePollV54();glowstrPaySheetMode('invoice');}}
 function glowstrRenderInvoiceV42(inv){
   _glowstrInvoiceV42=Object.assign({},_glowstrInvoiceV42||{},inv); const s=document.getElementById('glowstr-pay-status'),d=document.getElementById('glowstr-pay-details'),p=document.getElementById('glowstr-pay-progress'); if(!s||!d)return;
   const status=String(inv.status||'WAITING').toUpperCase(); const paid=status==='PAID';
@@ -13962,7 +14088,11 @@ function initGlowstrV42(){
   document.getElementById('glowstr-pay-backdrop')?.addEventListener('click',e=>{if(e.target===e.currentTarget)glowstrPayOpenV42(false);});
   document.getElementById('glowstr-pay-copy')?.addEventListener('click',()=>{const a=_glowstrInvoiceV42?.address;if(a)copyToClipboard(a);});
   document.getElementById('glowstr-pay-copy-uri')?.addEventListener('click',()=>{const u=_glowstrInvoiceV42?.uri;if(u)copyToClipboard(u);});
-  document.getElementById('glowstr-pay-wallet')?.addEventListener('click',()=>{const u=_glowstrInvoiceV42?.uri;if(u)location.href=u;});
+  document.getElementById('glowstr-pay-wallet')?.addEventListener('click',()=>{const inv=_glowstrInvoiceV42;if(inv?.context?.type==='tip'){glowstrOpenWalletUri(inv.context.walletUri||inv.uri);return;}const u=inv?.uri;if(u)location.href=u;});
+  document.getElementById('glowstr-tip-proof-publish')?.addEventListener('click',glowstrPublishTipProof);
+  document.getElementById('glowstr-tip-proof-copy-msg')?.addEventListener('click',()=>{if(state.publicKey)copyToClipboard(state.publicKey);else showToast('Login first');});
+  document.getElementById('appearance-calm-toggle')?.addEventListener('click',glowstrToggleCalmTheme);
+  glowstrApplyCalmTheme(document.documentElement.classList.contains('theme-calm'));
   setTimeout(()=>{glowstrAttachFirstPartyV42();glowstrLoadCommerceFeaturesV54().then(initUsernameStorefront).catch(initUsernameStorefront);},500);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initGlowstrV42,{once:true});else initGlowstrV42();

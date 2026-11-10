@@ -1,6 +1,30 @@
 # Public Nostr WebSocket + NIP-11 endpoint.
+#
+# strfry builds its own NIP-11 document but has no setting for prices, so the
+# relay information request is answered here from a static file instead. Copy
+# nip11.example.json to /etc/caddy/nip11.json, fill in pubkey/contact/version,
+# and keep name, description and supported_nips in step with strfry.conf.
+# Untested as written: check with
+#   curl -H 'Accept: application/nostr+json' https://relay.glowstr.com/
+# and confirm a WebSocket client still connects.
 relay.glowstr.com {
-    reverse_proxy 127.0.0.1:7777
+    @nip11 {
+        method GET
+        header Accept *application/nostr+json*
+        not header Upgrade *
+    }
+    handle @nip11 {
+        header Content-Type application/nostr+json
+        header Access-Control-Allow-Origin *
+        header Access-Control-Allow-Headers *
+        header Access-Control-Allow-Methods GET
+        root * /etc/caddy
+        rewrite * /nip11.json
+        file_server
+    }
+    handle {
+        reverse_proxy 127.0.0.1:7777
+    }
 }
 
 # Add this handler to the HTTPS origin that serves Glowstr.

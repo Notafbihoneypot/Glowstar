@@ -2,7 +2,7 @@
 
 A privacy-first Nostr client with Monero payments: the bundled client, the Android app that ships it, the Python mesh bridge, and the tests.
 
-Start with [`docs/SECURITY-AUDIT-2026-11-10.md`](docs/SECURITY-AUDIT-2026-11-10.md) for the current security posture and roadmap, and [`docs/GLOWSTR_NET_NIP05.md`](docs/GLOWSTR_NET_NIP05.md) for the `name@glowstr.net` service.
+Start with [`docs/SECURITY-AUDIT-2026-11-10.md`](docs/SECURITY-AUDIT-2026-11-10.md) for the current security posture and roadmap, and [`docs/GLOWSTR_NET_NIP05.md`](docs/GLOWSTR_NET_NIP05.md) for the `name@glowstr.net` service. Tipping conventions are in [`docs/MONERO_TIPS.md`](docs/MONERO_TIPS.md).
 
 ## Project files
 

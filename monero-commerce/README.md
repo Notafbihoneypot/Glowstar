@@ -47,6 +47,8 @@ Returns the unique subaddress, Monero URI, invoice capability token and expiry.
 
 `GET /v1/admin/entitlements/<pubkey>` with the admin bearer token is intended for the paid relay/room/storage service to check access. Do not expose the admin token to Glowstr clients.
 
+`GET /v1/tip-address` (only when `GLOWSTR_TIP_ADDRESS_ENABLED=1`) returns `{"address":"8…"}`: a new subaddress of this wallet per call, rate-limited by `GLOWSTR_TIP_ADDRESSES_PER_MINUTE` (default 30). It is public and answers any origin. See `docs/MONERO_TIPS.md`.
+
 ## Next integration
 
 The existing Glowstr client already has XMR profile/post tip buttons and Monero URI/deeplink support. The next UI patch should call this service for paid relay/room/storage purchases and store only the invoice id/token locally until payment completes.

@@ -1,10 +1,13 @@
-# Glowstr v5.3 — Bluetooth Direct
+# Glowstr
 
-This repository contains the complete Glowstr v5.3 source bundle: the Nostr web client, the Android Bluetooth companion, the Python mesh bridge, and the included tests.
+A privacy-first Nostr client with Monero payments: the bundled client, the Android app that ships it, the Python mesh bridge, and the tests.
+
+Start with [`docs/SECURITY-AUDIT-2026-11-10.md`](docs/SECURITY-AUDIT-2026-11-10.md) for the current security posture and roadmap, and [`docs/GLOWSTR_NET_NIP05.md`](docs/GLOWSTR_NET_NIP05.md) for the `name@glowstr.net` service.
 
 ## Project files
 
-- [`glowstr-v5.3-bluetooth-direct.html`](glowstr-v5.3-bluetooth-direct.html): web client.
+- [`glowstr-v5.5-relay-frostr-media.html`](glowstr-v5.5-relay-frostr-media.html): the client the Android app bundles. Tests run against this file.
+- [`glowstr-v5.3-bluetooth-direct.html`](glowstr-v5.3-bluetooth-direct.html): older client, still read by `deploy/podman/deploy.sh` only. It does not receive fixes.
 - [`android-helper/`](android-helper/): native Android Bluetooth bridge source.
 - [`glowstr-mesh-bridge.py`](glowstr-mesh-bridge.py): Meshtastic / Reticulum bridge.
 - [`GLOWSTR_V5_3_BLUETOOTH_DIRECT_README.md`](GLOWSTR_V5_3_BLUETOOTH_DIRECT_README.md): Bluetooth setup, pairing, API, and limitations.

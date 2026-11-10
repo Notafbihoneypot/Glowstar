@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
-const html = fs.readFileSync(process.argv[2] || path.join(__dirname, '../glowstr-v5.3-bluetooth-direct.html'), 'utf8');
+const html = fs.readFileSync(process.argv[2] || path.join(__dirname, '../glowstr-v5.5-relay-frostr-media.html'), 'utf8');
 function section(start, end) {
   const a = html.indexOf(start), b = html.indexOf(end, a + start.length);
   assert(a >= 0 && b > a, 'Missing shipped source section: ' + start);

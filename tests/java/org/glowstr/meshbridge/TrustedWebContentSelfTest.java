@@ -38,7 +38,7 @@ public final class TrustedWebContentSelfTest {
                 "http://app.glowstr.local/", "data:text/html,evil", "blob:https://app.glowstr.local/abc", "about:blank"}) {
             check(!TrustedWebContent.isAppDocument(url), "Untrusted document accepted: " + url);
         }
-        Path source = Path.of(args.length > 0 ? args[0] : "glowstr-v5.3-bluetooth-direct.html");
+        Path source = Path.of(args.length > 0 ? args[0] : "glowstr-v5.5-relay-frostr-media.html");
         String bound = TrustedWebContent.bindBridge(Files.readString(source), cap);
         check(bound.contains("frame-src 'none';"), "Remote frames permitted");
         check(bound.contains("window !== window.top"), "Missing top-frame bootstrap gate");

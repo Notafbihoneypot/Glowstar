@@ -4,10 +4,10 @@
 <meta name="referrer" content="no-referrer">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>GLOWSTR // v5.3 Bluetooth Direct</title>
+<title>GLOWSTR</title>
 <meta name="description" content="Glowstr — a retro privacy-first Nostr PWA client">
 <meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-MsEeEnU8ia/vqnqDxL8xVEmCogs4CNFeHLToiHsvQAs='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-hL4DUrOrQyq+ir7vj44ypnTV+zQDefPX40xJPNyh8RA='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkdMT1dTVFIiLCAic2hvcnRfbmFtZSI6ICJHTE9XU1RSIiwgImRlc2NyaXB0aW9uIjogIlNlZSBUaHJvdWdoIHRoZSBOb2lzZSBcdTIwMTQgUHJpdmFjeS1maXJzdCBOb3N0ciBjbGllbnQiLCAic3RhcnRfdXJsIjogIi4iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMGEwYSIsICJ0aGVtZV9jb2xvciI6ICIjRkY2NjAwIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCMmFXVjNRbTk0UFNJd0lEQWdNVGt5SURFNU1pSStDanh5WldOMElIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCbWFXeHNQU0lqTUdFd1lUQmhJaTgrQ2p4eVpXTjBJSGc5SWpnaUlIazlJamdpSUhkcFpIUm9QU0l4TnpZaUlHaGxhV2RvZEQwaU1UYzJJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlOR1JqWTJNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlOQ0l2UGdvOGRHVjRkQ0I0UFNJNU5pSWdlVDBpTVRFd0lpQm1iMjUwTFdaaGJXbHNlVDBpYlc5dWIzTndZV05sSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUJtYjI1MExYZGxhV2RvZEQwaVltOXNaQ0lnWm1sc2JEMGlJMFpHTmpZd01DSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krUnp3dmRHVjRkRDRLUEhSbGVIUWdlRDBpT1RZaUlIazlJakUxTUNJZ1ptOXVkQzFtWVcxcGJIazlJbTF2Ym05emNHRmpaU0lnWm05dWRDMXphWHBsUFNJeE5pSWdabWxzYkQwaUkyTmpOVEl3TUNJZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSStSMHhQVjFOVVVqd3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
@@ -2403,6 +2403,8 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
   .offline-compose-tools { flex-wrap:wrap; gap:7px; }
 }
 
+/* Skip layout/paint for notes that are off-screen. */
+.note-card { content-visibility: auto; contain-intrinsic-size: auto 240px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition-duration:.01ms !important; }
 }
@@ -3756,14 +3758,14 @@ https://another-server.example"></textarea>
           <div class="wallet-section-title">★ NIP-05 NAME — ONE-TIME XMR PURCHASE</div>
           <div class="wallet-section-body">
             <div style="font-family:var(--font-retro);font-size:0.9rem;color:var(--xmr-text-dim);line-height:1.5;margin-bottom:12px;">
-              Buy a NIP-05 identifier such as <b style="color:var(--xmr-orange);">you@your-domain.example</b> for a one-time $4 USD-equivalent payment in Monero. NIP-05 is a portable Nostr identifier, not proof of personhood. The name service becomes purchasable only after the operator configures the domain on the commerce backend.
+              Buy a NIP-05 identifier such as <b style="color:var(--xmr-orange);">you@glowstr.net</b> for a one-time $4 USD-equivalent payment in Monero. NIP-05 is a portable Nostr identifier, not proof of personhood. Checkout opens only while the glowstr.net name service is online and its public lookup passes a live check.
             </div>
             <div id="username-service-status" class="info-box" style="margin-bottom:10px;">Checking name service…</div>
             <div class="profile-edit-row">
               <div class="profile-edit-label">Desired name</div>
               <div style="display:flex;gap:6px;align-items:stretch;">
                 <input class="profile-edit-input" id="username-input" placeholder="yourname" maxlength="30" style="flex:1;" data-glow-input="h0137" autocomplete="off" autocapitalize="none" spellcheck="false" />
-                <span id="username-domain-suffix" style="display:flex;align-items:center;font-family:var(--font-mono);font-size:0.85rem;color:var(--xmr-text-dim);white-space:nowrap;">@domain-not-configured</span>
+                <span id="username-domain-suffix" style="display:flex;align-items:center;font-family:var(--font-mono);font-size:0.85rem;color:var(--xmr-text-dim);white-space:nowrap;">@glowstr.net</span>
                 <button class="btn btn-small" data-glow-click="h0138" id="username-check-button" disabled>CHECK</button>
               </div>
               <div id="username-availability" style="font-family:var(--font-retro);font-size:0.88rem;margin-top:6px;min-height:18px;"></div>
@@ -4190,8 +4192,11 @@ const PAID_RELAYS = new Set(['wss://nostr.wine', 'wss://inbox.nostr.wine', 'wss:
 const SEARCH_RELAYS = ['wss://relay.nostr.band', 'wss://nostr.wine', 'wss://relay.noswhere.com', 'wss://search.nos.today'];
 
 // ═══ GLOWSTR V5.4 NIP-05 REGISTRY CONFIG ═══
+// The only domain this build sells names on. The commerce server must
+// advertise exactly this domain or checkout stays disabled (fail closed).
+const GLOWSTR_NIP05_DOMAIN = 'glowstr.net';
 const USERNAME_REGISTRY = {
-  domain: '',
+  domain: GLOWSTR_NIP05_DOMAIN,
   enabled: false,
   usdCents: 400,
   feature: 'nip05_lifetime',
@@ -4273,43 +4278,119 @@ function _modPow(base, exp, m=_P) {
   }
   return result;
 }
-function _modInv(a, m=_P) { return _modPow(a, m - 2n, m); }
+// Extended Euclid: ~40x cheaper than a Fermat exponentiation with BigInt.
+function _modInv(a, m=_P) {
+  let r0 = _mod(a, m), r1 = m, s0 = 1n, s1 = 0n;
+  if (r0 === 0n) throw new Error('No modular inverse');
+  while (r1 !== 0n) {
+    const q = r0 / r1;
+    [r0, r1] = [r1, r0 - q * r1];
+    [s0, s1] = [s1, s0 - q * s1];
+  }
+  if (r0 !== 1n) throw new Error('No modular inverse');
+  return _mod(s0, m);
+}
 
-// Affine point: null = point at infinity, else [x, y] bigints
-function _pointAdd(p1, p2) {
-  if (!p1) return p2; if (!p2) return p1;
-  const [x1,y1] = p1, [x2,y2] = p2;
-  if (x1 === x2 && y1 === y2) return _pointDouble(p1);
-  if (x1 === x2) return null; // inverse points
-  const s = _mod((y2 - y1) * _modInv(_mod(x2 - x1)));
-  const x3 = _mod(s * s - x1 - x2);
-  const y3 = _mod(s * (x1 - x3) - y1);
-  return [x3, y3];
-}
-function _pointDouble(p) {
+// Points are affine [x, y] at the API boundary (null = infinity). Internally
+// all arithmetic is Jacobian [X, Y, Z] so a scalar multiplication needs one
+// field inversion instead of one per bit.
+function _jDouble(p) {
   if (!p) return null;
-  const [x, y] = p;
-  if (y === 0n) return null;
-  const s = _mod(3n * x * x * _modInv(2n * y));
-  const x3 = _mod(s * s - 2n * x);
-  const y3 = _mod(s * (x - x3) - y);
-  return [x3, y3];
+  const [X, Y, Z] = p;
+  if (Y === 0n) return null;
+  const A = (X * X) % _P, B = (Y * Y) % _P, C = (B * B) % _P;
+  const t = X + B;
+  const D = _mod(2n * (t * t - A - C));
+  const E = 3n * A, F = (E * E) % _P;
+  const X3 = _mod(F - 2n * D);
+  return [X3, _mod(E * (D - X3) - 8n * C), (2n * Y * Z) % _P];
 }
-function _pointMul(k, p) {
-  let result = null, current = p;
-  k = _mod(k, _N);
-  while (k > 0n) {
-    if (k & 1n) result = _pointAdd(result, current);
-    current = _pointDouble(current);
-    k >>= 1n;
+function _jAdd(p, q) {
+  if (!p) return q; if (!q) return p;
+  const [X1, Y1, Z1] = p, [X2, Y2, Z2] = q;
+  const Z1Z1 = (Z1 * Z1) % _P, Z2Z2 = (Z2 * Z2) % _P;
+  const U1 = (X1 * Z2Z2) % _P, U2 = (X2 * Z1Z1) % _P;
+  const S1 = (Y1 * Z2 * Z2Z2) % _P, S2 = (Y2 * Z1 * Z1Z1) % _P;
+  const H = _mod(U2 - U1), R = _mod(S2 - S1);
+  if (H === 0n) return R === 0n ? _jDouble(p) : null;
+  const HH = (H * H) % _P, HHH = (H * HH) % _P, V = (U1 * HH) % _P;
+  const X3 = _mod(R * R - HHH - 2n * V);
+  return [X3, _mod(R * (V - X3) - S1 * HHH), (H * Z1 * Z2) % _P];
+}
+function _jToAffine(p) {
+  if (!p) return null;
+  const zi = _modInv(p[2]), zi2 = (zi * zi) % _P;
+  return [(p[0] * zi2) % _P, (p[1] * zi2 % _P * zi) % _P];
+}
+function _pointAdd(p1, p2) {
+  return _jToAffine(_jAdd(p1 && [p1[0], p1[1], 1n], p2 && [p2[0], p2[1], 1n]));
+}
+function _pointDouble(p) { return _jToAffine(_jDouble(p && [p[0], p[1], 1n])); }
+
+const _G = [_Gx, _Gy];
+// G, 2G, 4G … 2^255·G, built once on first use.
+let _gPowers = null;
+function _gTable() {
+  if (_gPowers) return _gPowers;
+  const t = []; let cur = [_Gx, _Gy, 1n];
+  for (let i = 0; i < 256; i++) { t.push(cur); cur = _jDouble(cur); }
+  return (_gPowers = t);
+}
+// Scalar multiplication for secret scalars (keys, nonces, ECDH). Performs the
+// same sequence of group operations for every scalar; BigInt arithmetic itself
+// is still not constant-time, so this narrows rather than removes timing leaks.
+function _jMulUniform(k, p) {
+  let result = null, dummy = null;
+  if (p[0] === _Gx && p[1] === _Gy) {
+    const t = _gTable();
+    for (let i = 0; i < 256; i++) {
+      if ((k >> BigInt(i)) & 1n) result = _jAdd(result, t[i]); else dummy = _jAdd(dummy, t[i]);
+    }
+    return result;
+  }
+  const base = [p[0], p[1], 1n];
+  for (let i = 255; i >= 0; i--) {
+    result = _jDouble(result);
+    if ((k >> BigInt(i)) & 1n) result = _jAdd(result, base); else dummy = _jAdd(dummy, base);
   }
   return result;
 }
-const _G = [_Gx, _Gy];
+function _pointMul(k, p) {
+  k = _mod(k, _N);
+  if (!p || k === 0n) return null;
+  return _jToAffine(_jMulUniform(k, p));
+}
+// Variable-time width-5 wNAF for PUBLIC inputs only (signature verification).
+function _jMulVartime(k, p) {
+  const base = [p[0], p[1], 1n], twoP = _jDouble(base), odd = [base];
+  for (let i = 1; i < 8; i++) odd.push(_jAdd(odd[i - 1], twoP));
+  const naf = [];
+  while (k > 0n) {
+    if (k & 1n) {
+      let d = Number(k & 31n); if (d > 16) d -= 32;
+      naf.push(d); k -= BigInt(d);
+    } else naf.push(0);
+    k >>= 1n;
+  }
+  let r = null;
+  for (let i = naf.length - 1; i >= 0; i--) {
+    r = _jDouble(r);
+    const d = naf[i];
+    if (d > 0) r = _jAdd(r, odd[(d - 1) >> 1]);
+    else if (d < 0) { const q = odd[(-d - 1) >> 1]; r = _jAdd(r, [q[0], _P - q[1], q[2]]); }
+  }
+  return r;
+}
+function _jMulBaseVartime(k) {
+  const t = _gTable(); let r = null;
+  for (let i = 0; k > 0n; i++, k >>= 1n) if (k & 1n) r = _jAdd(r, t[i]);
+  return r;
+}
 
 function _hasEvenY(p) { return p && (p[1] % 2n === 0n); }
 function _liftX(x) {
   // Recover y from x on secp256k1: y^2 = x^3 + 7
+  if (x <= 0n || x >= _P) throw new Error('Invalid x coordinate');
   const c = _mod(x * x * x + 7n);
   const y = _modPow(c, (_P + 1n) / 4n);
   if (_mod(y * y) !== c) throw new Error('Invalid x coordinate');
@@ -4495,15 +4576,18 @@ async function verifySchnorrSig(sigHex, msgHex, pubkeyHex) {
     if (r >= _P || s >= _N) return false;
     const eHash = await _taggedHash('BIP0340/challenge', hexToBytes(rHex), bigToBytes(P[0]), hexToBytes(msgHex));
     const e = _mod(bytesToBig(eHash), _N);
-    // R' = s*G - e*P
-    const sG = _pointMul(s, _G);
-    const eP = _pointMul(e, P);
-    const ePneg = eP ? [eP[0], _P - eP[1]] : null;
-    const R = _pointAdd(sG, ePneg);
+    // R' = s*G - e*P  (public inputs: variable-time is fine)
+    const R = _jToAffine(_jAdd(_jMulBaseVartime(s), _jMulVartime(_mod(_N - e, _N), P)));
     if (!R || !_hasEvenY(R)) return false;
     return R[0] === r;
   } catch(e) { return false; }
 }
+
+// Signatures already verified this session, keyed by event id. The id is
+// re-derived from the full body on every call, so a hit only skips repeating
+// the curve arithmetic for a byte-identical (id, sig) pair seen on another relay.
+const _verifiedSigCache = new Map();
+const VERIFIED_SIG_CACHE_MAX = 20000;
 
 // Verify a nostr event's signature (checks id hash + schnorr sig)
 async function verifyEvent(event) {
@@ -4513,8 +4597,14 @@ async function verifyEvent(event) {
   const idBytes = await sha256(serialized);
   const computedId = bytesToHex(idBytes);
   if (computedId !== event.id) return false;
+  if (_verifiedSigCache.get(event.id) === event.sig) return true;
   // Verify Schnorr signature
-  return verifySchnorrSig(event.sig, event.id, event.pubkey);
+  const ok = await verifySchnorrSig(event.sig, event.id, event.pubkey);
+  if (ok) {
+    if (_verifiedSigCache.size >= VERIFIED_SIG_CACHE_MAX) _verifiedSigCache.delete(_verifiedSigCache.keys().next().value);
+    _verifiedSigCache.set(event.id, event.sig);
+  }
+  return ok;
 }
 
 // Defensive relay event validation. Relays are untrusted network peers.
@@ -10448,7 +10538,7 @@ async function initUsernameStorefront() {
     const features = await glowstrLoadCommerceFeaturesV54();
     const spec = features?.features?.[USERNAME_REGISTRY.feature];
     const domain = String(spec?.domain || '').trim().toLowerCase();
-    if (!domain || !/^[a-z0-9.-]+$/.test(domain) || Number(spec.usd_cents)!==400) throw new Error('not configured');
+    if (domain !== GLOWSTR_NIP05_DOMAIN || Number(spec.usd_cents)!==400) throw new Error('not configured');
     // Refuse to take payments unless public NIP-05 verification works. A
     // broken DNS/TLS/CORS route should never charge for unusable names.
     const c = new AbortController(); const timer = setTimeout(()=>c.abort(),6500);
@@ -10471,7 +10561,8 @@ async function initUsernameStorefront() {
     if (check) check.disabled = false;
   } catch (e) {
     USERNAME_REGISTRY.enabled = false;
-    if (status) status.textContent = 'NAME PURCHASES ARE NOT ENABLED YET · configure the purchased NIP-05 domain on the commerce server first.';
+    USERNAME_REGISTRY.domain = GLOWSTR_NIP05_DOMAIN;
+    if (status) status.textContent = 'OFFLINE · the ' + GLOWSTR_NIP05_DOMAIN + ' name service is not reachable right now. Nothing can be purchased until it is back.';
     if (check) check.disabled = true;
   }
 }
@@ -13220,8 +13311,9 @@ function safeMeta(obj) {
 }
 function linkifyContent(text, authorPubkey) {
   text = text.replace(/(https?:\/\/[^\s<"']+)/g, (url) => {
-    const safeHref = escapeHtml(url); // url is already escaped text; double-escape entities for attribute safety
-    return '<a href="' + safeHref + '" target="_blank" rel="noopener nofollow noreferrer">' + url + '</a>';
+    // Callers pass HTML-escaped text, so `url` is already attribute-safe.
+    // Escaping again turned every & into &amp;amp; and broke query strings.
+    return '<a href="' + url + '" target="_blank" rel="noopener nofollow noreferrer">' + url + '</a>';
   });
   text = text.replace(/#(\w+)/g, '<span style="color:var(--xmr-cyan)">#$1</span>');
   text = text.replace(/nostr:(npub1|note1|nevent1|nprofile1)([a-z0-9]+)/g, '<span style="color:var(--xmr-orange);font-size:0.95rem;cursor:pointer;" title="$1$2">⚡$1$2</span>');

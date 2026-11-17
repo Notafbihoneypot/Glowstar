@@ -37,12 +37,26 @@ public final class AndroidBridge {
             "Glowstr local signer v1".getBytes(StandardCharsets.UTF_8);
     private final Context context;
     private final String capability;
+    private final Runnable bluetoothStarter;
 
-    AndroidBridge(Context context, String capability) {
+    AndroidBridge(Context context, String capability, Runnable bluetoothStarter) {
         this.capability = capability;
         this.context = context.getApplicationContext();
+        this.bluetoothStarter = bluetoothStarter;
         NativeNotifier.ensureChannel(this.context);
         MeshDiagnostics.start(this.context);
+    }
+
+    @JavascriptInterface
+    public boolean startBluetoothMesh(String capability) {
+        if (!TrustedWebContent.authorized(this.capability, capability)) return false;
+        boolean running = MeshService.current() != null;
+        try {
+            context.getMainExecutor().execute(bluetoothStarter);
+            return running;
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     @JavascriptInterface
@@ -223,6 +237,7 @@ public final class AndroidBridge {
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                 .setRandomizedEncryptionRequired(true)
+                .setUnlockedDeviceRequired(true)
                 .build();
         generator.init(spec);
         return generator.generateKey();
@@ -517,19 +532,6 @@ public final class AndroidBridge {
         }
     }
 
-    @JavascriptInterface
-    public String pairingToken(String capability) {
-        if (!TrustedWebContent.authorized(this.capability, capability)) return "";
-        MeshService s = MeshService.current();
-        if (s != null) return s.pairingToken();
-        android.content.SharedPreferences p = context.getSharedPreferences("mesh", Context.MODE_PRIVATE);
-        String token = p.getString("pairing_token", null);
-        if (token == null || token.length() < 32) {
-            token = Protocol.randomToken();
-            p.edit().putString("pairing_token", token).apply();
-        }
-        return token;
-    }
 
     @JavascriptInterface
     public boolean openExternal(String capability, String rawUrl) {
@@ -539,7 +541,7 @@ public final class AndroidBridge {
             String scheme = uri.getScheme();
             // Wallet handoff may follow asynchronous signer approval; the launch
             // capability restricts the API to our trusted bundled document.
-            if (!("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme) ||
+            if (!("https".equalsIgnoreCase(scheme) ||
                     TrustedWebContent.isMoneroPayment(uri.toString()))) return false;
             Intent i = new Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(i);

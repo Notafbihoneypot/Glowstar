@@ -21,6 +21,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import java.io.InputStream;
@@ -43,6 +44,7 @@ public final class MainActivity extends Activity {
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         webView = new WebView(this);
         setContentView(webView);
         if (Build.VERSION.SDK_INT >= 33) {
@@ -51,13 +53,8 @@ public final class MainActivity extends Activity {
         }
         configureWebView();
         loadBundledGlowstr();
-        handler.postDelayed(() -> ensureBluetooth(true), 300);
     }
 
-    @Override protected void onResume() {
-        super.onResume();
-        if (hasBluetoothPermissions() && isBluetoothEnabled()) startBridge();
-    }
 
     @Override protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
@@ -106,12 +103,13 @@ public final class MainActivity extends Activity {
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(false);
         s.setTextZoom(100);
-        if (Build.VERSION.SDK_INT >= 26) s.setSafeBrowsingEnabled(true);
+        s.setSafeBrowsingEnabled(true);
 
         webView.setHorizontalScrollBarEnabled(false);
         webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
 
-        webView.addJavascriptInterface(new AndroidBridge(this, bridgeCapability), "GlowstrNative");
+        webView.addJavascriptInterface(new AndroidBridge(this, bridgeCapability,
+                () -> ensureBluetooth(true)), "GlowstrNative");
         webView.setWebChromeClient(new WebChromeClient() {
             @Override public boolean onShowFileChooser(WebView view,
                     android.webkit.ValueCallback<Uri[]> callback, FileChooserParams params) {
@@ -147,8 +145,6 @@ public final class MainActivity extends Activity {
                 if (TrustedWebContent.isAppDocument(url)) {
                     injectAndroidResponsiveStyles();
                     installNativeFetchBridge();
-                    injectNativeUiState();
-                    autoConnectNative();
                 }
             }
         });
@@ -164,8 +160,8 @@ public final class MainActivity extends Activity {
             catch (RuntimeException e) { toast("No Monero wallet could open this payment"); }
             return true;
         }
-        if (!("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme) ||
-                "nostr".equalsIgnoreCase(scheme) || "nostrsigner".equalsIgnoreCase(scheme))) return true;
+        if (!("https".equalsIgnoreCase(scheme) || "nostr".equalsIgnoreCase(scheme) ||
+                "nostrsigner".equalsIgnoreCase(scheme))) return true;
         try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); }
         catch (RuntimeException e) { toast("No app can open this link"); }
         return true;
@@ -315,7 +311,7 @@ public final class MainActivity extends Activity {
         webView.evaluateJavascript("""
                 (() => {
                   if (window.__GLOWSTR_ANDROID_NATIVE__) return;
-                  const helper = 'http://127.0.0.1:8788';
+                  const helper = 'glowstr-native://mesh';
                   const originalFetch = window.fetch.bind(window);
                   window.__GLOWSTR_ANDROID_NATIVE__ = true;
                   window.__glowstrOriginalFetch = originalFetch;
@@ -346,23 +342,6 @@ public final class MainActivity extends Activity {
                 """, null);
     }
 
-    private void injectNativeUiState() {
-        if (webView == null) return;
-        webView.evaluateJavascript("""
-                (() => {
-                  try {
-                    const token = GlowstrAndroid.pairingToken();
-                    sessionStorage.setItem('glowstr_bluetooth_token', token);
-                    const input = document.getElementById('mesh-bluetooth-token');
-                    if (input) { input.value = token; input.style.display = 'none'; }
-                    const connect = document.getElementById('mesh-bluetooth-connect');
-                    if (connect) connect.style.display = 'none';
-                    const disconnect = document.getElementById('mesh-bluetooth-disconnect');
-                    if (disconnect) disconnect.style.display = 'none';
-                  } catch (e) { console.warn('Glowstr native UI setup failed', e); }
-                })();
-                """, null);
-    }
 
     private void autoConnectNative() {
         if (webView == null) return;
@@ -411,7 +390,7 @@ public final class MainActivity extends Activity {
         pendingStart = false;
         Intent i = new Intent(this, MeshService.class).setAction(MeshService.ACTION_START);
         try {
-            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
+            startForegroundService(i);
             handler.postDelayed(this::autoConnectNative, 800);
         } catch (RuntimeException e) {
             toast("Bluetooth mesh could not start: " + safeMessage(e));

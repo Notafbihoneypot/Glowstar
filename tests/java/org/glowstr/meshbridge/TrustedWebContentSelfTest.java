@@ -41,6 +41,8 @@ public final class TrustedWebContentSelfTest {
         Path source = Path.of(args.length > 0 ? args[0] : "glowstr-v5.5-relay-frostr-media.html");
         String bound = TrustedWebContent.bindBridge(Files.readString(source), cap);
         check(bound.contains("frame-src 'none';"), "Remote frames permitted");
+        check(bound.contains("connect-src 'self' https: wss:;"), "Android cleartext connections permitted");
+        check(bound.contains("media-src 'self' https: data: blob:;"), "Android cleartext media permitted");
         check(bound.contains("window !== window.top"), "Missing top-frame bootstrap gate");
         check(bound.contains("native[name](cap, ...args)"), "Missing capability for native calls");
         Matcher script = Pattern.compile("<script>(.*?)</script>", Pattern.DOTALL).matcher(bound);

@@ -31,7 +31,7 @@ const native={
   clearRememberedRemoteSigner:()=>nativeRecords.delete('remote'),
   clearRememberedLocalSigner:()=>nativeRecords.delete('local'),
 };
-const c=vm.createContext({crypto:webcrypto,TextEncoder,TextDecoder,Uint8Array,console,setTimeout,clearTimeout,URL,URLSearchParams,btoa,atob,
+const c=vm.createContext({crypto:webcrypto,TextEncoder,TextDecoder,Uint8Array,console,setTimeout,clearTimeout,AbortController,URL,URLSearchParams,btoa,atob,
   localStorage,sessionStorage, window:{GlowstrAndroid:native,addEventListener(){}}, document:{getElementById:element,addEventListener(){},visibilityState:'visible'},
   location:{protocol:'https:',origin:'https://test.invalid',pathname:'/'},
   showToast:()=>{},showLoggedIn:()=>{},stopQrLogin:()=>{},glowstrMaskPrivateKeyDisplay:()=>{},glowstrSyncPersistUi:()=>{},
@@ -43,6 +43,7 @@ vm.runInContext(section('function generatePrivateKey(', '// BOOT'),c);
 vm.runInContext(section('async function computeSharedSecret(', '// DM UI'),c);
 vm.runInContext(section('function safeMeta(', 'function linkifyContent('),c);
 vm.runInContext(section('function handleEvent(', 'function updateFollowingCount('),c);
+vm.runInContext(section('const GLOWSTR_NIP05_CACHE', 'function buildProfileCard('),c);
 vm.runInContext(section('const GLOWSTR_PUBLIC_STATE_KEY', 'function glowstrSyncPersistUi('),c);
 vm.runInContext(section('function glowstrIsLocalSignerMethod(', 'function glowstrNativeSignerVaultAvailable('),c);
 vm.runInContext(section('function glowstrClearNativeLocalSigner(', 'function glowstrReconnectSigner('),c);
@@ -240,5 +241,15 @@ c.WebSocket=FakeSocket;
   for(let i=0;i<200 && !run("testRequests.some(r=>r.method==='logout')");i++) await new Promise(r=>setTimeout(r,5));
   assert.equal(run("testRequests.some(r=>r.method==='logout')"),true);
   pass('logout erases local identity and sends authenticated signer revocation');
+  const nip05Pubkey='a'.repeat(64);
+  c.fetch=async()=>({ok:true,text:async()=>JSON.stringify({names:{alice:nip05Pubkey}})});
+  assert.equal(await run(`glowstrVerifyProfileNip05('${nip05Pubkey}','alice@example.com')`),true);
+  c.fetch=async()=>({ok:true,text:async()=>JSON.stringify({names:{bob:'b'.repeat(64)}})});
+  assert.equal(await run(`glowstrVerifyProfileNip05('${nip05Pubkey}','bob@example.com')`),false);
+  assert.equal(await run(`glowstrVerifyProfileNip05('${nip05Pubkey}','alice@localhost')`),false);
+  c.nip05Status=element('profile-nip05-status');
+  await run(`state.viewingPubkey='${nip05Pubkey}'; glowstrShowVerifiedNip05('${nip05Pubkey}','bob@example.com',nip05Status)`);
+  assert.equal(c.nip05Status.textContent.includes('bob@example.com'),false);
+  pass('NIP-05 is displayed only after an HTTPS mapping matches the profile pubkey');
   console.log(`${passed} security regression groups passed`);
 })().catch(error=>{console.error(error);process.exitCode=1;});

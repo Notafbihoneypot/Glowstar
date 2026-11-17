@@ -10,7 +10,6 @@ import android.content.Intent;
 import android.content.pm.ServiceInfo;
 import android.net.Uri;
 import android.os.Binder;
-import android.os.Build;
 import android.os.IBinder;
 
 import org.json.JSONArray;
@@ -30,8 +29,6 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
     private final IBinder binder = new LocalBinder();
     private EventStore store;
     private BluetoothMeshManager mesh;
-    private LocalHttpServer http;
-    private String token;
     private volatile String lastError = "";
 
     public final class LocalBinder extends Binder { MeshService getService() { return MeshService.this; } }
@@ -41,12 +38,6 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
         instance = this;
         createChannel();
         store = new EventStore(this);
-        android.content.SharedPreferences p = getSharedPreferences("mesh", Context.MODE_PRIVATE);
-        token = p.getString("pairing_token", null);
-        if (token == null || token.length() < 32) {
-            token = Protocol.randomToken();
-            p.edit().putString("pairing_token", token).apply();
-        }
         mesh = new BluetoothMeshManager(this, store, this);
     }
 
@@ -57,18 +48,11 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
         }
         try {
             Notification notification = buildNotification();
-            if (Build.VERSION.SDK_INT >= 29) {
-                startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
-            } else {
-                startForeground(NOTIFICATION_ID, notification);
-            }
+            startForeground(NOTIFICATION_ID, notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
 
             if (mesh == null) throw new IllegalStateException("Bluetooth engine is unavailable");
             if (!mesh.isRunning()) mesh.start();
-            if (http == null) {
-                http = new LocalHttpServer(token, store, mesh);
-                http.start();
-            }
             lastError = "";
             updateNotification();
             return START_NOT_STICKY;
@@ -97,23 +81,9 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
 
     @Override public void onStateChanged() { updateNotification(); }
 
-    String pairingToken() { return token; }
     String lastError() { return lastError; }
     BluetoothMeshManager mesh() { return mesh; }
 
-    String rotateToken() {
-        token = Protocol.randomToken();
-        getSharedPreferences("mesh", Context.MODE_PRIVATE).edit().putString("pairing_token", token).apply();
-        if (http != null) {
-            http.stop();
-            try {
-                http = new LocalHttpServer(token, store, mesh);
-                http.start();
-                lastError = "";
-            } catch (IOException e) { lastError = e.getMessage(); }
-        }
-        return token;
-    }
 
     JSONObject nativeRequest(String method, String target, String bodyText) {
         try {
@@ -181,11 +151,11 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
 
     JSONObject snapshot() {
         try {
-            JSONObject j = http != null ? http.status() : new JSONObject()
+            JSONObject j = new JSONObject()
                     .put("ok", true).put("running", mesh != null && mesh.isRunning())
                     .put("peer_count", mesh == null ? 0 : mesh.peerCount())
                     .put("node_id", mesh == null ? "" : mesh.getNodeId());
-            j.put("http", http != null).put("port", LocalHttpServer.PORT).put("error", lastError);
+            j.put("error", lastError);
             return j;
         } catch (Exception e) {
             JSONObject j = jsonError(safeMessage(e));
@@ -216,10 +186,6 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
     }
 
     private void cleanupRuntime() {
-        if (http != null) {
-            try { http.stop(); } catch (RuntimeException ignored) {}
-            http = null;
-        }
         if (mesh != null) {
             try { mesh.stop(); } catch (RuntimeException ignored) {}
         }
@@ -237,7 +203,7 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
         PendingIntent pi = PendingIntent.getActivity(this, 1, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         Intent stop = new Intent(this, MeshService.class).setAction(ACTION_STOP);
         PendingIntent stopPi = PendingIntent.getService(this, 2, stop, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
+        Notification.Builder b = new Notification.Builder(this, CHANNEL);
         return b.setContentTitle("Glowstr")
                 .setContentText(text)
                 .setSmallIcon(R.drawable.ic_mesh)
@@ -253,10 +219,8 @@ public final class MeshService extends Service implements BluetoothMeshManager.L
     }
 
     private void createChannel() {
-        if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel c = new NotificationChannel(CHANNEL, "Glowstr mesh", NotificationManager.IMPORTANCE_LOW);
-            c.setDescription("Keeps Bluetooth Direct discovery and store-and-forward active");
-            ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(c);
-        }
+        NotificationChannel c = new NotificationChannel(CHANNEL, "Glowstr mesh", NotificationManager.IMPORTANCE_LOW);
+        c.setDescription("Keeps Bluetooth Direct discovery and store-and-forward active");
+        ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(c);
     }
 }

@@ -17,7 +17,6 @@ final class NativeNotifier {
     private NativeNotifier() {}
 
     static void ensureChannel(Context context) {
-        if (Build.VERSION.SDK_INT < 26) return;
         NotificationManager manager = context.getSystemService(NotificationManager.class);
         if (manager == null) return;
         NotificationChannel channel = new NotificationChannel(

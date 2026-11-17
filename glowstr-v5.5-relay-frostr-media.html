@@ -7,7 +7,7 @@
 <title>GLOWSTR</title>
 <meta name="description" content="Glowstr — a retro privacy-first Nostr PWA client">
 <meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-hL4DUrOrQyq+ir7vj44ypnTV+zQDefPX40xJPNyh8RA='; script-src-attr 'none'; connect-src 'self' https: wss: ws: http://127.0.0.1:8788 http://localhost:8788; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: http: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-nhleBo8tNPLLKjy8XuGJGC55eZDlrp8OKKD5JpJpw3U='; script-src-attr 'none'; connect-src 'self' https: wss: ws://127.0.0.1:8787 ws://localhost:8787; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkdMT1dTVFIiLCAic2hvcnRfbmFtZSI6ICJHTE9XU1RSIiwgImRlc2NyaXB0aW9uIjogIlNlZSBUaHJvdWdoIHRoZSBOb2lzZSBcdTIwMTQgUHJpdmFjeS1maXJzdCBOb3N0ciBjbGllbnQiLCAic3RhcnRfdXJsIjogIi4iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMGEwYSIsICJ0aGVtZV9jb2xvciI6ICIjRkY2NjAwIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCMmFXVjNRbTk0UFNJd0lEQWdNVGt5SURFNU1pSStDanh5WldOMElIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCbWFXeHNQU0lqTUdFd1lUQmhJaTgrQ2p4eVpXTjBJSGc5SWpnaUlIazlJamdpSUhkcFpIUm9QU0l4TnpZaUlHaGxhV2RvZEQwaU1UYzJJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlOR1JqWTJNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlOQ0l2UGdvOGRHVjRkQ0I0UFNJNU5pSWdlVDBpTVRFd0lpQm1iMjUwTFdaaGJXbHNlVDBpYlc5dWIzTndZV05sSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUJtYjI1MExYZGxhV2RvZEQwaVltOXNaQ0lnWm1sc2JEMGlJMFpHTmpZd01DSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krUnp3dmRHVjRkRDRLUEhSbGVIUWdlRDBpT1RZaUlIazlJakUxTUNJZ1ptOXVkQzFtWVcxcGJIazlJbTF2Ym05emNHRmpaU0lnWm05dWRDMXphWHBsUFNJeE5pSWdabWxzYkQwaUkyTmpOVEl3TUNJZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSStSMHhQVjFOVVVqd3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
@@ -3230,17 +3230,12 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
             <div class="mesh-card-desc">Use the FOSS Glowstr Android helper for direct phone-to-phone BLE. The helper advertises and scans nearby Glowstr phones, uses secure LE L2CAP streams, verifies NIP-01 IDs + BIP-340 signatures, and stores valid public notes while the PWA is closed.</div>
             <div class="mesh-status" id="mesh-bluetooth-status">HELPER DISCONNECTED</div>
             <div class="mesh-row">
-              <input class="mesh-field" id="mesh-bluetooth-token" type="password" placeholder="Android helper pairing token" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Bluetooth Direct helper pairing token" />
-              <label class="mesh-help" for="mesh-bluetooth-hops">HOPS</label>
-              <input class="mesh-field small" id="mesh-bluetooth-hops" type="number" min="1" max="5" step="1" value="5" inputmode="numeric" />
-            </div>
-            <div class="mesh-row">
-              <button class="btn btn-small" id="mesh-bluetooth-connect" type="button">CONNECT HELPER</button>
+              <button class="btn btn-small" id="mesh-bluetooth-connect" type="button">START BLUETOOTH</button>
               <button class="btn btn-small" id="mesh-bluetooth-rescan" type="button">RESCAN</button>
               <button class="btn btn-small" id="mesh-bluetooth-disconnect" type="button">DISCONNECT</button>
             </div>
             <div class="mesh-peer-list" id="mesh-bluetooth-peers">NO PEERS</div>
-            <div class="mesh-help">Android helper endpoint: <strong>127.0.0.1:8788</strong>. The token stays in session storage only. Chrome/Vanadium may ask for Local Network Access to reach the loopback helper.</div>
+            <div class="mesh-help">Bluetooth starts only when requested and stays inside the Android native bridge. No loopback server or pairing token is exposed.</div>
           </div>
           <!-- GLOWSTR_V5_3_BLUETOOTH_DIRECT_END -->
         </div>
@@ -7395,11 +7390,58 @@ async function doSearch() {
   }
 }
 
+const GLOWSTR_NIP05_CACHE = new Map();
+function glowstrParseNip05(raw) {
+  const claim = String(raw || '').trim().toLowerCase();
+  const match = claim.match(/^([a-z0-9._-]{1,64})@([a-z0-9.-]{1,253})$/);
+  if (!match) return null;
+  const labels = match[2].split('.');
+  if (labels.length < 2 || labels.some(label => !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))) return null;
+  const url = new URL('https://' + match[2] + '/.well-known/nostr.json');
+  url.searchParams.set('name', match[1]);
+  return {claim, name:match[1], url:url.toString()};
+}
+async function glowstrVerifyProfileNip05(pubkey, raw) {
+  const parsed = glowstrParseNip05(raw);
+  if (!parsed || !/^[0-9a-f]{64}$/.test(pubkey || '')) return false;
+  const key = pubkey + ':' + parsed.claim;
+  const cached = GLOWSTR_NIP05_CACHE.get(key);
+  if (cached && Date.now() - cached.at < 5 * 60 * 1000) return cached.valid;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  let valid = false;
+  try {
+    const response = await fetch(parsed.url, {
+      credentials:'omit', cache:'no-store', redirect:'error',
+      referrerPolicy:'no-referrer', signal:controller.signal
+    });
+    if (!response.ok) throw new Error('NIP-05 lookup failed');
+    const text = await response.text();
+    if (text.length > 65536) throw new Error('NIP-05 response too large');
+    const data = JSON.parse(text);
+    valid = String(data?.names?.[parsed.name] || '').toLowerCase() === pubkey;
+  } catch(e) {
+    valid = false;
+  } finally {
+    clearTimeout(timer);
+  }
+  GLOWSTR_NIP05_CACHE.set(key, {at:Date.now(), valid});
+  return valid;
+}
+async function glowstrShowVerifiedNip05(pubkey, raw, element) {
+  if (!element || !raw) return;
+  element.textContent = ' · CHECKING NIP-05…';
+  const valid = await glowstrVerifyProfileNip05(pubkey, raw);
+  if (state.viewingPubkey !== pubkey) return;
+  const parsed = glowstrParseNip05(raw);
+  element.textContent = valid && parsed ? ' ✓ ' + parsed.claim : ' · UNVERIFIED NIP-05 HIDDEN';
+  element.style.color = valid ? 'var(--xmr-green)' : 'var(--xmr-text-dim)';
+}
+
 function buildProfileCard(pubkey, meta) {
   const name = meta.display_name || meta.name || pubkey.slice(0,12) + '...';
   const safeName = name.replace(/[^a-zA-Z0-9]/g,'').slice(0,2).toUpperCase() || '??';
   const about = meta.about ? meta.about.slice(0,80) : '';
-  const nip05 = meta.nip05 || '';
   const isFol = state.following.has(pubkey);
 
   const el = document.createElement('div');
@@ -7418,7 +7460,7 @@ function buildProfileCard(pubkey, meta) {
 
   const info = document.createElement('div');
   info.style.cssText = 'flex:1;min-width:0;';
-  info.innerHTML = '<div style="font-family:var(--font-mono);font-size:0.95rem;color:var(--xmr-orange-glow);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(name) + (nip05 ? ' <span style="font-size:0.85rem;color:var(--xmr-text-dim);">' + escapeHtml(nip05) + '</span>' : '') + '</div>' +
+  info.innerHTML = '<div style="font-family:var(--font-mono);font-size:0.95rem;color:var(--xmr-orange-glow);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(name) + '</div>' +
     (about ? '<div style="font-family:var(--font-retro);font-size:0.95rem;color:var(--xmr-text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(about) + '</div>' : '') +
     '<div style="font-family:var(--font-retro);font-size:0.95rem;color:var(--xmr-text-dim);">' + pubkey.slice(0,16) + '...</div>';
 
@@ -11716,7 +11758,7 @@ function renderProfileView(pubkey, isMe) {
       '<div class="profile-card-header">' +
         '<div class="profile-card-avatar">' + avatarHtml + '</div>' +
         '<div class="profile-card-info">' +
-          '<div class="profile-card-name">' + escapeHtml(name) + (nip05 ? ' <span style="font-family:var(--font-retro);font-size:0.90rem;color:var(--xmr-text-dim);">' + escapeHtml(nip05) + '</span>' : '') + '</div>' +
+          '<div class="profile-card-name">' + escapeHtml(name) + '<span id="profile-nip05-status" style="font-family:var(--font-retro);font-size:0.90rem;color:var(--xmr-text-dim);"></span></div>' +
           '<div class="profile-card-npub" data-glow-action="copy-value" data-value="' + pubkey + '">' + pubkey + '</div>' +
         '</div>' +
       '</div>' +
@@ -11744,6 +11786,7 @@ function renderProfileView(pubkey, isMe) {
     '<div class="profile-notes-title" style="display:flex;align-items:center;gap:10px;cursor:pointer;" data-glow-action="toggle-profile-gallery" data-pubkey="' + pubkey + '"><span id="tab-notes-' + pubkey.slice(0,8) + '" class="profile-tab active">RECENT NOTES</span><span id="tab-gallery-' + pubkey.slice(0,8) + '" class="profile-tab">📷 PHOTOS</span></div>' +
     '<div id="profile-notes"></div>' +
     '<div id="profile-gallery" style="display:none;"></div>';
+  if (nip05) glowstrShowVerifiedNip05(pubkey, nip05, document.getElementById('profile-nip05-status'));
 
   // Render their recent notes
   const notesContainer = document.getElementById('profile-notes');
@@ -13877,7 +13920,7 @@ function glowstrHandleRelayFrameV42(ws,data){
 function glowstrAttachFirstPartyV42(){ const entry=glowstrFirstPartyEntryV42(); const ws=entry?.[1]?.ws; if(!ws || ws._glowstrV42Attached)return false; ws._glowstrV42Attached=true; ws.addEventListener('close',()=>{ws._glowstrAuthedV42=false;glowstrSetMembershipV42('DISCONNECTED');},{once:true}); return true; }
 function glowstrConnectFirstPartyV42(){ const entry=glowstrFirstPartyEntryV42(); if(!entry || entry[1]?.ws?.readyState!==WebSocket.OPEN){ try{connectRelay(GLOWSTR_RELAY_V42.relay);}catch(e){showToast('Could not start Glowstr relay connection');return;} } else glowstrAttachFirstPartyV42(); showToast('Connecting to notafbihoneypotrelay.com…'); }
 function glowstrUsdLabelV54(cents){ const n=Number(cents||0); return '$'+(n/100).toFixed(n%100?2:0); }
-function glowstrAtomicXmrV54(value){ try{const n=BigInt(String(value));const w=n/1000000000000n;const f=String(n%1000000000000n).padStart(12,'0').replace(/0+$/,'');return String(w)+(f?'.'+f:'');}catch(e){return '';} }
+function glowstrAtomicXmrV54(value){ try{const n=BigInt(String(value));if(n<=0n||n>18446744073709551615n)return '';const w=n/1000000000000n;const f=String(n%1000000000000n).padStart(12,'0').replace(/0+$/,'');return String(w)+(f?'.'+f:'');}catch(e){return '';} }
 async function glowstrReadJsonV42(res){ const t=await res.text(); if(t.length>131072)throw new Error('API response too large'); let d; try{d=t?JSON.parse(t):{};}catch(e){throw new Error('Bad API response');} if(!res.ok){const code=String(d?.error||d?.detail||'HTTP '+res.status); throw new Error(code.replace(/_/g,' '));} return d; }
 async function glowstrCommerceFetchV54(path,{method='GET',body=null,bearer=null}={}){
   if(!/^\/[a-zA-Z0-9_?=&%./-]*$/.test(path))throw new Error('Invalid API path');
@@ -13939,11 +13982,11 @@ async function glowstrStartCommerceInvoiceV54(feature,target,context,proof=null)
   if(!data?.id||!data?.token||!data?.address||!data?.uri)throw new Error('Incomplete invoice response');
   if(feature==='nip05_lifetime' && data.nip05!==target)throw new Error('Name invoice target mismatch');
   if(!/^[A-Za-z0-9_-]{20,128}$/.test(String(data.id))||!/^[A-Za-z0-9_-]{20,128}$/.test(String(data.token)))throw new Error('Invalid invoice credentials');
-  if(!/^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{95}$/.test(String(data.address)))throw new Error('Invalid Monero subaddress');
+  if(!/^[48][1-9A-HJ-NP-Za-km-z]{94}$/.test(String(data.address)))throw new Error('Invalid Monero subaddress');
   const exactAmount=glowstrAtomicXmrV54(data.amount_atomic); if(!exactAmount)throw new Error('Invalid invoice amount');
   let paymentUri; try{paymentUri=new URL(String(data.uri));}catch(e){throw new Error('Invalid Monero invoice URI');}
   if(paymentUri.protocol!=='monero:'||paymentUri.pathname!==data.address||paymentUri.searchParams.get('tx_amount')!==exactAmount)throw new Error('Invoice URI does not match the address/amount');
-  if(Number(data.confirmations_required)!==2)console.warn('Relay payment confirmations policy changed:',data.confirmations_required);
+  if(Number(data.confirmations_required)!==2)throw new Error('Unexpected Monero confirmation policy');
   _glowstrInvoiceV42=Object.assign({},data,{context:context||{type:'relay'},token:data.token});glowstrRenderInvoiceV42(_glowstrInvoiceV42);_glowstrInvoicePollV42=setTimeout(glowstrPollInvoiceV42,15000);return data;
 }
 async function glowstrPayRelayV42(){
@@ -14560,8 +14603,8 @@ function glowstrMeshSetStatus(which,text,kind=''){
   const el=document.getElementById(base+'-status');if(el){el.textContent=text;el.className='mesh-status'+(kind?' '+kind:'');}
   const card=document.getElementById(base+'-card');if(card)card.classList.toggle('mesh-ready',kind==='good');
 }
-function glowstrMeshPrefs(){let x={channel:0,pace:1200,url:'ws://127.0.0.1:8787',queueInternet:true,btHops:5};try{Object.assign(x,JSON.parse(localStorage.getItem(GLOWSTR_MESH_PREFS_KEY)||'{}'));}catch(e){}x.channel=Math.max(0,Math.min(7,Number(x.channel)||0));x.pace=Math.max(800,Math.min(5000,Number(x.pace)||1200));x.btHops=Math.max(1,Math.min(5,Number(x.btHops)||5));return x;}
-function glowstrMeshSavePrefs(){const channel=Math.max(0,Math.min(7,Number(document.getElementById('mesh-meshtastic-channel')?.value)||0)),pace=Math.max(800,Math.min(5000,Number(document.getElementById('mesh-meshtastic-pace')?.value)||1200)),url=String(document.getElementById('mesh-reticulum-url')?.value||'').trim(),queueInternet=!!document.getElementById('mesh-queue-internet')?.checked,btHops=Math.max(1,Math.min(5,Number(document.getElementById('mesh-bluetooth-hops')?.value)||5));try{localStorage.setItem(GLOWSTR_MESH_PREFS_KEY,JSON.stringify({channel,pace,url,queueInternet,btHops}));}catch(e){}return {channel,pace,url,queueInternet,btHops};}
+function glowstrMeshPrefs(){let x={channel:0,pace:1200,url:'ws://127.0.0.1:8787',queueInternet:true};try{Object.assign(x,JSON.parse(localStorage.getItem(GLOWSTR_MESH_PREFS_KEY)||'{}'));}catch(e){}x.channel=Math.max(0,Math.min(7,Number(x.channel)||0));x.pace=Math.max(800,Math.min(5000,Number(x.pace)||1200));return x;}
+function glowstrMeshSavePrefs(){const channel=Math.max(0,Math.min(7,Number(document.getElementById('mesh-meshtastic-channel')?.value)||0)),pace=Math.max(800,Math.min(5000,Number(document.getElementById('mesh-meshtastic-pace')?.value)||1200)),url=String(document.getElementById('mesh-reticulum-url')?.value||'').trim(),queueInternet=!!document.getElementById('mesh-queue-internet')?.checked;try{localStorage.setItem(GLOWSTR_MESH_PREFS_KEY,JSON.stringify({channel,pace,url,queueInternet}));}catch(e){}return {channel,pace,url,queueInternet};}
 function glowstrMeshConnected(){return !!(glowstrMesh.meshtastic.ready||glowstrMesh.reticulum.ready||glowstrMesh.bluetooth.ready);}
 function glowstrConcatBytes(...parts){const n=parts.reduce((a,b)=>a+b.length,0),out=new Uint8Array(n);let o=0;for(const p of parts){out.set(p,o);o+=p.length;}return out;}
 function glowstrU32LE(n){n=Number(n)>>>0;return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]);}
@@ -14598,7 +14641,7 @@ function glowstrDisconnectReticulum(){const r=glowstrMesh.reticulum;r.ready=fals
 async function glowstrConnectReticulum(){glowstrDisconnectReticulum();let url;try{url=glowstrValidateReticulumUrl(document.getElementById('mesh-reticulum-url')?.value);}catch(e){showToast(e.message);return false;}const token=String(document.getElementById('mesh-reticulum-token')?.value||sessionStorage.getItem('glowstr_reticulum_token')||'').trim();if(!token){showToast('Enter the Reticulum bridge pairing token');return false;}try{sessionStorage.setItem('glowstr_reticulum_token',token);}catch(e){}glowstrMeshSavePrefs();return new Promise(resolve=>{let settled=false;glowstrMeshSetStatus('reticulum','CONNECTING…');let ws;try{ws=new WebSocket(url);}catch(e){glowstrMeshSetStatus('reticulum','CONNECTION FAILED','bad');resolve(false);return;}glowstrMesh.reticulum.ws=ws;const timer=setTimeout(()=>{if(!settled){settled=true;try{ws.close();}catch(e){}glowstrMeshSetStatus('reticulum','HANDSHAKE TIMEOUT','bad');resolve(false);}},10000);ws.onopen=()=>{ws.send(JSON.stringify({type:'hello',token,client:'glowstr-v5.2'}));};ws.onmessage=async ev=>{if(typeof ev.data!=='string'||ev.data.length>1024*1024)return;let m;try{m=JSON.parse(ev.data);}catch(e){return;}if(m.type==='ready'){glowstrMesh.reticulum.ready=true;glowstrMeshSetStatus('reticulum','READY · '+String(m.channel||'PUBLIC RNS'),'good');if(!settled){settled=true;clearTimeout(timer);resolve(true);}return;}if(m.type==='published'&&typeof m.id==='string'){const q=glowstrMesh.reticulum.pending.get(m.id);if(q){clearTimeout(q.timer);glowstrMesh.reticulum.pending.delete(m.id);q.resolve(Number(m.fragments)||1);}return;}if(m.type==='event'&&m.event){try{await acceptVerifiedRelayEvent(m.event,'mesh://reticulum/'+String(m.source||'public').replace(/[^a-zA-Z0-9._:-]/g,'').slice(0,64));if(state.feedMode==='mesh')rerenderFeed();}catch(e){console.warn('Dropped Reticulum event',e);}}if(m.type==='error')showToast('Reticulum bridge: '+String(m.message||'error').slice(0,120));};ws.onclose=()=>{glowstrMesh.reticulum.ready=false;for(const q of glowstrMesh.reticulum.pending.values()){clearTimeout(q.timer);q.reject(new Error('Reticulum bridge disconnected'));}glowstrMesh.reticulum.pending.clear();glowstrMeshSetStatus('reticulum','DISCONNECTED','bad');if(!settled){settled=true;clearTimeout(timer);resolve(false);}};ws.onerror=()=>{glowstrMeshSetStatus('reticulum','BRIDGE ERROR','bad');};});}
 async function glowstrReticulumSendEvent(event){const r=glowstrMesh.reticulum;if(!r.ready||!r.ws||r.ws.readyState!==WebSocket.OPEN)throw new Error('Reticulum bridge is not connected');if(!event?.id)throw new Error('Signed event ID missing');return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{r.pending.delete(event.id);reject(new Error('Reticulum publish acknowledgement timed out'));},15000);r.pending.set(event.id,{resolve,reject,timer});try{r.ws.send(JSON.stringify({type:'publish',event}));}catch(e){clearTimeout(timer);r.pending.delete(event.id);reject(e);}});}
 // GLOWSTR_V5_3_BLUETOOTH_DIRECT_START
-const GLOWSTR_BT_HELPER='http://127.0.0.1:8788';
+const GLOWSTR_BT_HELPER='glowstr-native://mesh';
 const GLOWSTR_BT_CURSOR_KEY='glowstr_bt_cursor_v1';
 function glowstrBtSanitizeSource(x){return String(x||'peer').replace(/[^a-zA-Z0-9._:-]/g,'').slice(0,64)||'peer';}
 function glowstrBtRenderPeers(status){
@@ -14609,12 +14652,12 @@ function glowstrBtRenderPeers(status){
 }
 function glowstrBtAbortRequests(){for(const c of glowstrMesh.bluetooth.controllers){try{c.abort();}catch(e){}}glowstrMesh.bluetooth.controllers.clear();}
 async function glowstrBtFetch(path,{method='GET',body=null,timeout=8000}={}){
-  const bt=glowstrMesh.bluetooth,token=String(bt.token||sessionStorage.getItem('glowstr_bluetooth_token')||'').trim();if(!token)throw new Error('Bluetooth helper pairing token missing');
+  const bt=glowstrMesh.bluetooth;
   const controller=new AbortController();bt.controllers.add(controller);const timer=setTimeout(()=>controller.abort(),timeout);
-  const headers={'X-Glowstr-Token':token,'Accept':'application/json'};let payload;
+  const headers={'Accept':'application/json'};let payload;
   if(body!==null){payload=JSON.stringify(body);headers['Content-Type']='application/json';}
   try{
-    const options={method,headers,body:payload,mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',signal:controller.signal,targetAddressSpace:'loopback'};
+    const options={method,headers,body:payload,credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',signal:controller.signal};
     const res=await fetch(GLOWSTR_BT_HELPER+path,options);const text=await res.text();if(text.length>1024*1024)throw new Error('Bluetooth helper response too large');let data={};try{data=text?JSON.parse(text):{};}catch(e){throw new Error('Bluetooth helper returned invalid JSON');}if(!res.ok||data.ok===false)throw new Error(data.error||('Bluetooth helper HTTP '+res.status));return data;
   }catch(e){if(e?.name==='AbortError')throw new Error('Bluetooth helper timed out');throw e;}finally{clearTimeout(timer);bt.controllers.delete(controller);}
 }
@@ -14637,19 +14680,22 @@ async function glowstrBtPollEvents(gen){
   }
 }
 async function glowstrConnectBluetoothDirect(){
-  glowstrDisconnectBluetoothDirect(false);const input=document.getElementById('mesh-bluetooth-token'),token=String(input?.value||sessionStorage.getItem('glowstr_bluetooth_token')||'').trim();if(token.length<20){showToast('Paste the pairing token from the Glowstr Bluetooth Bridge app');return false;}
-  const bt=glowstrMesh.bluetooth;bt.token=token;try{sessionStorage.setItem('glowstr_bluetooth_token',token);}catch(e){}glowstrMeshSetStatus('bluetooth','CONNECTING TO 127.0.0.1…');
+  glowstrDisconnectBluetoothDirect(false);
+  const bt=glowstrMesh.bluetooth;
+  if (!window.GlowstrAndroid?.startBluetoothMesh) { showToast('Bluetooth Direct requires the Glowstr Android app'); return false; }
+  if (!window.GlowstrAndroid.startBluetoothMesh()) { glowstrMeshSetStatus('bluetooth','STARTING ANDROID BLUETOOTH…'); return false; }
+  glowstrMeshSetStatus('bluetooth','CONNECTING TO ANDROID…');
   try{
-    const st=await glowstrBtFetch('/v1/status',{timeout:10000});glowstrBtApplyStatus(st);if(!bt.ready){showToast('Start Bluetooth Direct in the Android helper first');return false;}
+    const st=await glowstrBtFetch('/v1/status',{timeout:10000});glowstrBtApplyStatus(st);if(!bt.ready){showToast('Bluetooth Direct did not start');return false;}
     let saved=0;try{saved=Math.max(0,Number(localStorage.getItem(GLOWSTR_BT_CURSOR_KEY))||0);}catch(e){}const latest=Math.max(0,Number(st.latest_cursor)||0),oldest=Math.max(0,Number(st.oldest_cursor)||0);bt.cursor=saved>0?Math.max(Math.max(0,oldest-1),Math.min(saved,latest)):Math.max(Math.max(0,oldest-1),latest-100);bt.failures=0;const gen=++bt.pollGeneration;glowstrBtPollEvents(gen);if(bt.statusTimer)clearInterval(bt.statusTimer);bt.statusTimer=setInterval(glowstrBtRefreshStatus,5000);return true;
-  }catch(e){bt.ready=false;const msg=String(e.message||e);glowstrMeshSetStatus('bluetooth','CONNECT FAILED · '+msg.slice(0,80),'bad');showToast('Bluetooth helper: '+msg+(msg.includes('Failed to fetch')?' · allow Local Network Access if prompted':''));return false;}
+  }catch(e){bt.ready=false;const msg=String(e.message||e);glowstrMeshSetStatus('bluetooth','CONNECT FAILED · '+msg.slice(0,80),'bad');showToast('Bluetooth helper: '+msg);return false;}
 }
-function glowstrDisconnectBluetoothDirect(clearToken=false){const bt=glowstrMesh.bluetooth;bt.ready=false;bt.pollGeneration++;glowstrBtAbortRequests();if(bt.statusTimer){clearInterval(bt.statusTimer);bt.statusTimer=null;}bt.lastStatus=null;bt.failures=0;glowstrMeshSetStatus('bluetooth','HELPER DISCONNECTED','bad');glowstrBtRenderPeers(null);if(clearToken){bt.token='';try{sessionStorage.removeItem('glowstr_bluetooth_token');}catch(e){}}}
+function glowstrDisconnectBluetoothDirect(){const bt=glowstrMesh.bluetooth;bt.ready=false;bt.pollGeneration++;glowstrBtAbortRequests();if(bt.statusTimer){clearInterval(bt.statusTimer);bt.statusTimer=null;}bt.lastStatus=null;bt.failures=0;glowstrMeshSetStatus('bluetooth','HELPER DISCONNECTED','bad');glowstrBtRenderPeers(null);}
 async function glowstrBluetoothRescan(){if(!glowstrMesh.bluetooth.ready){showToast('Connect the Bluetooth helper first');return;}try{await glowstrBtFetch('/v1/rescan',{method:'POST',body:{}});showToast('Bluetooth peer scan restarted');}catch(e){showToast('Bluetooth helper: '+e.message);}}
-async function glowstrBluetoothSendEvent(event){if(!glowstrMesh.bluetooth.ready)throw new Error('Bluetooth Direct helper is not connected');const hops=glowstrMeshSavePrefs().btHops||5;const x=await glowstrBtFetch('/v1/send',{method:'POST',body:{event,hops},timeout:10000});const n=Math.max(0,Number(x.peers_sent)||0);glowstrMeshSetStatus('bluetooth',n?('READY · SENT TO '+n+' PEER'+(n===1?'':'S')):'READY · STORED · WAITING FOR PEER','good');return x;}
+async function glowstrBluetoothSendEvent(event){if(!glowstrMesh.bluetooth.ready)throw new Error('Bluetooth Direct helper is not connected');const x=await glowstrBtFetch('/v1/send',{method:'POST',body:{event,hops:1},timeout:10000});const n=Math.max(0,Number(x.peers_sent)||0);if(!n){glowstrMeshSetStatus('bluetooth','READY · STORED · WAITING FOR PEER','good');return x;}glowstrMeshSetStatus('bluetooth','READY · SENT · WAITING FOR ACK','good');for(let i=0;i<12;i++){await new Promise(r=>setTimeout(r,250));try{const d=await glowstrBtFetch('/v1/delivery?id='+encodeURIComponent(event.id),{timeout:2500});if(d?.delivered){const a=Math.max(1,Number(d.acks)||1);glowstrMeshSetStatus('bluetooth','READY · DELIVERED TO '+a+' PEER'+(a===1?'':'S'),'good');x.delivery=d;break;}}catch(e){}}return x;}
 // GLOWSTR_V5_3_BLUETOOTH_DIRECT_END
-async function glowstrMeshSendComposer(){if(!glowstrMeshConnected()){showToast('Connect Meshtastic, Reticulum, or Bluetooth Direct in RELAYS → LOCAL MESH first');switchView('relays');return;}if(!state.publicKey){showToast('Choose a signer first');switchView('keys');return;}if(state.signerMethod==='amber-nip55'){showToast('Direct mesh send needs an inline signer. Use Amber NIP-46, NIP-07, or a local key.');return;}const input=document.getElementById('compose-input'),content=input?.value?.trim()||'';if(!content){showToast('Write a note first');return;}const reply=glowstrCloneReplyContext(state.replyTo),tpl=glowstrBuildQueuedTemplate({content,replyTo:reply});let signed;try{signed=await signEventUniversal(tpl);if(!signed)throw new Error('Signer did not return an event');}catch(e){showToast('Mesh signing failed: '+(e.message||e));return;}const jobs=[];if(glowstrMesh.meshtastic.ready)jobs.push(['Meshtastic',glowstrMeshtasticSendEvent(signed)]);if(glowstrMesh.reticulum.ready)jobs.push(['Reticulum',glowstrReticulumSendEvent(signed)]);if(glowstrMesh.bluetooth.ready)jobs.push(['Bluetooth Direct',glowstrBluetoothSendEvent(signed)]);const res=await Promise.allSettled(jobs.map(x=>x[1]));const ok=res.filter(x=>x.status==='fulfilled').length;if(!ok){showToast('Mesh send failed: '+res.map(x=>x.reason?.message||'error').join(' · '));return;}await acceptVerifiedRelayEvent(signed,'mesh://local');const prefs=glowstrMeshSavePrefs();if(prefs.queueInternet){try{await glowstrQueueDraftRecord({content,replyTo:reply,status:'queued'});}catch(e){console.warn('Could not queue mesh note for later relay publish',e);}}glowstrClearComposerAfterLocalSave();showToast('📡 Handed to '+ok+' mesh transport'+(ok===1?'':'s')+(prefs.queueInternet?' · queued for Internet later':''));}
-function glowstrMeshInit(){if(glowstrMesh.init)return;glowstrMesh.init=true;const p=glowstrMeshPrefs();const ch=document.getElementById('mesh-meshtastic-channel'),pace=document.getElementById('mesh-meshtastic-pace'),url=document.getElementById('mesh-reticulum-url'),q=document.getElementById('mesh-queue-internet'),tok=document.getElementById('mesh-reticulum-token'),btTok=document.getElementById('mesh-bluetooth-token'),btHops=document.getElementById('mesh-bluetooth-hops');if(ch)ch.value=String(p.channel);if(pace)pace.value=String(p.pace);if(url)url.value=p.url||'ws://127.0.0.1:8787';if(q)q.checked=p.queueInternet!==false;if(btHops)btHops.value=String(p.btHops||5);if(tok){try{tok.value=sessionStorage.getItem('glowstr_reticulum_token')||'';}catch(e){}}if(btTok){try{btTok.value=sessionStorage.getItem('glowstr_bluetooth_token')||'';}catch(e){}}document.getElementById('mesh-meshtastic-connect')?.addEventListener('click',glowstrConnectMeshtastic);document.getElementById('mesh-meshtastic-disconnect')?.addEventListener('click',glowstrDisconnectMeshtastic);document.getElementById('mesh-reticulum-connect')?.addEventListener('click',glowstrConnectReticulum);document.getElementById('mesh-reticulum-disconnect')?.addEventListener('click',glowstrDisconnectReticulum);document.getElementById('mesh-bluetooth-connect')?.addEventListener('click',glowstrConnectBluetoothDirect);document.getElementById('mesh-bluetooth-rescan')?.addEventListener('click',glowstrBluetoothRescan);document.getElementById('mesh-bluetooth-disconnect')?.addEventListener('click',()=>glowstrDisconnectBluetoothDirect(false));document.getElementById('mesh-disconnect-all')?.addEventListener('click',()=>{glowstrDisconnectMeshtastic();glowstrDisconnectReticulum();glowstrDisconnectBluetoothDirect(false);});document.getElementById('compose-mesh-btn')?.addEventListener('click',glowstrMeshSendComposer);for(const id of ['mesh-meshtastic-channel','mesh-meshtastic-pace','mesh-reticulum-url','mesh-bluetooth-hops','mesh-queue-internet'])document.getElementById(id)?.addEventListener('change',glowstrMeshSavePrefs);window.addEventListener('beforeunload',()=>{try{glowstrMesh.reticulum.ws?.close();}catch(e){}glowstrBtAbortRequests();});const nativeAndroid=!!window.GlowstrAndroid||!!window.__GLOWSTR_ANDROID_NATIVE__;const meshtasticConnect=document.getElementById('mesh-meshtastic-connect'),meshtasticHelp=document.getElementById('mesh-meshtastic-help');if(nativeAndroid){glowstrMeshSetStatus('meshtastic','APK MODE · USE NATIVE BLUETOOTH DIRECT','good');if(meshtasticConnect){meshtasticConnect.disabled=true;meshtasticConnect.textContent='WEB BLUETOOTH NOT USED IN APK';}if(meshtasticHelp)meshtasticHelp.textContent='Glowstr Android detected. This APK uses the native Android Bluetooth engine below; Web Bluetooth capability in Android WebView is not used.';}else{glowstrMeshSetStatus('meshtastic',navigator.bluetooth?'DISCONNECTED':'WEB BLUETOOTH UNAVAILABLE');}glowstrMeshSetStatus('reticulum','DISCONNECTED');glowstrMeshSetStatus('bluetooth',nativeAndroid?'NATIVE ANDROID · STARTING…':'HELPER DISCONNECTED');}
+async function glowstrMeshSendComposer(){if(!glowstrMeshConnected()){showToast('Connect Meshtastic, Reticulum, or Bluetooth Direct in RELAYS → LOCAL MESH first');switchView('relays');return;}if(!state.publicKey){showToast('Choose a signer first');switchView('keys');return;}const input=document.getElementById('compose-input'),content=input?.value?.trim()||'';if(!content){showToast('Write a note first');return;}const reply=glowstrCloneReplyContext(state.replyTo),tpl=glowstrBuildQueuedTemplate({content,replyTo:reply});let signed;try{if(state.signerMethod==='amber-nip55'&&typeof window.glowstrAmberSignForMesh==='function'){signed=await window.glowstrAmberSignForMesh(tpl);}else{signed=await signEventUniversal(tpl);}if(!signed)throw new Error('Signer did not return an event');}catch(e){showToast('Mesh signing failed: '+(e.message||e));return;}const jobs=[];if(glowstrMesh.meshtastic.ready)jobs.push(['Meshtastic',glowstrMeshtasticSendEvent(signed)]);if(glowstrMesh.reticulum.ready)jobs.push(['Reticulum',glowstrReticulumSendEvent(signed)]);if(glowstrMesh.bluetooth.ready)jobs.push(['Bluetooth Direct',glowstrBluetoothSendEvent(signed)]);const res=await Promise.allSettled(jobs.map(x=>x[1]));const ok=res.filter(x=>x.status==='fulfilled').length;if(!ok){showToast('Mesh send failed: '+res.map(x=>x.reason?.message||'error').join(' · '));return;}await acceptVerifiedRelayEvent(signed,'mesh://local');const prefs=glowstrMeshSavePrefs();if(prefs.queueInternet){try{await glowstrQueueDraftRecord({content,replyTo:reply,status:'queued'});}catch(e){console.warn('Could not queue mesh note for later relay publish',e);}}glowstrClearComposerAfterLocalSave();showToast('📡 Handed to '+ok+' mesh transport'+(ok===1?'':'s')+(prefs.queueInternet?' · queued for Internet later':''));}
+function glowstrMeshInit(){if(glowstrMesh.init)return;glowstrMesh.init=true;const p=glowstrMeshPrefs();const ch=document.getElementById('mesh-meshtastic-channel'),pace=document.getElementById('mesh-meshtastic-pace'),url=document.getElementById('mesh-reticulum-url'),q=document.getElementById('mesh-queue-internet'),tok=document.getElementById('mesh-reticulum-token');if(ch)ch.value=String(p.channel);if(pace)pace.value=String(p.pace);if(url)url.value=p.url||'ws://127.0.0.1:8787';if(q)q.checked=p.queueInternet!==false;if(tok){try{tok.value=sessionStorage.getItem('glowstr_reticulum_token')||'';}catch(e){}}document.getElementById('mesh-meshtastic-connect')?.addEventListener('click',glowstrConnectMeshtastic);document.getElementById('mesh-meshtastic-disconnect')?.addEventListener('click',glowstrDisconnectMeshtastic);document.getElementById('mesh-reticulum-connect')?.addEventListener('click',glowstrConnectReticulum);document.getElementById('mesh-reticulum-disconnect')?.addEventListener('click',glowstrDisconnectReticulum);document.getElementById('mesh-bluetooth-connect')?.addEventListener('click',glowstrConnectBluetoothDirect);document.getElementById('mesh-bluetooth-rescan')?.addEventListener('click',glowstrBluetoothRescan);document.getElementById('mesh-bluetooth-disconnect')?.addEventListener('click',glowstrDisconnectBluetoothDirect);document.getElementById('mesh-disconnect-all')?.addEventListener('click',()=>{glowstrDisconnectMeshtastic();glowstrDisconnectReticulum();glowstrDisconnectBluetoothDirect();});document.getElementById('compose-mesh-btn')?.addEventListener('click',glowstrMeshSendComposer);for(const id of ['mesh-meshtastic-channel','mesh-meshtastic-pace','mesh-reticulum-url','mesh-queue-internet'])document.getElementById(id)?.addEventListener('change',glowstrMeshSavePrefs);window.addEventListener('beforeunload',()=>{try{glowstrMesh.reticulum.ws?.close();}catch(e){}glowstrBtAbortRequests();});const nativeAndroid=!!window.GlowstrAndroid||!!window.__GLOWSTR_ANDROID_NATIVE__;const meshtasticConnect=document.getElementById('mesh-meshtastic-connect'),meshtasticHelp=document.getElementById('mesh-meshtastic-help');if(nativeAndroid){glowstrMeshSetStatus('meshtastic','APK MODE · USE NATIVE BLUETOOTH DIRECT','good');if(meshtasticConnect){meshtasticConnect.disabled=true;meshtasticConnect.textContent='WEB BLUETOOTH NOT USED IN APK';}if(meshtasticHelp)meshtasticHelp.textContent='Glowstr Android detected. This APK uses the native Android Bluetooth engine below; Web Bluetooth capability in Android WebView is not used.';}else{glowstrMeshSetStatus('meshtastic',navigator.bluetooth?'DISCONNECTED':'WEB BLUETOOTH UNAVAILABLE');}glowstrMeshSetStatus('reticulum','DISCONNECTED');glowstrMeshSetStatus('bluetooth',nativeAndroid?'NATIVE ANDROID · TAP START':'ANDROID APP REQUIRED');}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',glowstrMeshInit,{once:true});else glowstrMeshInit();
 // GLOWSTR_V5_2_MESH_END
 

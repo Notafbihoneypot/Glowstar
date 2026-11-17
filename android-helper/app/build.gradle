@@ -10,8 +10,8 @@ android {
         applicationId 'org.glowstr.meshbridge'
         minSdk 29
         targetSdk 36
-        versionCode 31
-        versionName '0.3.19'
+        versionCode 32
+        versionName '0.3.20'
     }
 
     // Owner-held signing key lives in offline Qubes only. Release artifacts
@@ -28,13 +28,6 @@ android {
         debug {
             applicationIdSuffix '.debug'
             versionNameSuffix '-debug'
-            resValue 'string', 'app_name', 'Glowstr'
-        }
-        integrated {
-            initWith debug
-            debuggable false
-            applicationIdSuffix '.integrated'
-            versionNameSuffix '-integrated'
             resValue 'string', 'app_name', 'Glowstr'
         }
     }
@@ -119,15 +112,6 @@ def syncGlowstrAsset = tasks.register('syncGlowstrAsset', Copy) {
         if (!text.contains(oldNotificationTail)) throw new GradleException('Could not locate notification insertion point')
         text = text.replace(oldNotificationTail, newNotificationTail)
 
-        def oldMeshSend = '''async function glowstrMeshSendComposer(){if(!glowstrMeshConnected()){showToast('Connect Meshtastic, Reticulum, or Bluetooth Direct in RELAYS → LOCAL MESH first');switchView('relays');return;}if(!state.publicKey){showToast('Choose a signer first');switchView('keys');return;}if(state.signerMethod==='amber-nip55'){showToast('Direct mesh send needs an inline signer. Use Amber NIP-46, NIP-07, or a local key.');return;}const input=document.getElementById('compose-input'),content=input?.value?.trim()||'';if(!content){showToast('Write a note first');return;}const reply=glowstrCloneReplyContext(state.replyTo),tpl=glowstrBuildQueuedTemplate({content,replyTo:reply});let signed;try{signed=await signEventUniversal(tpl);if(!signed)throw new Error('Signer did not return an event');}catch(e){showToast('Mesh signing failed: '+(e.message||e));return;}const jobs=[];if(glowstrMesh.meshtastic.ready)jobs.push(['Meshtastic',glowstrMeshtasticSendEvent(signed)]);if(glowstrMesh.reticulum.ready)jobs.push(['Reticulum',glowstrReticulumSendEvent(signed)]);if(glowstrMesh.bluetooth.ready)jobs.push(['Bluetooth Direct',glowstrBluetoothSendEvent(signed)]);const res=await Promise.allSettled(jobs.map(x=>x[1]));const ok=res.filter(x=>x.status==='fulfilled').length;if(!ok){showToast('Mesh send failed: '+res.map(x=>x.reason?.message||'error').join(' · '));return;}await acceptVerifiedRelayEvent(signed,'mesh://local');const prefs=glowstrMeshSavePrefs();if(prefs.queueInternet){try{await glowstrQueueDraftRecord({content,replyTo:reply,status:'queued'});}catch(e){console.warn('Could not queue mesh note for later relay publish',e);}}glowstrClearComposerAfterLocalSave();showToast('📡 Handed to '+ok+' mesh transport'+(ok===1?'':'s')+(prefs.queueInternet?' · queued for Internet later':''));}'''
-        def newMeshSend = '''async function glowstrMeshSendComposer(){if(!glowstrMeshConnected()){showToast('Connect Meshtastic, Reticulum, or Bluetooth Direct in RELAYS → LOCAL MESH first');switchView('relays');return;}if(!state.publicKey){showToast('Choose a signer first');switchView('keys');return;}const input=document.getElementById('compose-input'),content=input?.value?.trim()||'';if(!content){showToast('Write a note first');return;}const reply=glowstrCloneReplyContext(state.replyTo),tpl=glowstrBuildQueuedTemplate({content,replyTo:reply});let signed;try{if(state.signerMethod==='amber-nip55'&&typeof window.glowstrAmberSignForMesh==='function'){signed=await window.glowstrAmberSignForMesh(tpl);}else{signed=await signEventUniversal(tpl);}if(!signed)throw new Error('Signer did not return an event');}catch(e){showToast('Mesh signing failed: '+(e.message||e));return;}const jobs=[];if(glowstrMesh.meshtastic.ready)jobs.push(['Meshtastic',glowstrMeshtasticSendEvent(signed)]);if(glowstrMesh.reticulum.ready)jobs.push(['Reticulum',glowstrReticulumSendEvent(signed)]);if(glowstrMesh.bluetooth.ready)jobs.push(['Bluetooth Direct',glowstrBluetoothSendEvent(signed)]);const res=await Promise.allSettled(jobs.map(x=>x[1]));const ok=res.filter(x=>x.status==='fulfilled').length;if(!ok){showToast('Mesh send failed: '+res.map(x=>x.reason?.message||'error').join(' · '));return;}await acceptVerifiedRelayEvent(signed,'mesh://local');const prefs=glowstrMeshSavePrefs();if(prefs.queueInternet){try{await glowstrQueueDraftRecord({content,replyTo:reply,status:'queued'});}catch(e){console.warn('Could not queue mesh note for later relay publish',e);}}glowstrClearComposerAfterLocalSave();showToast('📡 Handed to '+ok+' mesh transport'+(ok===1?'':'s')+(prefs.queueInternet?' · queued for Internet later':''));}'''
-        if (!text.contains(oldMeshSend)) throw new GradleException('Could not locate Bluetooth mesh composer')
-        text = text.replace(oldMeshSend, newMeshSend)
-
-        def oldBtSend = '''async function glowstrBluetoothSendEvent(event){if(!glowstrMesh.bluetooth.ready)throw new Error('Bluetooth Direct helper is not connected');const hops=glowstrMeshSavePrefs().btHops||5;const x=await glowstrBtFetch('/v1/send',{method:'POST',body:{event,hops},timeout:10000});const n=Math.max(0,Number(x.peers_sent)||0);glowstrMeshSetStatus('bluetooth',n?('READY · SENT TO '+n+' PEER'+(n===1?'':'S')):'READY · STORED · WAITING FOR PEER','good');return x;}'''
-        def newBtSend = '''async function glowstrBluetoothSendEvent(event){if(!glowstrMesh.bluetooth.ready)throw new Error('Bluetooth Direct helper is not connected');const x=await glowstrBtFetch('/v1/send',{method:'POST',body:{event,hops:1},timeout:10000});const n=Math.max(0,Number(x.peers_sent)||0);if(!n){glowstrMeshSetStatus('bluetooth','READY · STORED · WAITING FOR PEER','good');return x;}glowstrMeshSetStatus('bluetooth','READY · SENT · WAITING FOR ACK','good');for(let i=0;i<12;i++){await new Promise(r=>setTimeout(r,250));try{const d=await glowstrBtFetch('/v1/delivery?id='+encodeURIComponent(event.id),{timeout:2500});if(d?.delivered){const a=Math.max(1,Number(d.acks)||1);glowstrMeshSetStatus('bluetooth','READY · DELIVERED TO '+a+' PEER'+(a===1?'':'S'),'good');x.delivery=d;break;}}catch(e){}}return x;}'''
-        if (!text.contains(oldBtSend)) throw new GradleException('Could not locate Bluetooth send function')
-        text = text.replace(oldBtSend, newBtSend)
 
         def nativeQr = '''
 // === ANDROID NATIVE NOSTR PUBKEY QR ===

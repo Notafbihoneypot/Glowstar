@@ -13,8 +13,8 @@ const elements = new Map([
   ['compose-media-btn', {disabled:false}]
 ]);
 const messages = [], opened = [];
-const context = vm.createContext({URL, Event, console,
-  state:{publicKey:'account-one'}, _glowstrSignerEpoch:1,
+const context = vm.createContext({URL, Event, console, AbortController, setTimeout:()=>1, clearTimeout:()=>{},
+  state:{publicKey:'a'.repeat(64)}, _glowstrSignerEpoch:1,
   document:{getElementById:id=>elements.get(id)},
   window:{location:{}, GlowstrAndroid:{openExternal:uri=>{opened.push(uri);return true;}}},
   showToast:message=>messages.push(message),
@@ -26,6 +26,7 @@ const context = vm.createContext({URL, Event, console,
 vm.runInContext(section('function glowstrIsMoneroAddress(', 'function showSellModal('), context);
 vm.runInContext(section('function safeRemoteMediaUrl(', "document.addEventListener('click', glowstrHandleDynamicAction)"), context);
 vm.runInContext(section('async function glowstrUploadComposeMedia(', 'function glowstrInitBlossom('), context);
+vm.runInContext(section('let _glowstrInvoicePollV42', 'async function glowstrPayRelayV42('), context);
 const address = '4' + 'a'.repeat(94);
 context.address = address;
 assert.equal(vm.runInContext("glowstrBuildMoneroUri(address, '0', 'Test & label')", context),
@@ -69,4 +70,27 @@ function input() { return {files:[{name:'photo.jpg'}], value:'selected'}; }
   await vm.runInContext('glowstrUploadComposeMedia(input)', context);
   assert.equal(elements.get('compose-input').value, 'Keep my draft\nhttps://images.example/photo.jpg\n');
   console.log('PASS account-switch upload isolation and successful attachment insertion');
+  const invoiceAddress='8'+'A'.repeat(94);
+  const validInvoice={id:'invoice_12345678901234567890',token:'token_12345678901234567890',
+    address:invoiceAddress,amount_atomic:'10000000000',
+    uri:'monero:'+invoiceAddress+'?tx_amount=0.01',confirmations_required:2};
+  context.state.publicKey='a'.repeat(64);
+  vm.runInContext(`
+    _glowstrCommerceFeaturesV54={features:{relay_365d:{}}};
+    glowstrLoadCommerceFeaturesV54=async()=>{};
+    glowstrPayOpenV42=()=>{};
+    glowstrStopInvoicePollV54=()=>{};
+    glowstrRenderInvoiceV42=()=>{};
+    glowstrPollInvoiceV42=()=>{};
+    glowstrCommerceFetchV54=async()=>invoice;
+  `,context);
+  const requestInvoice=invoice=>{
+    context.invoice=invoice;
+    return vm.runInContext("glowstrStartCommerceInvoiceV54('relay_365d','relay',{})",context);
+  };
+  await requestInvoice(validInvoice);
+  await assert.rejects(()=>requestInvoice({...validInvoice,amount_atomic:'0',uri:'monero:'+invoiceAddress+'?tx_amount=0'}),/Invalid invoice amount/);
+  await assert.rejects(()=>requestInvoice({...validInvoice,address:'1'+'A'.repeat(94)}),/Invalid Monero subaddress/);
+  await assert.rejects(()=>requestInvoice({...validInvoice,confirmations_required:1}),/Unexpected Monero confirmation policy/);
+  console.log('PASS commerce invoices require positive atomic amounts, mainnet address format, matching URI, and two confirmations');
 })().catch(error=>{console.error(error);process.exitCode=1;});

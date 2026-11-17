@@ -1,119 +1,58 @@
-# Glowstr v5.3 — Bluetooth Direct
+# Glowstr Android — Bluetooth Direct
 
-Glowstr v5.3 adds an Android-to-Android Bluetooth transport to the existing Meshtastic and Reticulum collapse-network modes.
+Glowstr carries signed public Nostr notes directly between nearby Android phones over secure BLE L2CAP.
 
 ## Architecture
 
 ```text
-Glowstr PWA (signing + final verification)
+Bundled Glowstr client
        |
-       | HTTP to 127.0.0.1:8788
-       | X-Glowstr-Token
+       | capability-gated native calls (no network listener)
        v
-Glowstr Bluetooth Bridge (Android)
+Android Bluetooth service
        |
-       | BLE service discovery + GATT PSM lookup
-       | secure BLE L2CAP CoC
+       | BLE discovery + secure L2CAP CoC
        v
-Nearby Glowstr Bluetooth Bridge
+Nearby Glowstr Android service
        |
-       +-- bounded signed-event store
-       +-- hop-limited store-and-forward
+       +-- bounded verified-event store
+       +-- one-hop delivery + event-ID ACK
 ```
 
-The helper does **not** hold an nsec or sign Nostr events. It only accepts public kind-1 events that already have a valid NIP-01 ID and BIP-340 signature. Glowstr verifies them again before showing them.
+The service never receives an nsec and never signs on its own. It accepts public kind-1 events only after NIP-01 ID and BIP-340 signature verification. The receiving WebView verifies imported events again.
 
-## Current safety limits
+## Safety limits
 
-- Public Nostr `kind:1` only.
-- Maximum hop count: 5.
-- Maximum live Bluetooth sessions: 12; maximum registered peers: 8.
-- Maximum event content: 16 KiB.
-- Maximum encoded event JSON: 48 KiB.
-- Maximum peer event rate: 60/minute; total frame rate: 120/minute.
-- Local store: 5,000 events / 7 days.
-- Newly connected peers receive at most 50 recent forwardable events in the initial backlog.
-- Invalid event IDs or Schnorr signatures are rejected before caching.
-- Event deduplication uses `event-id + signature`; a later copy with a larger remaining hop budget can refresh forwarding without allowing a fake signature to poison a real event ID.
-- The browser bridge binds **only** to `127.0.0.1:8788` and requires a random 256-bit pairing token.
+- One-hop Android delivery; received events are not forwarded to a third phone.
+- Maximum 12 live Bluetooth sessions and 8 registered peers.
+- Event content up to 16 KiB; encoded event JSON up to 48 KiB.
+- Per-peer limits: 60 events/minute and 120 frames/minute.
+- Local store: 5,000 events or 7 days.
+- At most 50 recent forwardable events in a new peer backlog.
+- Invalid IDs/signatures are rejected before storage.
+- Deduplication keys on event ID plus signature; a forged body cannot poison a valid event ID.
 
-## Build the Android helper
+## Build
 
-The project is in `android-helper/`.
+Requirements: Android SDK 36, Gradle 8.13+, Java 17, Android 10/API 29 or newer.
 
-Requirements:
-
-- Android Studio / Android SDK 36
-- Android Gradle Plugin 8.13.2 (declared by the project)
-- JDK 17+
-- Android 10 / API 29 or newer device
-
-Open `android-helper/` as an Android Studio project, let Gradle sync, then choose:
-
-`Build → Build APK(s)`
-
-The debug APK should be produced at:
-
-```text
-android-helper/app/build/outputs/apk/debug/app-debug.apk
+```sh
+gradle -p android-helper :app:assembleRelease
 ```
 
-Or, with a compatible system Gradle already installed:
+This produces the deliberately unsigned `android-helper/app/build/outputs/apk/release/app-release-unsigned.apk`.
 
-```bash
-gradle :app:assembleDebug
-```
+## Start and use
 
-There is intentionally no checked-in Gradle wrapper JAR in this generated project.
-
-## Install and start
-
-1. Install the helper APK on each Android phone.
-2. Open **Glowstr Bluetooth Bridge**.
-3. Grant **Nearby devices** when Android asks.
-   - On Android 12+ the app requests Bluetooth Scan / Advertise / Connect and declares `neverForLocation`.
-   - Android 10–11 require location permission for BLE scanning because of the older Android permission model.
-4. Press **START BLUETOOTH DIRECT**.
-5. Keep the foreground-service notification active while you want store-and-forward running.
-6. Copy the pairing token shown by the helper.
-
-The first secure L2CAP connection between two phones may produce an Android Bluetooth pairing/authentication prompt.
-
-## Connect Glowstr
-
-For reliable browser-to-helper access, serve/install Glowstr from HTTPS as a PWA.
-
-1. Open `glowstr-v5.3-bluetooth-direct.html` from your Glowstr HTTPS deployment.
+1. Open Glowstr.
 2. Go to **RELAYS → LOCAL MESH / COLLAPSE MODE**.
-3. Find **BLUETOOTH DIRECT // PHONE ↔ PHONE**.
-4. Paste the token from the Android helper.
-5. Choose a hop limit (1–5; default 5).
-6. Press **CONNECT HELPER**.
-7. If Chromium/Vanadium asks for **Local Network Access**, allow it for your Glowstr origin. Glowstr only requests `127.0.0.1:8788` for this helper.
+3. Press **START BLUETOOTH**.
+4. Grant Nearby Devices when Android asks. Android 10–11 also require location permission for BLE scanning.
+5. Keep the foreground-service notification active while store-and-forward is wanted.
 
-The pairing token is kept in browser `sessionStorage`, not persistent `localStorage`.
+The first secure L2CAP connection may trigger Android's Bluetooth pairing prompt. **RESCAN** restarts discovery. A sent event waits for an event-ID ACK and reports delivery when the peer confirms it.
 
-## Send a note
-
-Write a normal public note and press:
-
-`📡 MESH SEND`
-
-Glowstr signs the Nostr event itself and hands the already-signed public event to any connected mesh transports:
-
-- Bluetooth Direct
-- Meshtastic
-- Reticulum
-
-If Bluetooth has no peer in range, the helper still stores the valid signed event. When a compatible peer later connects, recent forwardable events are gossiped automatically.
-
-If **queue for Internet later** is enabled, Glowstr also keeps an unsigned copy in its existing offline publish queue. When the Internet returns, you can explicitly publish it to normal Nostr relays with your signer.
-
-## What the helper API exposes
-
-Loopback only: `http://127.0.0.1:8788`
-
-All endpoints except CORS preflight require `X-Glowstr-Token`.
+The internal native request surface is equivalent to:
 
 ```text
 GET  /v1/status
@@ -124,49 +63,14 @@ POST /v1/send
 POST /v1/rescan
 ```
 
-`/v1/events` supports long polling so the PWA does not spin aggressively in the background.
+These are in-process bridge calls, not HTTP endpoints. No other app or browser can connect to them.
 
-### v0.3.1 direct-note delivery
+## Privacy
 
-The Android APK can sign public kind-1 notes with native Amber/NIP-55 while offline and send the signed event over the existing secure L2CAP link. The receiver verifies the NIP-01 event ID and BIP-340 signature, stores the event, exposes it to the local feed, and returns an event-ID ACK.
+Bluetooth is not anonymity. Nearby radios can observe advertising and traffic. The random node ID is transport metadata stored in app-private storage, not a Nostr identity.
 
-For this stabilization build, Android Bluetooth sends are intentionally **one hop**. A locally-created note is retained with one remaining hop so it can be delivered when the paired peer reconnects; the receiving phone stores it with zero remaining hops and does not forward it to a third phone.
+Do not use Bluetooth Direct for DMs, private lists, Monero wallet data, or payment secrets. Those event types are rejected.
 
-## Privacy notes
+## Verification boundary
 
-Bluetooth Direct is not anonymity. Nearby radios can observe that a Bluetooth device is advertising and communicating. The random Glowstr node ID is transport metadata, not a Nostr identity, and is stored only in the helper's app-private storage.
-
-The Bluetooth helper never receives the Nostr private key. Bluetooth link authentication and a Nostr signature solve different problems: Android's secure L2CAP protects the local radio link, while the Nostr signature establishes authorship of the note.
-
-Do not use this first Bluetooth version for DMs, private lists, Monero wallet data, or payment secrets. Those event types are rejected.
-
-## Browser Local Network Access
-
-Modern Chromium gates requests from a public HTTPS origin to loopback/local addresses behind a Local Network Access permission. The v5.3 client uses a Fetch address-space hint for the loopback helper and does not auto-connect at startup, so the permission request happens only after you press **CONNECT HELPER**.
-
-## Testing performed here
-
-Passed:
-
-- v5.3 JavaScript syntax.
-- strict CSP script hash.
-- zero inline executable HTML handlers.
-- zero external script tags.
-- no duplicate HTML IDs.
-- loopback-only helper CSP allowance.
-- random-token localhost authorization source audit.
-- secure L2CAP server/client API source audit.
-- bounded sessions, GATT discovery, caches, hop count and rate limits.
-- official BIP-340 verification vectors in the helper's pure-Java verifier.
-- NIP-01 event serialization compared against JavaScript, including Unicode and lone-surrogate cases.
-- A→B→C→D multi-hop simulation.
-- replay/loop suppression.
-- larger-hop-budget refresh behavior.
-- Java parser-level source check.
-
-Not performed in this environment:
-
-- A complete Android Gradle build/APK, because the Android SDK is not installed here and the SDK download endpoint is unavailable from the build container.
-- Physical phone-to-phone BLE/L2CAP testing.
-
-Those are the two next tests to perform before calling Bluetooth Direct production-ready.
+Automated checks cover JavaScript parsing/CSP, NIP-01 and BIP-340 vectors, bridge capability isolation, bounded storage/rates, release compilation, lint, manifest policy, and unsigned output. Physical phone-to-phone BLE/L2CAP behavior still requires two-device testing.

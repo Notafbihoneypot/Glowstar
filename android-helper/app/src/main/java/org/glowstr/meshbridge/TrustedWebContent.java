@@ -60,7 +60,7 @@ final class TrustedWebContent {
                 "'saveRememberedLocalSigner','loadRememberedLocalSigner','clearRememberedLocalSigner'," +
                 "'saveRememberedRemoteSigner','loadRememberedRemoteSigner','clearRememberedRemoteSigner'," +
                 "'secureLocalSignerStorageAvailable','startNostrQrScanner','pollNostrQrResult'," +
-                "'makeNostrQrDataUrl','pairingToken','openExternal','request']) {\n" +
+                "'makeNostrQrDataUrl','startBluetoothMesh','openExternal','request']) {\n" +
                 "api[name] = (...args) => native[name](cap, ...args);\n" +
                 "}\nObject.defineProperty(window, 'GlowstrAndroid', {value:Object.freeze(api)});\n" +
                 "delete window.GlowstrNative;\n})();\n";
@@ -72,7 +72,9 @@ final class TrustedWebContent {
                 .digest(script.getBytes(StandardCharsets.UTF_8)));
         String result = html.substring(0, match.start(1)) + script + html.substring(match.end(1));
         // No remote or inherited document may execute alongside the native API.
-        result = result.replaceFirst("frame-src [^;]*;", "frame-src 'none';")
+        result = result.replaceFirst("connect-src [^;]*;", "connect-src 'self' https: wss:;")
+                .replaceFirst("media-src [^;]*;", "media-src 'self' https: data: blob:;")
+                .replaceFirst("frame-src [^;]*;", "frame-src 'none';")
                 .replaceFirst("'sha256-[^']+'", "'sha256-" + hash + "'");
         return result;
     }

@@ -14,9 +14,14 @@ not an in-app Shamir backup generator.
    enable its NIP-46 service, and bring another group signer online. Use an Igloo
    release with NIP-46 `connect`, `get_public_key`, `sign_event`, and NIP-44 support.
 3. In Glowstr's Identity Vault, open **FROSTR THRESHOLD SIGNER**, enter the group's
-   account npub and Igloo's `bunker://` URL, and press **CONNECT FROSTR**. The bunker
-   public key is the transport identity and can differ from the account npub.
-4. Approve Glowstr in Igloo. Glowstr checks the returned account against your npub.
+   account npub, leave the bunker URL blank, and press **CONNECT FROSTR**. Igloo
+   Server does not issue `bunker://` URLs: copy the `nostrconnect://` link Glowstr
+   shows (relay `wss://relay.primal.net`) into Igloo's NIP-46 **Connect** box, or
+   scan its QR. Signers that do issue a `bunker://` URL can paste it instead. The
+   signer's transport key can differ from the account npub.
+4. Igloo acknowledges with Glowstr's one-time secret. Glowstr then checks the returned
+   account against your npub. Igloo auto-approves `get_public_key` and NIP-44 from the
+   link's permissions; each `sign_event` waits for approval in Igloo.
    Approve individual requests or narrowly scoped permissions in your signers.
 5. Use gift-wrapped NIP-17 messages. The FROSTR mode does not use legacy NIP-04.
 

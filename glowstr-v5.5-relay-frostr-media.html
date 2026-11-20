@@ -7,7 +7,7 @@
 <title>GLOWSTR</title>
 <meta name="description" content="Glowstr — a retro privacy-first Nostr PWA client">
 <meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-nhleBo8tNPLLKjy8XuGJGC55eZDlrp8OKKD5JpJpw3U='; script-src-attr 'none'; connect-src 'self' https: wss: ws://127.0.0.1:8787 ws://localhost:8787; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-A8FiP1oGLPB8bShmGdPvjTvU1IIJ+iAaU9k+XdEF05c='; script-src-attr 'none'; connect-src 'self' https: wss: ws://127.0.0.1:8787 ws://localhost:8787; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkdMT1dTVFIiLCAic2hvcnRfbmFtZSI6ICJHTE9XU1RSIiwgImRlc2NyaXB0aW9uIjogIlNlZSBUaHJvdWdoIHRoZSBOb2lzZSBcdTIwMTQgUHJpdmFjeS1maXJzdCBOb3N0ciBjbGllbnQiLCAic3RhcnRfdXJsIjogIi4iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMGEwYSIsICJ0aGVtZV9jb2xvciI6ICIjRkY2NjAwIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCMmFXVjNRbTk0UFNJd0lEQWdNVGt5SURFNU1pSStDanh5WldOMElIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCbWFXeHNQU0lqTUdFd1lUQmhJaTgrQ2p4eVpXTjBJSGc5SWpnaUlIazlJamdpSUhkcFpIUm9QU0l4TnpZaUlHaGxhV2RvZEQwaU1UYzJJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlOR1JqWTJNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlOQ0l2UGdvOGRHVjRkQ0I0UFNJNU5pSWdlVDBpTVRFd0lpQm1iMjUwTFdaaGJXbHNlVDBpYlc5dWIzTndZV05sSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUJtYjI1MExYZGxhV2RvZEQwaVltOXNaQ0lnWm1sc2JEMGlJMFpHTmpZd01DSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krUnp3dmRHVjRkRDRLUEhSbGVIUWdlRDBpT1RZaUlIazlJakUxTUNJZ1ptOXVkQzFtWVcxcGJIazlJbTF2Ym05emNHRmpaU0lnWm05dWRDMXphWHBsUFNJeE5pSWdabWxzYkQwaUkyTmpOVEl3TUNJZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSStSMHhQVjFOVVVqd3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
@@ -3362,14 +3362,21 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
               <div class="login-desc">Connect your <strong>FROSTR / Igloo</strong> signer. Your account key and shares stay in your signers; Glowstr receives signatures and encrypted messages through NIP-46.</div>
               <ol class="login-desc">
                 <li>Set up a FROSTR group, such as 2 of 3, outside Glowstr. Keep shares on separate devices and one backup offline.</li>
-                <li>Enable NIP-46 in Igloo Server. Keep another group signer available to meet your threshold.</li>
-                <li>Copy Igloo's bunker URL and your group account npub below. Approve Glowstr in your signer.</li>
+                <li>Keep Igloo Server and another group signer online to meet your threshold.</li>
+                <li>Enter your group account npub and press CONNECT FROSTR. Paste the nostrconnect:// link into Igloo's NIP-46 Connect box (or scan the QR), then approve Glowstr.</li>
               </ol>
               <label class="key-label" for="frostr-account-pubkey">ACCOUNT NPUB (FROM YOUR FROSTR GROUP)</label>
               <input class="profile-edit-input" id="frostr-account-pubkey" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="npub1… or 64-character hex public key" />
-              <label class="key-label" for="frostr-bunker-url">IGLOO BUNKER URL</label>
+              <label class="key-label" for="frostr-bunker-url">BUNKER URL (OPTIONAL — LEAVE BLANK FOR IGLOO)</label>
               <input class="profile-edit-input" type="password" id="frostr-bunker-url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="bunker://…?relay=wss://…&amp;secret=…" />
               <button class="btn" id="frostr-connect-btn" data-glow-action="frostr-connect" style="width:100%;">CONNECT FROSTR</button>
+              <div id="frostr-nc-container" style="text-align:center;display:none;">
+                <div class="qr-login-canvas" id="frostr-nc-canvas"></div>
+                <div class="qr-login-status waiting" id="frostr-nc-status"></div>
+                <div class="qr-login-uri" id="frostr-nc-uri" data-glow-action="copy-self"></div>
+                <div style="font-family:var(--font-retro);font-size:0.95rem;color:var(--xmr-text-dim);margin-top:6px;">Tap the link to copy · Igloo → NIP-46 → Connect</div>
+                <button class="btn btn-small" data-glow-action="qr-login-cancel" style="margin-top:10px;border-color:var(--xmr-text-dim);color:var(--xmr-text-dim);">CANCEL</button>
+              </div>
               <div class="login-desc" style="margin-top:12px;">Use gift-wrapped NIP-17 for messages. Signer approvals still matter: keep permissions narrow and review signing requests. Stay logged in remembers the client session securely in the Android app; browsers reconnect after their session ends.</div>
               <a href="https://github.com/FROSTR-ORG/igloo-server" target="_blank" rel="noopener noreferrer">Igloo Server setup ↗</a>
             </div>
@@ -5601,6 +5608,8 @@ async function connectFrostr() {
       publicKey = bytesToHex(decoded.bytes);
     }
     if (!/^[0-9a-f]{64}$/.test(publicKey)) throw new Error('Enter the account npub from your FROSTR group');
+    // Igloo Server only accepts client-made nostrconnect:// links; it never issues bunker:// URLs.
+    if (!url) { await startQrLogin({method:'frostr', expectedPublicKey:publicKey, ui:'frostr-nc'}); return; }
     const button = document.getElementById('frostr-connect-btn');
     button.disabled = true;
     try { await connectBunker(url, {method:'frostr', expectedPublicKey:publicKey}); }
@@ -6720,7 +6729,7 @@ function handleEvent(event, relayUrl) {
   if (event.kind === 1059 && state.publicKey) {
     const pTag = (event.tags || []).find(t => t[0] === 'p');
     if (pTag && pTag[1] === state.publicKey) {
-      decryptNip17(event).then(dm => {
+      glowstrQueueNip17Unwrap(event).then(dm => {
         if (!dm) return;
         // Store like a NIP-04 DM
         state.dms = state.dms || [];
@@ -9332,6 +9341,31 @@ async function sendNip17Dm(recipientPubkey, plaintext) {
   const receiverWrap=await makeWrapFor(recipientPubkey);const rr=await broadcastNip17ToInboxRelays(receiverWrap,recipientPubkey);if(!rr.sent)throw new Error('Recipient inbox relays did not accept the NIP-17 message');
   let senderSent=0;try{const selfWrap=await makeWrapFor(state.publicKey);senderSent=(await broadcastNip17ToInboxRelays(selfWrap,state.publicKey)).sent;}catch(e){}
   return{sent:rr.sent,senderSent,eventId:receiverWrap.id};
+}
+
+// Remote signers (FROSTR/NIP-46) need a relay round trip per NIP-44 call. Unwrapping every
+// inbox copy at once (80 per relay, again for each relay) froze the UI and hit the signer's
+// busy limit. Dedupe by wrap id per signer session and run at most 4 unwraps at a time.
+// shortcut: wraps beyond 400 queued are dropped until a relay resends them; raise if inboxes grow.
+const _glowstrUnwrapQueue = [], _glowstrUnwrapSeen = new Set();
+let _glowstrUnwrapActive = 0;
+function glowstrQueueNip17Unwrap(event) {
+  const key = _glowstrSignerEpoch + ':' + event.id;
+  if (_glowstrUnwrapSeen.has(key) || _glowstrUnwrapQueue.length >= 400) return Promise.resolve(null);
+  if (_glowstrUnwrapSeen.size > 5000) _glowstrUnwrapSeen.clear();
+  _glowstrUnwrapSeen.add(key);
+  return new Promise(resolve => { _glowstrUnwrapQueue.push({event, key, epoch:_glowstrSignerEpoch, resolve}); glowstrPumpNip17Unwrap(); });
+}
+function glowstrPumpNip17Unwrap() {
+  while (_glowstrUnwrapActive < 4 && _glowstrUnwrapQueue.length) {
+    const job = _glowstrUnwrapQueue.shift();
+    if (job.epoch !== _glowstrSignerEpoch) { _glowstrUnwrapSeen.delete(job.key); job.resolve(null); continue; }
+    _glowstrUnwrapActive++;
+    decryptNip17(job.event).catch(() => null).then(dm => {
+      if (!dm) _glowstrUnwrapSeen.delete(job.key); // let another relay copy retry
+      job.resolve(job.epoch === _glowstrSignerEpoch ? dm : null);
+    }).finally(() => { _glowstrUnwrapActive--; glowstrPumpNip17Unwrap(); });
+  }
 }
 
 async function decryptNip17(giftWrapEvent) {
@@ -12328,7 +12362,7 @@ async function openDmConvo(pubkey) {
 async function sendDm() {
   if (!state.publicKey || !state.activeDmPubkey) { showToast('No active DM conversation'); return; }
   const nip17RequestedEarly=!!document.getElementById('dm-nip17')?.checked;
-  const canNip44Early=!!state.privateKey||(state.signerMethod==='nip07'&&!!window.nostr?.nip44?.encrypt)||((state.signerMethod==='amber-bunker'||state.signerMethod==='nip46-qr'||state.signerMethod==='nip46')&&!!state.nip46);
+  const canNip44Early=!!state.privateKey||(state.signerMethod==='nip07'&&!!window.nostr?.nip44?.encrypt)||(glowstrIsRemoteSignerMethod(state.signerMethod)&&!!state.nip46);
   const canNip04Early=!!state.privateKey||(state.signerMethod==='nip07'&&!!window.nostr?.nip04?.encrypt)||((state.signerMethod==='amber-bunker'||state.signerMethod==='nip46-qr'||state.signerMethod==='nip46')&&!!state.nip46);
   if((nip17RequestedEarly&&!canNip44Early)||(!nip17RequestedEarly&&!canNip04Early)){showToast(nip17RequestedEarly?'Your signer does not expose NIP-44 encryption':'Your signer cannot encrypt legacy NIP-04 messages');return;}
   const input = document.getElementById('dm-input');
@@ -13469,14 +13503,16 @@ function installPWA() {
 // ═══ NIP-46 QR CODE LOGIN (NOSTR CONNECT) ═══
 let _qrLoginState = null;
 
-async function startQrLogin() {
+async function startQrLogin(options = {}) {
+  const frostr = options.method === 'frostr';
   glowstrApplyLoginPersistChoice();
   const epoch = glowstrResetSigner();
 
   const clientPrivKey = generatePrivateKey();
   const clientPubKey = await derivePublicKey(clientPrivKey);
   if (epoch !== _glowstrSignerEpoch) return;
-  const connectRelay = 'wss://relay.nostr.band/';
+  // relay.nostr.band is offline; relay.primal.net is also Igloo Server's default NIP-46 relay.
+  const connectRelay = 'wss://relay.primal.net/';
   const connectSecret = bytesToHex(crypto.getRandomValues(new Uint8Array(16)));
 
   const qp = new URLSearchParams();
@@ -13489,10 +13525,11 @@ async function startQrLogin() {
   } catch(e) {}
   const uri = 'nostrconnect://' + clientPubKey + '?' + qp.toString();
 
-  const container = document.getElementById('qr-login-container');
-  const canvas = document.getElementById('qr-login-canvas');
-  const uriEl = document.getElementById('qr-login-uri');
-  const statusEl = document.getElementById('qr-login-status');
+  const ui = options.ui || 'qr-login';
+  const container = document.getElementById(ui + '-container');
+  const canvas = document.getElementById(ui + '-canvas');
+  const uriEl = document.getElementById(ui + '-uri');
+  const statusEl = document.getElementById(ui + '-status');
   canvas.innerHTML = generateQrSvg(uri, 4);
   uriEl.textContent = uri;
   statusEl.innerHTML = '<span style="display:inline-block;animation:spinSign 1s linear infinite;">⟳</span> Waiting for signer to connect...';
@@ -13511,7 +13548,7 @@ async function startQrLogin() {
     ws.send(JSON.stringify(['REQ', _qrLoginState.subId, {
       kinds: [24133], '#p': [clientPubKey], since: Math.floor(Date.now() / 1000) - 10
     }]));
-    statusEl.innerHTML = '<span style="display:inline-block;animation:spinSign 1s linear infinite;">⟳</span> Connected. Scan the QR code with your signer...';
+    statusEl.innerHTML = '<span style="display:inline-block;animation:spinSign 1s linear infinite;">⟳</span> Connected. Scan or paste this link in your signer...';
   };
 
   ws.onmessage = async (msg) => {
@@ -13542,16 +13579,18 @@ async function startQrLogin() {
         secret: null,
         enc: 'nip44',
       };
-      state.signerMethod = 'nip46-qr';
+      state.signerMethod = frostr ? 'frostr' : 'nip46-qr';
 
       try {
         const userPubkey = await nip46Request('get_public_key', [], 30000);
         if (!/^[0-9a-f]{64}$/.test(userPubkey || '')) throw new Error('Signer returned invalid user pubkey');
+        if (frostr && userPubkey !== options.expectedPublicKey) throw new Error('Wrong FROSTR account: npub does not match');
         if (epoch !== _glowstrSignerEpoch) return;
         state.publicKey = userPubkey;
 
         // Ask signer for preferred relays immediately; use them if valid.
-        try {
+        // Igloo has no switch_relays and would queue it as a manual approval, stalling login.
+        if (!frostr) try {
           const switched = await nip46Request('switch_relays', [], 15000);
           const relays = Array.isArray(switched) ? switched.filter(r => {
             return !!glowstrSignerRelayUrl(r);
@@ -13594,7 +13633,7 @@ async function startQrLogin() {
       statusEl.textContent = 'Session expired. Generate a new QR code to try again.';
       statusEl.className = 'qr-login-status';
     }
-  }, 120000);
+  }, 300000);
 }
 
 function stopQrLogin() {
@@ -13608,8 +13647,7 @@ function stopQrLogin() {
     if (_qrLoginState.timeout) clearTimeout(_qrLoginState.timeout);
     _qrLoginState = null;
   }
-  const container = document.getElementById('qr-login-container');
-  if (container) container.style.display = 'none';
+  for (const id of ['qr-login-container', 'frostr-nc-container']) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
   if (cancelSession) glowstrResetSigner(true);
 }
 
@@ -14027,6 +14065,8 @@ function glowstrHandleDynamicAction(event) {
     case 'remove-parent': el.parentElement?.remove(); break;
     case 'frostr-toggle': document.getElementById('section-frostr').classList.toggle('open'); break;
     case 'frostr-connect': connectFrostr(); break;
+    case 'copy-self': copyToClipboard(el.textContent); break;
+    case 'qr-login-cancel': stopQrLogin(); break;
     case 'submit-bunker-pwa': submitBunkerFromPwa(); break;
     case 'amber-readonly-paste': document.getElementById('amber-pwa-help')?.remove(); showAmberManualPasteModal(); break;
     case 'amber-paste-clipboard': amberPasteFromClipboard(); break;

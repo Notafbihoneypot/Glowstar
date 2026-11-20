@@ -34,8 +34,9 @@ const native={
 const c=vm.createContext({crypto:webcrypto,TextEncoder,TextDecoder,Uint8Array,console,setTimeout,clearTimeout,AbortController,URL,URLSearchParams,btoa,atob,
   localStorage,sessionStorage, window:{GlowstrAndroid:native,addEventListener(){}}, document:{getElementById:element,addEventListener(){},visibilityState:'visible'},
   location:{protocol:'https:',origin:'https://test.invalid',pathname:'/'},
-  showToast:()=>{},showLoggedIn:()=>{},stopQrLogin:()=>{},glowstrMaskPrivateKeyDisplay:()=>{},glowstrSyncPersistUi:()=>{},
-  updateProfilesInFeed:()=>{},glowstrTrackEventRelay:()=>{},detectGlowstrClientContext:()=>({deviceClass:'desktop'})
+  showToast:()=>{},showLoggedIn:()=>{},glowstrMaskPrivateKeyDisplay:()=>{},glowstrSyncPersistUi:()=>{},
+  updateProfilesInFeed:()=>{},glowstrTrackEventRelay:()=>{},detectGlowstrClientContext:()=>({deviceClass:'desktop'}),
+  generateQrSvg:()=>'',requestProfile:()=>{},switchView:()=>{}
 });
 vm.runInContext(`let state={profiles:{},publicKey:null,privateKey:null,signerMethod:null,nip46:null,persistKey:true,following:new Set(),relays:{}};`,c);
 vm.runInContext(section('function hexToBytes(', '// Bech32 decoder'),c);
@@ -52,6 +53,8 @@ vm.runInContext(section('const NIP46_REQUESTED_PERMS', '// === CLIENT CONTEXT'),
 vm.runInContext(section('async function connectBunker(', '// Manual paste fallback:'),c);
 vm.runInContext(section('async function nip44EncryptUniversal(', 'function randomPastTimestamp('),c);
 vm.runInContext(section('async function nip46Sign(', '// SW:'),c);
+vm.runInContext(section('function randomPastTimestamp(', '// ═══ REPLY THREAD VIEW'),c);
+vm.runInContext(section('// ═══ NIP-46 QR CODE LOGIN', '// NIP-46 signing request'),c);
 vm.runInContext(section('function logout()', 'function glowstrMaskPrivateKeyDisplay('),c);
 c._walletCapabilityState=null;
 const run=code=>vm.runInContext(code.includes('await ') ? '(async()=>{return '+code+';})()' : code,c);
@@ -60,11 +63,11 @@ function pass(name) {++passed;console.log(`PASS ${name}`);}
 
 // Server implements NIP-46 using an independent transport key, as Igloo does.
 vm.runInContext(`const testAccountSecret='0'.repeat(63)+'3', testSignerSecret='0'.repeat(63)+'4', testRecipientSecret='0'.repeat(63)+'5';
-let testMode='normal'; const testRequests=[];
+let testMode='normal', testPeak=0; const testRequests=[];
 async function testRespond(ws, request) {
   if (!(await verifyEvent(request))) throw new Error('Client request signature invalid');
   const payload=JSON.parse(await nip44Decrypt(request.content,testSignerSecret,request.pubkey));
-  testRequests.push(payload);
+  testRequests.push(payload); testPeak=Math.max(testPeak,_glowstrNip46Pending.size);
   if(testMode==='timeout' || testMode==='pending') return;
   if(testMode==='disconnect') {ws.close();return;}
   let result, error;
@@ -148,6 +151,23 @@ c.WebSocket=FakeSocket;
   assert.equal(await run(`nip44DecryptUniversal(encrypted,await derivePublicKey(testRecipientSecret))`),'Private message');
   await assert.rejects(run(`encryptDmUniversal('Legacy',await derivePublicKey(testRecipientSecret))`),/NIP-17/);
   pass('remote event signing and NIP-44 messaging; FROSTR legacy NIP-04 disabled');
+  // Gift wraps arrive once per inbox relay; each unwrap costs two signer round trips.
+  const unwrap=await run(`(async()=>{
+    const me=state.publicKey, sender=await derivePublicKey(testRecipientSecret), wraps=[];
+    for(let i=0;i<12;i++){
+      const rumor={kind:14,pubkey:sender,created_at:1700000100+i,tags:[['p',me]],content:'hi '+i};
+      rumor.id=await computeRumorId(rumor);
+      const seal=await signNostrEvent({kind:13,created_at:1700000100,tags:[],content:await nip44Encrypt(JSON.stringify(rumor),testRecipientSecret,me)},testRecipientSecret);
+      const wk=generatePrivateKey();
+      wraps.push(await signNostrEvent({kind:1059,created_at:1700000100,tags:[['p',me]],content:await nip44Encrypt(JSON.stringify(seal),wk,me)},wk));
+    }
+    state.dms=[];state.eventIds=new Set();testRequests.length=0;testPeak=0;
+    for(const w of wraps) for(let r=0;r<3;r++) handleEvent(w,'relay'+r);
+    for(let i=0;i<1000 && state.dms.length<12;i++) await new Promise(r=>setTimeout(r,5));
+    return [state.dms.length,testRequests.filter(r=>r.method==='nip44_decrypt').length,testPeak];
+  })()`);
+  assert.equal(unwrap[0],12);assert.equal(unwrap[1],24);assert(unwrap[2]<=4,`peak ${unwrap[2]}`);
+  pass('NIP-17 inbox unwraps are deduped across relays and bounded for remote signers');
   run(`testMode='noise'`);assert.equal(await run(`nip46Request('ping',[],5000)`),'pong');
   pass('forged body, wrong author, request ID and subscription responses ignored');
   run(`testMode='changed-template'`);
@@ -241,6 +261,29 @@ c.WebSocket=FakeSocket;
   for(let i=0;i<200 && !run("testRequests.some(r=>r.method==='logout')");i++) await new Promise(r=>setTimeout(r,5));
   assert.equal(run("testRequests.some(r=>r.method==='logout')"),true);
   pass('logout erases local identity and sends authenticated signer revocation');
+  // Igloo Server only accepts client-made nostrconnect:// links and echoes the link secret.
+  const iglooConnect=async expected=>{
+    run(`testMode='normal';testRequests.length=0`);
+    await run(`startQrLogin({method:'frostr',expectedPublicKey:'${expected}',ui:'frostr-nc'})`);
+    const link=new URL(element('frostr-nc-uri').textContent.replace('nostrconnect://','https://'));
+    assert.equal(link.searchParams.get('relay'),'wss://relay.primal.net/');
+    assert.equal(link.searchParams.get('perms'),run('NIP46_REQUESTED_PERMS'));
+    c.linkSecret=link.searchParams.get('secret');c.linkClient=link.hostname;
+    await run(`(async()=>{
+      const content=await nip44Encrypt(JSON.stringify({id:linkSecret,result:linkSecret}),testSignerSecret,linkClient);
+      const ev=await signNostrEvent({kind:24133,created_at:Math.floor(Date.now()/1000),tags:[['p',linkClient]],content},testSignerSecret);
+      await _qrLoginState.ws.onmessage({data:JSON.stringify(['EVENT',_qrLoginState.subId,ev])});
+    })()`);
+  };
+  await iglooConnect('a'.repeat(64));
+  assert.equal(run('state.nip46'),null);assert.equal(run('state.publicKey'),null);assert.equal(run('state.signerMethod'),null);
+  await iglooConnect(account);
+  assert.equal(run('state.signerMethod'),'frostr');assert.equal(run('state.publicKey'),account);assert.equal(run('state.privateKey'),null);
+  assert.equal(run("testRequests.some(r=>r.method==='switch_relays')"),false);
+  assert.equal(JSON.parse(nativeRecords.get('remote')).signerMethod,'frostr');
+  assert.equal((await run(`signEventUniversal({kind:1,created_at:1700000005,tags:[],content:'Igloo note'})`)).pubkey,account);
+  run('logout()');
+  pass('FROSTR connects to Igloo through nostrconnect://, checks the npub, and skips Igloo-unsupported switch_relays');
   const nip05Pubkey='a'.repeat(64);
   c.fetch=async()=>({ok:true,text:async()=>JSON.stringify({names:{alice:nip05Pubkey}})});
   assert.equal(await run(`glowstrVerifyProfileNip05('${nip05Pubkey}','alice@example.com')`),true);

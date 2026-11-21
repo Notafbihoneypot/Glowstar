@@ -596,8 +596,8 @@ GLOWSTR_LATE_PAYMENT_GRACE_SECONDS=300
 GLOWSTR_RECONCILE_SECONDS=20
 
 GLOWSTR_ENTITLEMENT_CACHE_SECONDS=15
-GLOWSTR_GATE_MAX_AUTH_KEYS=16
-GLOWSTR_GATE_MAX_CONNECTIONS=80
+GLOWSTR_GATE_MAX_AUTH_KEYS=4
+GLOWSTR_GATE_MAX_CONNECTIONS=400
 GLOWSTR_GATE_MAX_CONNECTIONS_PER_IP=12
 GLOWSTR_GATE_PRIVACY_AUTH_GRACE_MS=15000
 GLOWSTR_GATE_MAX_GRACE_WRITES=8
@@ -626,21 +626,26 @@ $RELAY_DOMAIN {
         X-Frame-Options "DENY"
         Permissions-Policy "geolocation=(), microphone=(), camera=()"
         Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; form-action 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'"
+        -Server
     }
 
     @nip11 {
         path /
         header Accept *application/nostr+json*
     }
+    # Header tokens are case-insensitive (RFC 9110); Node/undici sends "upgrade".
     @nostr_ws {
-        header Connection *Upgrade*
-        header Upgrade websocket
+        header_regexp Connection (?i)\bupgrade\b
+        header_regexp Upgrade (?i)^websocket\$
     }
+    # Gate and relay reach Commerce admin on loopback; never expose it publicly.
+    @commerce_admin path /xmr-commerce/v1/admin /xmr-commerce/v1/admin/*
 
     # Explicit priority. The default browser response is ALWAYS our payment
     # homepage, not strfry's fallback HTML. A NIP-11 request returns JSON,
     # and WebSocket upgrades still pass exclusively through the paid gate.
     route {
+        respond @commerce_admin 404
         handle_path /xmr-commerce/* {
             reverse_proxy 127.0.0.1:8787
         }

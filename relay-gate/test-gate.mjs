@@ -13,6 +13,7 @@ import {
   consumeSocketTraffic,
   safelyVerifyEvent,
   verifyNip05PurchaseClaim,
+  EntitlementCache,
 } from './gate.mjs'
 
 function authEvent(sk, challenge, relay, createdAt = Math.floor(Date.now() / 1000)) {
@@ -164,7 +165,24 @@ test('NIP-05 claim requires matching target, signer, URL, method and fresh signa
   assert.equal(verifyNip05PurchaseClaim(claim, target, 'f'.repeat(64), now), false)
   assert.equal(verifyNip05PurchaseClaim(claim, target, pubkey, now + 100), false)
   assert.equal(verifyNip05PurchaseClaim({...claim, content: 'spoofed'}, target, pubkey, now), false)
-  assert.equal(verifyNip05PurchaseClaim({...claim, sig: '0'.repeat(128)}, target, pubkey, now), false)
+  // JSON round-trip: a spread copy keeps nostr-tools' cached "verified" symbol; wire input never has it.
+  assert.equal(verifyNip05PurchaseClaim(JSON.parse(JSON.stringify({...claim, sig: '0'.repeat(128)})), target, pubkey, now), false)
   const badURL = finalizeEvent({...claim, tags: [['u', 'https://evil.test/'], ['method', 'POST'], ['nip05', target]]}, sk)
   assert.equal(verifyNip05PurchaseClaim(badURL, target, pubkey, now), false)
+})
+
+test('entitlement cache stays bounded under throwaway AUTH keys', async () => {
+  const realFetch = globalThis.fetch
+  let lookups = 0
+  globalThis.fetch = async () => { lookups++; return { ok: true, json: async () => ({ entitlements: [] }) } }
+  try {
+    const cache = new EntitlementCache({ adminUrl: 'http://x/v1/admin', adminToken: 't',
+      features: ['relay_365d'], target: 'r', ttlSeconds: 15, maxEntries: 3 })
+    for (let i = 0; i < 10; i++) assert.equal(await cache.active(String(i).repeat(64)), false)
+    assert.equal(cache.entries.size, 3)
+    assert.equal(await cache.active('9'.repeat(64)), false)
+    assert.equal(lookups, 10)
+  } finally {
+    globalThis.fetch = realFetch
+  }
 })

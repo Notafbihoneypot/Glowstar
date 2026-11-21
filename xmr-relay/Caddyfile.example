@@ -3,8 +3,8 @@
 # Ordinary HTTP/NIP-11 requests go directly to loopback-only strfry.
 relay.glowstr.com {
     @nostr_ws {
-        header Connection *Upgrade*
-        header Upgrade websocket
+        header_regexp Connection (?i)\bupgrade\b
+        header_regexp Upgrade (?i)^websocket$
     }
 
     handle @nostr_ws {

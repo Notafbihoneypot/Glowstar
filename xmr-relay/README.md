@@ -162,7 +162,8 @@ Do not use a personal Nostr key for the notifier and never commit `secrets/notif
 - `GLOWSTR_INVOICE_SECONDS=1800`
 - `GLOWSTR_LATE_PAYMENT_GRACE_SECONDS=300`
 - `GLOWSTR_ENTITLEMENT_CACHE_SECONDS=15`
-- `GLOWSTR_GATE_MAX_AUTH_KEYS=64`
+- `GLOWSTR_GATE_MAX_AUTH_KEYS=4` — identities per WebSocket (user key + Armada stream key); each one costs a membership lookup per write
+- `GLOWSTR_GATE_MAX_CONNECTIONS=400` — total gate WebSockets (per IP: `GLOWSTR_GATE_MAX_CONNECTIONS_PER_IP=12`)
 - `GLOWSTR_ALLOW_PRIVACY_WRAPPERS=true` — author-mismatch exception only for kinds 1059/21059
 - `GLOWSTR_NIP17_SECRET_PATH` — local path to the dedicated notifier key file
 - `GLOWSTR_NIP17_LOOKUP_RELAYS` — public discovery relays used to find members' `kind:10050` events

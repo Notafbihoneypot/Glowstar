@@ -199,14 +199,15 @@ export function consumeFairUse(limits, pubkey, perMinute = DEFAULT_MAX_WRITES_MI
   return { ok: true }
 }
 
-class EntitlementCache {
-  constructor({ adminUrl, adminToken, features, target, ttlSeconds }) {
+export class EntitlementCache {
+  constructor({ adminUrl, adminToken, features, target, ttlSeconds, maxEntries = MAX_TRACKED_PUBKEYS }) {
     this.adminUrl = adminUrl.replace(/\/$/, '')
     this.adminToken = adminToken
     this.features = new Set(features)
     this.target = target
     this.ttlMs = ttlSeconds * 1000
     this.entries = new Map()
+    this.maxEntries = maxEntries
   }
 
   async active(pubkey) {
@@ -237,11 +238,22 @@ class EntitlementCache {
       // Positive entries never outlive the entitlement itself.
       const entitlementMs = allowed ? Math.max(0, validUntil * 1000 - nowMs) : this.ttlMs
       const expiresAtMs = nowMs + Math.min(this.ttlMs, entitlementMs || this.ttlMs)
-      this.entries.set(pubkey, { allowed, expiresAtMs })
+      this.remember(pubkey, { allowed, expiresAtMs })
       return allowed
     } finally {
       clearTimeout(timer)
     }
+  }
+
+  // Bounded: unpaid clients can AUTH with endless throwaway keys.
+  remember(pubkey, entry) {
+    this.entries.delete(pubkey)
+    if (this.entries.size >= this.maxEntries) {
+      const now = Date.now()
+      for (const [key, value] of this.entries) if (value.expiresAtMs <= now) this.entries.delete(key)
+      if (this.entries.size >= this.maxEntries) this.entries.delete(this.entries.keys().next().value)
+    }
+    this.entries.set(pubkey, entry)
   }
 }
 
@@ -291,8 +303,8 @@ async function main() {
   const allowPrivacyWrappers = !['0', 'false', 'no', 'off'].includes(
     String(process.env.GLOWSTR_ALLOW_PRIVACY_WRAPPERS || 'true').toLowerCase(),
   )
-  const maxAuthKeys = envInt('GLOWSTR_GATE_MAX_AUTH_KEYS', 64, 2, 256)
-  const maxConnections = envInt('GLOWSTR_GATE_MAX_CONNECTIONS', 80, 8, 1000)
+  const maxAuthKeys = envInt('GLOWSTR_GATE_MAX_AUTH_KEYS', 4, 2, 256)
+  const maxConnections = envInt('GLOWSTR_GATE_MAX_CONNECTIONS', 400, 8, 1000)
   const maxConnectionsPerIp = envInt('GLOWSTR_GATE_MAX_CONNECTIONS_PER_IP', 12, 1, 64)
   const authGraceMs = envInt('GLOWSTR_GATE_PRIVACY_AUTH_GRACE_MS', 15000, 0, 60000)
   const maxGraceWrites = envInt('GLOWSTR_GATE_MAX_GRACE_WRITES', 8, 1, 64)

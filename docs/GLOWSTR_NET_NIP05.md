@@ -42,10 +42,13 @@ curl -sS 'https://notafbihoneypotrelay.com/xmr-commerce/v1/features'
 
 Then buy one throwaway name end to end with a test identity before announcing it.
 
+## Domain boundary
+
+The public site and NIP-05 lookup use `glowstr.net`. The existing relay and checkout API remain on `notafbihoneypotrelay.com`. See [ADR 0001](adr/0001-keep-relay-host-separate.md).
+
 ## Things to decide
 
 - **Reserved names.** Block `_`, `admin`, `support`, `help`, `security`, `abuse`, `postmaster`, `root`, `glowstr`, `relay`, `nostr`, `monero`, `xmr` and close look-alikes on the server before opening sales. `_@glowstr.net` should map to the project's own key.
-- **Where the API lives.** Checkout still talks to `notafbihoneypotrelay.com`. Moving it to `api.glowstr.net` and the relay to `relay.glowstr.net` would put everything under one name, but NIP-42 binds auth to the relay URL, so existing members would need to re-authenticate and the client constant `GLOWSTR_RELAY_V42` would change. Do it as its own release.
 - **Web app.** If the client is ever served from `https://glowstr.net`, add that origin to `GLOWSTR_ALLOWED_ORIGIN` and send `Content-Security-Policy` as a response header with `frame-ancestors 'none'`.
 - **Privacy of the registry.** `nostr.json?name=` answers one name at a time. Do not serve the full list without a `name` parameter, or the customer list becomes public in one request.
 - **Operator duty.** A one-time fee does not end the renewal, hosting and backup costs. If the domain lapses, every sold name stops verifying.

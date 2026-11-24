@@ -4,6 +4,12 @@ A privacy-first Nostr client with Monero payments: the bundled client, the Andro
 
 Start with [`docs/SECURITY-AUDIT-2026-11-10.md`](docs/SECURITY-AUDIT-2026-11-10.md) for the current security posture and roadmap, and [`docs/GLOWSTR_NET_NIP05.md`](docs/GLOWSTR_NET_NIP05.md) for the `name@glowstr.net` service.
 
+## Android 0.3.22
+
+- New posts appear in Following as soon as a relay accepts them, without waiting for a relay echo or the new-posts buffer. The composer shows when FROSTR is signing and preserves edits made during approval.
+- Profile opens the signed-in account directly. Signer settings remain under Keys; profile editing opens on demand.
+- Removed the promotional purchase cards from the XMR tab. Wallet tools and tips remain, and relay memberships still live under Relays.
+
 ## Project files
 
 - [`glowstr-v5.5-relay-frostr-media.html`](glowstr-v5.5-relay-frostr-media.html): the canonical client; Android tests run against the exact generated shipping asset.

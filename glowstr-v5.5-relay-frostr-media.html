@@ -7,7 +7,7 @@
 <title>GLOWSTR</title>
 <meta name="description" content="Glowstr — a retro privacy-first Nostr PWA client">
 <meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-A8FiP1oGLPB8bShmGdPvjTvU1IIJ+iAaU9k+XdEF05c='; script-src-attr 'none'; connect-src 'self' https: wss: ws://127.0.0.1:8787 ws://localhost:8787; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'sha256-64E/cVcawRDDU86MHham7uqhhoWl01pbO9SglLR9Byo='; script-src-attr 'none'; connect-src 'self' https: wss: ws://127.0.0.1:8787 ws://localhost:8787; img-src 'self' https: data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https: data: blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://w.soundcloud.com https://open.spotify.com https://embed.wavlake.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self' data:;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkdMT1dTVFIiLCAic2hvcnRfbmFtZSI6ICJHTE9XU1RSIiwgImRlc2NyaXB0aW9uIjogIlNlZSBUaHJvdWdoIHRoZSBOb2lzZSBcdTIwMTQgUHJpdmFjeS1maXJzdCBOb3N0ciBjbGllbnQiLCAic3RhcnRfdXJsIjogIi4iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMGEwYSIsICJ0aGVtZV9jb2xvciI6ICIjRkY2NjAwIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCMmFXVjNRbTk0UFNJd0lEQWdNVGt5SURFNU1pSStDanh5WldOMElIZHBaSFJvUFNJeE9USWlJR2hsYVdkb2REMGlNVGt5SWlCbWFXeHNQU0lqTUdFd1lUQmhJaTgrQ2p4eVpXTjBJSGc5SWpnaUlIazlJamdpSUhkcFpIUm9QU0l4TnpZaUlHaGxhV2RvZEQwaU1UYzJJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlOR1JqWTJNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlOQ0l2UGdvOGRHVjRkQ0I0UFNJNU5pSWdlVDBpTVRFd0lpQm1iMjUwTFdaaGJXbHNlVDBpYlc5dWIzTndZV05sSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUJtYjI1MExYZGxhV2RvZEQwaVltOXNaQ0lnWm1sc2JEMGlJMFpHTmpZd01DSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krUnp3dmRHVjRkRDRLUEhSbGVIUWdlRDBpT1RZaUlIazlJakUxTUNJZ1ptOXVkQzFtWVcxcGJIazlJbTF2Ym05emNHRmpaU0lnWm05dWRDMXphWHBsUFNJeE5pSWdabWxzYkQwaUkyTmpOVEl3TUNJZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSStSMHhQVjFOVVVqd3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
@@ -192,6 +192,7 @@ header {
 .header-user {
   display: flex; align-items: center; gap: 6px;
   font-family: var(--font-retro); font-size: 0.95rem; color: var(--xmr-amber);
+  background: transparent;
   cursor: pointer; padding: 3px 8px; border: 1px solid transparent; transition: border-color 0.2s;
 }
 .header-user:hover { border-color: var(--xmr-amber-dim); }
@@ -2527,28 +2528,6 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
   </div>
 </div>
 
-<!-- XMR COMMERCE MODAL -->
-<div class="top8-modal-overlay" id="xmr-commerce-modal">
-  <div class="top8-modal" style="max-width:500px;">
-    <div class="top8-modal-header" style="background:linear-gradient(180deg,var(--xmr-orange),#994000);">
-      <span>ɱ XMR-ONLY FEATURE</span>
-      <button class="top-friends-titlebar-btn" data-glow-action="xmr-commerce-close">X</button>
-    </div>
-    <div class="top8-modal-body">
-      <div id="xmr-commerce-title" style="font-family:var(--font-display);font-size:1.1rem;color:var(--xmr-orange);margin-bottom:8px;">—</div>
-      <div id="xmr-commerce-status" style="font-family:var(--font-retro);color:var(--xmr-text-dim);margin-bottom:12px;">Creating private invoice…</div>
-      <div id="xmr-commerce-qr" style="display:flex;justify-content:center;margin:10px 0;"></div>
-      <div id="xmr-commerce-address" class="market-xmr-addr" style="font-size:.76rem;word-break:break-all;"></div>
-      <div id="xmr-commerce-amount" style="text-align:center;font-family:var(--font-display);color:var(--xmr-orange);margin:10px 0;"></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="btn" data-glow-action="xmr-commerce-wallet" style="flex:1;background:linear-gradient(180deg,var(--xmr-orange),#cc5200);color:#fff;">💸 OPEN WALLET</button>
-        <button class="btn" data-glow-action="xmr-commerce-copy" style="flex:1;">📋 COPY ADDRESS</button>
-      </div>
-      <div style="font-family:var(--font-retro);font-size:.8rem;color:var(--xmr-text-dim);margin-top:10px;line-height:1.4;">Each purchase gets a fresh Monero subaddress. Glowstr polls only this invoice capability; the invoice/tx association is not published to Nostr.</div>
-    </div>
-  </div>
-</div>
-
 <!-- CREATE CHAT ROOM MODAL (NIP-28 kind 40) -->
 <div class="top8-modal-overlay" id="create-room-modal">
   <div class="top8-modal" style="max-width:520px;">
@@ -2771,10 +2750,10 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
     </div>
     <div class="header-right">
       <button class="install-btn" id="install-btn" data-glow-click="h0031">📲 INSTALL</button>
-      <div class="header-user offline" id="header-user" data-glow-click="h0032" data-view-target="keys" style="border:1px outset #3a3a5a;padding:3px 8px;">
-        <div class="presence-dot offline" id="header-presence"></div>
+      <button type="button" class="header-user offline" id="header-user" data-glow-click="h0032" aria-label="My profile or sign in" style="border:1px outset #3a3a5a;padding:3px 8px;">
+        <span class="presence-dot offline" id="header-presence"></span>
         <span id="header-user-label">ANON</span>
-      </div>
+      </button>
       <div class="tor-status inactive" id="tor-status" data-glow-click="h0033" data-view-target="relays">
         <div class="tor-dot"></div>
         <span id="tor-status-text">TOR</span>
@@ -2872,7 +2851,7 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
           <input id="compose-media-file" type="file" accept="image/*" hidden />
           <button class="btn btn-small" id="compose-mesh-btn" type="button" title="Sign and send this public note over an offline mesh transport">📡 MESH SEND</button>
           <button class="btn btn-small" data-glow-click="h0050" title="Verify any image URLs in your post are EXIF-clean">🔒 STRIP EXIF</button>
-          <button class="btn" id="publish-btn" data-glow-click="h0051" disabled>TRANSMIT</button>
+          <button class="btn" id="publish-btn" data-glow-click="h0051" disabled>POST</button>
         </div>
         <div class="offline-compose-tools">
           <button class="btn btn-small" id="offline-save-draft" type="button">SAVE DRAFT</button>
@@ -3532,13 +3511,9 @@ body[data-custom-cursor="on"] * { cursor: inherit; }
     <div class="view" id="view-profile">
       <div class="profile-lookup-bar">
         <input class="profile-lookup-input" id="profile-lookup" placeholder="Paste hex pubkey or npub1... and press Enter" data-glow-keydown="h0115" />
-        <button class="btn btn-small" data-glow-click="h0116" title="View your own profile">MY PROFILE</button>
+        <button class="btn btn-small" id="profile-back-to-mine" data-glow-click="h0116" hidden>MY PROFILE</button>
       </div>
-      <div id="profile-content">
-        <div class="empty-state" id="profile-empty">
-          <p>Login and tap MY PROFILE, or paste a pubkey above to view any user's profile.</p>
-        </div>
-      </div>
+      <div id="profile-content"></div>
       <div id="profile-edit-panel" style="display:none;">
         <div class="profile-edit-section">
           <div class="relay-section-title">EDIT PROFILE</div>
@@ -3652,8 +3627,6 @@ https://another-server.example"></textarea>
     <!-- MONERO WALLET HUB -->
     <div class="view" id="view-wallet">
       <div class="wallet-view">
-
-        <div id="xmr-commerce-panel"></div>
 
         <!-- 0. XMR MARKET DASHBOARD -->
         <div class="wallet-section">
@@ -4789,7 +4762,7 @@ function initApp() {
   setInterval(() => { if (!document.hidden) saveProfileCache(); }, 60000);
   document.getElementById('compose-input').addEventListener('input', function() {
     document.getElementById('char-count').textContent = this.value.length;
-    document.getElementById('publish-btn').disabled = this.value.trim().length === 0;
+    document.getElementById('publish-btn').disabled = !!publishNote.pending || !this.value.trim();
   });
   document.getElementById('search-input').addEventListener('keydown', function(e) { if (e.key === 'Enter') doSearch(); });
   document.getElementById('dm-input').addEventListener('keydown', function(e) { if (e.key === 'Enter') sendDm(); });
@@ -5050,18 +5023,12 @@ function glowstrResetAccountContext() {
   state.replyTo = null;
   state.activeTip = null;
   state.pendingUsername = null;
-  state.activeXmrInvoice = null;
 
   // The feed selection may contain authors from the prior account.
   state.feedBuffer = [];
   state._feedSelectionCache = null;
   state._cachedAuthors = null;
   state._cachedAuthorsAt = 0;
-
-  // Stop an invoice poll that was created for the previous pubkey. Saved invoice
-  // capability tokens are intentionally retained so the original account can
-  // resume them when it is selected again.
-  try { if (typeof closeXmrCommerce === 'function') closeXmrCommerce(); } catch(e) {}
 
   try { glowstrInvalidateFeedSelection(); } catch(e) {}
 }
@@ -6428,6 +6395,18 @@ function connectRelay(url) {
           if (!state._lastOks) state._lastOks = {};
           if (!state._lastOks[evId]) state._lastOks[evId] = [];
           state._lastOks[evId].push({ relay: url, accepted, reason });
+          if (accepted) {
+            const pending = _glowstrPendingPublishesV42.get(evId);
+            const note = pending?.event;
+            if (note?.kind === 1 && note.pubkey === state.publicKey) {
+              glowstrTrackEventRelay(evId, url);
+              if (!state.eventIds.has(evId) && !pending.confirming) {
+                pending.confirming = true;
+                const epoch = _glowstrSignerEpoch;
+                if (await verifyEvent(note) && epoch === _glowstrSignerEpoch) handleEvent(note, url);
+              }
+            }
+          }
           // Bubble up rejection of recent DMs to user (but skip known paid relays — silently filtered already)
           if (!accepted && reason && state._dmEventIds && state._dmEventIds.has(evId)) {
             if (!PAID_RELAYS.has(url)) {
@@ -6892,7 +6871,9 @@ function handleEvent(event, relayUrl) {
     // Only render/request metadata for notes that survive the active feed filter.
     const visibleInFeed = glowstrFeedVisibleEvent(event);
     if (visibleInFeed) {
-      bufferOrRenderNote(event);
+      // Don't put a just-published note from this account behind the reading buffer.
+      if (event.pubkey === state.publicKey && _glowstrPendingPublishesV42.has(event.id)) renderNote(event, true);
+      else bufferOrRenderNote(event);
     }
     updateFeedCount();
     if (visibleInFeed && !state.profiles[event.pubkey]) requestProfile(event.pubkey);
@@ -6967,11 +6948,12 @@ function broadcastEvent(signedEvent) {
   // they reject with "restricted: not an active paid member" and would just produce errors
   const isDm = signedEvent.kind === 4 || signedEvent.kind === 1059;
   let sent = 0;
+  const frame = JSON.stringify(['EVENT', signedEvent]);
   let skipped = 0;
   Object.entries(state.relays).forEach(([url, r]) => {
     if (r.ws?.readyState !== WebSocket.OPEN) return;
     if (isDm && PAID_RELAYS.has(url)) { skipped++; return; }
-    try { r.ws.send(JSON.stringify(["EVENT", signedEvent])); sent++; } catch(e) {}
+    try { r.ws.send(frame); sent++; } catch(e) {}
   });
   if (isDm && skipped > 0) console.log('Skipped ' + skipped + ' paid relay(s) for DM broadcast');
   return sent;
@@ -7095,85 +7077,68 @@ async function broadcastDmWithOutbox(signedEvent, recipientPubkey) {
 
 // PUBLISH
 async function publishNote() {
-  const input = document.getElementById('compose-input'); const content = input.value.trim();
-  if (!content) return;
-  // Offline-first: queue an UNSIGNED note before asking a signer to do any work.
-  if (!glowstrHasWritableConnection() || navigator.onLine === false) {
-    await glowstrQueueCurrentComposer('queued');
-    glowstrClearComposerAfterLocalSave();
-    showToast('Offline / no relay: note queued unsigned for later publishing');
-    return;
-  }
-  if (!state.publicKey || state.publicKey.length !== 64) { showToast('Login first to publish notes'); switchView('keys'); return; }
-
-  // Build NIP-10 tags for replies
-  const tags = [];
-  if (state.replyTo) {
-    const rootId = state.replyTo.rootId || state.replyTo.id;
-    if (rootId === state.replyTo.id) {
-      // Direct reply to a root note
-      tags.push(['e', state.replyTo.id, '', 'root']);
-    } else {
-      // Reply within a thread
-      tags.push(['e', rootId, '', 'root']);
-      tags.push(['e', state.replyTo.id, '', 'reply']);
+  const input = document.getElementById('compose-input');
+  const button = document.getElementById('publish-btn');
+  const draft = input.value, content = draft.trim(), replyTo = state.replyTo;
+  if (!content || publishNote.pending) return;
+  const epoch = _glowstrSignerEpoch;
+  const clearSentDraft = () => {
+    if (epoch === _glowstrSignerEpoch && input.value === draft && state.replyTo === replyTo) {
+      glowstrClearComposerAfterLocalSave();
+      closeMobileComposer();
     }
-    tags.push(['p', state.replyTo.pubkey]);
-  }
-
-  // NIP-89: client tag — identifies notes published from Glowstr
-  tags.push(['client', 'Glowstr', '31990:glowstr']);
-
-  const eventTemplate = {
-    kind: 1,
-    created_at: Math.floor(Date.now() / 1000),
-    tags: tags,
-    content: content,
   };
-
+  publishNote.pending = true;
+  button.disabled = true;
+  button.textContent = 'Posting…';
   try {
-    let signedEvent;
+    // Queue an unsigned note before asking a signer to do any work.
+    if (!glowstrHasWritableConnection() || navigator.onLine === false) {
+      await glowstrQueueCurrentComposer('queued');
+      clearSentDraft();
+      showToast('Offline / no relay: note queued unsigned for later publishing');
+      return;
+    }
+    if (!state.publicKey || state.publicKey.length !== 64) {
+      showToast('Login first to post');
+      switchView('keys');
+      return;
+    }
 
-    if (state.signerMethod === 'nip07' && window.nostr) {
-      eventTemplate.pubkey = state.publicKey;
-      signedEvent = await glowstrVerifiedNip07Sign(eventTemplate);
-
-    } else if (state.signerMethod === 'amber-nip55') {
-      eventTemplate.pubkey = state.publicKey;
+    const tags = [];
+    if (replyTo) {
+      const rootId = replyTo.rootId || replyTo.id;
+      tags.push(['e', rootId, '', 'root']);
+      if (rootId !== replyTo.id) tags.push(['e', replyTo.id, '', 'reply']);
+      tags.push(['p', replyTo.pubkey]);
+    }
+    tags.push(['client', 'Glowstr', '31990:glowstr']);
+    const eventTemplate = {kind:1, created_at:Math.floor(Date.now()/1000), tags, content, pubkey:state.publicKey};
+    if (state.signerMethod === 'amber-nip55') {
       signWithAmber(JSON.stringify(eventTemplate));
       cancelReply();
       return;
-
-    } else if (glowstrIsRemoteSignerMethod(state.signerMethod) && state.nip46) {
-      eventTemplate.pubkey = state.publicKey;
-      showToast('Requesting signature from Amber...');
-      signedEvent = await nip46Sign(eventTemplate);
-
-    } else if ((state.signerMethod === 'nsec' || state.signerMethod === 'generated') && state.privateKey) {
-      signedEvent = await signEventUniversal(eventTemplate);
-
-    } else {
-      showToast('No signing method available. Login with a private key, Amber, or NIP-07.');
-      return;
     }
-
-    if (signedEvent) {
-      const sent = broadcastEvent(signedEvent);
-      if (sent > 0) {
-        showToast((state.replyTo ? 'Reply' : 'Note') + ' broadcast to ' + sent + ' relay(s)!');
-        input.value = '';
-        document.getElementById('char-count').textContent = '0';
-        document.getElementById('publish-btn').disabled = true;
-        cancelReply();
-      } else {
-        await glowstrQueueDraftRecord({content, replyTo: glowstrCloneReplyContext(state.replyTo), status:'queued'});
-        glowstrClearComposerAfterLocalSave();
-        showToast('No relay accepted the send attempt — queued unsigned note for retry');
-      }
+    if (glowstrIsRemoteSignerMethod(state.signerMethod)) {
+      button.textContent = state.signerMethod === 'frostr' ? 'Waiting for FROSTR…' : 'Waiting for signer…';
+    }
+    const signed = await signEventUniversal(eventTemplate);
+    if (!signed) { showToast('Connect a signer to post'); return; }
+    if (broadcastEvent(signed) > 0) {
+      clearSentDraft();
+      showToast((replyTo ? 'Reply' : 'Note') + ' sent to relays');
+    } else {
+      await glowstrQueueDraftRecord({content, replyTo:glowstrCloneReplyContext(replyTo), status:'queued'});
+      clearSentDraft();
+      showToast('Connection lost — note queued for retry');
     }
   } catch(e) {
-    showToast('Signing error: ' + e.message);
+    showToast('Could not post: ' + e.message);
     console.error('Publish error:', e);
+  } finally {
+    publishNote.pending = false;
+    button.textContent = 'POST';
+    button.disabled = !input.value.trim();
   }
 }
 
@@ -11679,8 +11644,7 @@ async function approvePost(postId, postPubkey, ref) {
 
 function viewMyProfile() {
   if (!state.publicKey || state.publicKey.length !== 64) { showToast('Login first'); switchView('keys'); return; }
-  switchView('profile');
-  renderProfileView(state.publicKey, true);
+  viewUserProfile(state.publicKey);
 }
 
 function viewUserProfile(pubkey) {
@@ -11840,8 +11804,8 @@ function renderProfileView(pubkey, isMe) {
     });
   }
 
-  // Show edit panel if it's me — guard for null
-  if (editPanel) editPanel.style.display = isMe ? 'block' : 'none';
+  document.getElementById('profile-back-to-mine').hidden = isMe || !state.publicKey;
+  if (editPanel) editPanel.style.display = 'none';
   if (isMe) {
     const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
     setVal('edit-name', profile.display_name || profile.name || '');
@@ -11861,10 +11825,6 @@ function renderProfileView(pubkey, isMe) {
     const autoPref = document.getElementById('visitor-allow-autoplay');
     if (autoPref) autoPref.checked = sessionStorage.getItem('glowstr_allow_music_autoplay') === 'yes';
   }
-
-  // profile-empty was inside profile-content and got replaced by innerHTML — guard the access
-  const emptyEl = document.getElementById('profile-empty');
-  if (emptyEl) emptyEl.style.display = 'none';
 
   // Apply custom cursor + music autoplay invitations (NIP-78 customs)
   applyProfileCursor(pubkey);
@@ -12580,8 +12540,6 @@ function setDefaultWallet(name) {
 }
 
 function loadWalletState() {
-  const commercePanel=document.getElementById('xmr-commerce-panel');
-  if(commercePanel) commercePanel.innerHTML=renderXmrCommercePanel();
   const ws = getWalletState();
   // Highlight active wallet
   if (ws.default) {
@@ -13101,87 +13059,6 @@ function restoreNWC() {
     status.innerHTML = '<span style="color:var(--xmr-green);">✓ Wallet connected (relay: ' + escapeHtml((ws.nwc.relay || '').replace('wss://','')) + ')</span>';
     if (testDiv) testDiv.style.display = 'block';
   }
-}
-
-// ═══ XMR COMMERCE — PAID NOSTR FEATURES ═══
-const XMR_COMMERCE = {
-  // Production: reverse-proxy this path to monero-commerce on 127.0.0.1:8787.
-  apiBase: 'https://notafbihoneypotrelay.com/xmr-commerce/v1',
-  pollMs: 5000,
-  features: {
-    relay_30d: { title: '⚡ PAID RELAY — 30 DAYS', target: '' },
-    room_30d: { title: '🔒 XMR ROOM — 30 DAYS', target: '' },
-    storage_10gb_30d: { title: '💾 10 GB STORAGE — 30 DAYS', target: '' },
-    creator_30d: { title: '⭐ SUPPORT CREATOR — 30 DAYS', target: '' }
-  }
-};
-let _xmrCommercePoll = null;
-
-function atomicXmrString(n) {
-  try {
-    const v=BigInt(String(n||0)), whole=v/1000000000000n, frac=(v%1000000000000n).toString().padStart(12,'0').replace(/0+$/,'');
-    return whole.toString()+(frac?'.'+frac:'');
-  } catch(e) { return '0'; }
-}
-function xmrCommerceSaved() {
-  try { return JSON.parse(localStorage.getItem('glowstr_xmr_invoices')||'{}'); } catch(e) { return {}; }
-}
-function xmrCommerceSave(id,token,feature) {
-  const all=xmrCommerceSaved(); all[id]={token,feature,createdAt:Date.now()}; localStorage.setItem('glowstr_xmr_invoices',JSON.stringify(all));
-}
-function xmrCommerceForget(id) {
-  const all=xmrCommerceSaved(); delete all[id]; localStorage.setItem('glowstr_xmr_invoices',JSON.stringify(all));
-}
-function closeXmrCommerce() {
-  if (_xmrCommercePoll) clearInterval(_xmrCommercePoll); _xmrCommercePoll=null;
-  document.getElementById('xmr-commerce-modal')?.classList.remove('visible');
-}
-function xmrCommerceRender(inv,feature) {
-  const spec=XMR_COMMERCE.features[feature]||{title:feature};
-  const title=document.getElementById('xmr-commerce-title'), status=document.getElementById('xmr-commerce-status');
-  if(title) title.textContent=spec.title;
-  const addr=document.getElementById('xmr-commerce-address'); if(addr) addr.textContent=inv.address||'';
-  const amt=document.getElementById('xmr-commerce-amount'); if(amt) amt.textContent=atomicXmrString(inv.amount_atomic)+' XMR';
-  const qr=document.getElementById('xmr-commerce-qr'); if(qr&&inv.uri){ try{qr.innerHTML=generateQrSvg(inv.uri,4);}catch(e){qr.textContent='';} }
-  state.activeXmrInvoice={...inv,feature};
-  const map={WAITING:'Waiting for XMR payment…',MEMPOOL:'Payment seen in mempool…',CONFIRMING:'Payment seen — '+(inv.confirmations||0)+' / '+(inv.confirmations_required||'?')+' confirmations',PAID:'✓ PAID — access activated',EXPIRED:'Invoice expired — create a new one'};
-  if(status) { status.textContent=map[inv.status]||String(inv.status||'WAITING'); status.style.color=inv.status==='PAID'?'var(--xmr-green)':(inv.status==='EXPIRED'?'var(--xmr-red)':'var(--xmr-text-dim)'); }
-}
-async function xmrCommerceCheck(id,token,feature) {
-  const r=await fetch(XMR_COMMERCE.apiBase+'/invoices/'+encodeURIComponent(id),{headers:{Authorization:'Bearer '+token},cache:'no-store'});
-  if(!r.ok) throw new Error('Invoice check failed ('+r.status+')');
-  const inv=await r.json(); xmrCommerceRender(inv,feature);
-  if(inv.status==='PAID'||inv.status==='EXPIRED'){ if(_xmrCommercePoll) clearInterval(_xmrCommercePoll); _xmrCommercePoll=null; if(inv.status==='PAID'){xmrCommerceForget(id);showToast('✓ XMR payment confirmed — feature activated');} }
-}
-async function buyXmrFeature(feature,target='') {
-  if(!state.publicKey){showToast('Login first to buy an XMR feature');switchView('keys');return;}
-  if(!XMR_COMMERCE.features[feature]){showToast('Unknown XMR feature');return;}
-  closeXmrCommerce(); document.getElementById('xmr-commerce-modal')?.classList.add('visible');
-  const status=document.getElementById('xmr-commerce-status'); if(status) status.textContent='Creating private invoice…';
-  try{
-    const r=await fetch(XMR_COMMERCE.apiBase+'/invoices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pubkey:state.publicKey,feature,target:String(target||'').slice(0,160)})});
-    const inv=await r.json(); if(!r.ok) throw new Error(inv.error||('HTTP '+r.status));
-    xmrCommerceSave(inv.id,inv.token,feature); xmrCommerceRender(inv,feature);
-    _xmrCommercePoll=setInterval(()=>xmrCommerceCheck(inv.id,inv.token,feature).catch(e=>console.warn('XMR invoice poll',e)),XMR_COMMERCE.pollMs);
-  }catch(e){ if(status){status.textContent='Could not create invoice: '+(e.message||e);status.style.color='var(--xmr-red)';} }
-}
-function openXmrCommerceWallet(){
-  const inv=state.activeXmrInvoice; if(!inv?.uri){showToast('No active invoice');return;}
-  window.location.href=inv.uri;
-}
-function copyXmrCommerceAddress(){
-  const inv=state.activeXmrInvoice; if(!inv?.address){showToast('No active invoice');return;}
-  copyToClipboard(inv.address);
-}
-function renderXmrCommercePanel(){
-  return '<div class="wallet-section"><div class="wallet-section-title">ɱ XMR-ONLY NOSTR FEATURES</div><div class="wallet-section-body">'+
-    '<div style="font-family:var(--font-retro);font-size:.9rem;color:var(--xmr-text-dim);margin-bottom:10px;">Pay directly in XMR. Every purchase uses a unique subaddress and activates access for your current Nostr pubkey after confirmations.</div>'+
-    '<div class="wallet-pick-grid">'+
-    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="relay_30d"><div class="wallet-pick-icon">⚡</div><span class="wallet-pick-name">PAID RELAY</span><span class="wallet-pick-platform">30 days</span></div>'+
-    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="room_30d"><div class="wallet-pick-icon">🔒</div><span class="wallet-pick-name">XMR ROOM</span><span class="wallet-pick-platform">30 days</span></div>'+
-    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="storage_10gb_30d"><div class="wallet-pick-icon">💾</div><span class="wallet-pick-name">10 GB STORAGE</span><span class="wallet-pick-platform">30 days</span></div>'+
-    '<div class="wallet-pick-card" data-glow-action="xmr-buy-feature" data-feature="creator_30d"><div class="wallet-pick-icon">⭐</div><span class="wallet-pick-name">SUPPORT CREATOR</span><span class="wallet-pick-platform">30 days</span></div>'+
-    '</div></div></div>';
 }
 
 // ═══ TIPPING (uses chosen wallet) ═══
@@ -13879,7 +13756,10 @@ function initGlowstrMobileV3() {
   const prefs=getGlowstrPrivacyPrefs();
   document.documentElement.classList.toggle('glowstr-stealth', prefs.stealthMode);
   glowstrApplyStealthMediaState();
-  document.querySelectorAll('[data-mobile-view]').forEach(btn => btn.addEventListener('click', () => { setMobileSheetOpen(false); switchView(btn.dataset.mobileView); }));
+  document.querySelectorAll('[data-mobile-view]').forEach(btn => btn.addEventListener('click', () => {
+    if (btn.dataset.mobileView === 'profile') viewMyProfile();
+    else switchView(btn.dataset.mobileView);
+  }));
   document.querySelector('[data-mobile-action="compose"]')?.addEventListener('click', openMobileComposer);
   document.querySelector('[data-mobile-action="more"]')?.addEventListener('click', () => setMobileSheetOpen(true));
   document.getElementById('mobile-more-backdrop')?.addEventListener('click', () => setMobileSheetOpen(false));
@@ -13913,13 +13793,6 @@ initApp = function() {
   stopGlowstrXmrAutoRefresh();
 };
 
-if (typeof publishNote === 'function') {
-  const _glowstrPublishNoteMobileV3 = publishNote;
-  publishNote = async function(...args) {
-    await _glowstrPublishNoteMobileV3.apply(this,args);
-    if (!document.getElementById('compose-input')?.value?.trim()) closeMobileComposer();
-  };
-}
 // GLOWSTR_MOBILE_V3_END
 
 
@@ -14083,10 +13956,6 @@ function glowstrHandleDynamicAction(event) {
     case 'toggle-bookmark': toggleBookmark(el.dataset.eventId, el); break;
     case 'open-dm': openDmWith(el.dataset.pubkey); break;
     case 'xmr-tip': xmrTip(el.dataset.pubkey); break;
-    case 'xmr-buy-feature': buyXmrFeature(el.dataset.feature || '', el.dataset.target || ''); break;
-    case 'xmr-commerce-close': closeXmrCommerce(); break;
-    case 'xmr-commerce-wallet': openXmrCommerceWallet(); break;
-    case 'xmr-commerce-copy': copyXmrCommerceAddress(); break;
     case 'open-notif': openNotifTarget(el.dataset.eventId || '', el.dataset.pubkey || '', el.dataset.notifType || ''); break;
     case 'render-articles': renderArticles(); break;
     case 'open-top8': openTop8Picker(); break;
@@ -14190,7 +14059,7 @@ function glowstrBindStaticEvents(){
   { const el=document.querySelector('[data-glow-click="h0029"]'); if(el) el.addEventListener('click', function(event){ const r=(function(event){ document.getElementById('qr-modal').classList.remove('visible') }).call(this,event); if(r===false){event.preventDefault();event.stopPropagation();} }); }
   { const el=document.querySelector('[data-glow-click="h0030"]'); if(el) el.addEventListener('click', function(event){ const r=(function(event){ switchView('feed') }).call(this,event); if(r===false){event.preventDefault();event.stopPropagation();} }); }
   { const el=document.querySelector('[data-glow-click="h0031"]'); if(el) el.addEventListener('click', function(event){ const r=(function(event){ installPWA() }).call(this,event); if(r===false){event.preventDefault();event.stopPropagation();} }); }
-  { const el=document.querySelector('[data-glow-click="h0032"]'); if(el) el.addEventListener('click', function(event){ const r=(function(event){ switchView('keys') }).call(this,event); if(r===false){event.preventDefault();event.stopPropagation();} }); }
+  { const el=document.querySelector('[data-glow-click="h0032"]'); if(el) el.addEventListener('click', viewMyProfile); }
   { const el=document.querySelector('[data-glow-click="h0033"]'); if(el) el.addEventListener('click', function(event){ const r=(function(event){ switchView('relays') }).call(this,event); if(r===false){event.preventDefault();event.stopPropagation();} }); }
   { const el=document.querySelector('[data-glow-click="h0034"]'); if(el) el.addEventListener('click', function(event){ const r=(function(event){ switchView('feed') }).call(this,event); if(r===false){event.preventDefault();event.stopPropagation();} }); }
   { const el=document.querySelector('[data-glow-click="h0035"]'); if(el) el.addEventListener('click', function(event){ const r=(function(event){ switchView('notifications') }).call(this,event); if(r===false){event.preventDefault();event.stopPropagation();} }); }
@@ -14200,7 +14069,7 @@ function glowstrBindStaticEvents(){
   { const el=document.querySelector('[data-glow-click="h0039"]'); if(el) el.addEventListener('click', function(event){ const r=(function(event){ switchView('search') }).call(this,event); if(r===false){event.preventDefault();event.stopPropagation();} }); }
   { const el=document.querySelector('[data-glow-click="h0040"]'); if(el) el.addEventListener('click', function(event){ const r=(function(event){ switchView('relays') }).call(this,event); if(r===false){event.preventDefault();event.stopPropagation();} }); }
   { const el=document.querySelector('[data-glow-click="h0041"]'); if(el) el.addEventListener('click', function(event){ const r=(function(event){ switchView('dms') }).call(this,event); if(r===false){event.preventDefault();event.stopPropagation();} }); }
-  { const el=document.querySelector('[data-glow-click="h0042"]'); if(el) el.addEventListener('click', function(event){ const r=(function(event){ switchView('profile') }).call(this,event); if(r===false){event.preventDefault();event.stopPropagation();} }); }
+  { const el=document.querySelector('[data-glow-click="h0042"]'); if(el) el.addEventListener('click', viewMyProfile); }
   { const el=document.querySelector('[data-glow-click="h0043"]'); if(el) el.addEventListener('click', function(event){ const r=(function(event){ switchView('keys') }).call(this,event); if(r===false){event.preventDefault();event.stopPropagation();} }); }
   { const el=document.querySelector('[data-glow-click="h0044"]'); if(el) el.addEventListener('click', function(event){ const r=(function(event){ switchView('wallet') }).call(this,event); if(r===false){event.preventDefault();event.stopPropagation();} }); }
   { const el=document.querySelector('[data-glow-click="h0045"]'); if(el) el.addEventListener('click', function(event){ const r=(function(event){ switchView('about') }).call(this,event); if(r===false){event.preventDefault();event.stopPropagation();} }); }
@@ -14399,7 +14268,7 @@ const GLOWSTR_FEED_PRESET_KEY='glowstr_feed_preset_v1';
 function glowstrInitFeedPresetState(){state.followSets=state.followSets||{};state.eventRelays=state.eventRelays||{};state.selectedFollowSet=state.selectedFollowSet||null;state.selectedRelayFeed=state.selectedRelayFeed||null;}
 function glowstrTrackEventRelay(id,url){if(!/^[0-9a-f]{64}$/.test(id||'')||!url)return;glowstrInitFeedPresetState();let a=state.eventRelays[id];if(!Array.isArray(a))a=state.eventRelays[id]=[];if(!a.includes(url)){a.push(url);if(a.length>6)a.shift();}if(Object.keys(state.eventRelays).length>1500){const keep=new Set(state.events.slice(0,1000).map(e=>e.id));for(const k of Object.keys(state.eventRelays))if(!keep.has(k))delete state.eventRelays[k];}}
 function glowstrIsMoneroEvent(ev){if(!ev)return false;const tagged=(ev.tags||[]).some(t=>t[0]==='t'&&/^(monero|xmr)$/i.test(t[1]||''));return tagged||/(^|[^a-z0-9])(monero|xmr)([^a-z0-9]|$)/i.test(ev.content||'');}
-function glowstrFeedMatches(ev){glowstrInitFeedPresetState();switch(state.feedMode){case'global':return true;case'following':return state.following.has(ev.pubkey);case'monero':return glowstrIsMoneroEvent(ev);case'tor':return (state.eventRelays[ev.id]||[]).some(u=>/\.onion(?::|\/|$)/i.test(u));case'mesh':return (state.eventRelays[ev.id]||[]).some(u=>/^mesh:\/\//i.test(u));case'list':{const set=state.followSets[state.selectedFollowSet];return !!set?.members?.has(ev.pubkey);}case'relay':return !!state.selectedRelayFeed&&(state.eventRelays[ev.id]||[]).some(u=>glowstrNormalizeRelayV42(u)===glowstrNormalizeRelayV42(state.selectedRelayFeed));default:return false;}}
+function glowstrFeedMatches(ev){glowstrInitFeedPresetState();switch(state.feedMode){case'global':return true;case'following':return ev.pubkey===state.publicKey||state.following.has(ev.pubkey);case'monero':return glowstrIsMoneroEvent(ev);case'tor':return (state.eventRelays[ev.id]||[]).some(u=>/\.onion(?::|\/|$)/i.test(u));case'mesh':return (state.eventRelays[ev.id]||[]).some(u=>/^mesh:\/\//i.test(u));case'list':{const set=state.followSets[state.selectedFollowSet];return !!set?.members?.has(ev.pubkey);}case'relay':return !!state.selectedRelayFeed&&(state.eventRelays[ev.id]||[]).some(u=>glowstrNormalizeRelayV42(u)===glowstrNormalizeRelayV42(state.selectedRelayFeed));default:return false;}}
 const GLOWSTR_FEED_FILTER_KEY='glowstr_feed_filter_v1';
 function glowstrInitFeedFilterState(){
   if(state._feedFilterReady)return;

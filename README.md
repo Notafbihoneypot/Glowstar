@@ -4,6 +4,8 @@ A privacy-first Nostr client with Monero payments: the bundled client, the Andro
 
 Start with [`docs/SECURITY-AUDIT-2026-11-10.md`](docs/SECURITY-AUDIT-2026-11-10.md) for the current security posture and roadmap, and [`docs/GLOWSTR_NET_NIP05.md`](docs/GLOWSTR_NET_NIP05.md) for the `name@glowstr.net` service.
 
+[`GLOWSTR_NOSTR_LEARNING.md`](GLOWSTR_NOSTR_LEARNING.md) tracks verified Nostr behavior, Glowstr decisions, and open interoperability checks.
+
 ## Android 0.3.22
 
 - New posts appear in Following as soon as a relay accepts them, without waiting for a relay echo or the new-posts buffer. The composer shows when FROSTR is signing and preserves edits made during approval.

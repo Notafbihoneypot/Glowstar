@@ -2,7 +2,9 @@
 
 From 0.3.20 the Android client sells names on **glowstr.net only**. The domain is a constant in the client (`GLOWSTR_NIP05_DOMAIN`); the commerce server has to advertise the same domain or checkout stays off.
 
-Nothing in this document has been deployed or payment-tested. glowstr.net could not be reached from the environment where this was written, so DNS, TLS and the server side are unverified.
+**Customer promise:** Pay once in XMR. No renewal fees. Your Nostr name stays assigned for as long as Glowstr operates the `glowstr.net` registry. You are buying a NIP-05 alias, not a domain registration, email address, or ownership of a Nostr key.
+
+**Staging status (2026-11-24):** `glowstr.net` has nameservers but no public A or AAAA record. Live commerce does not advertise `nip05_lifetime`. DNS/TLS, registry restore, and a real purchase remain launch gates.
 
 ## What the client does
 
@@ -23,7 +25,7 @@ The registry, payment settlement and `/.well-known/nostr.json` route live on the
 ```dotenv
 GLOWSTR_NIP05_DOMAIN=glowstr.net
 GLOWSTR_NIP05_USD_CENTS=400
-GLOWSTR_NIP05_ENABLED=0     # switch to 1 only after the checks below pass
+GLOWSTR_NIP05_ENABLED=0     # keep off while staging DNS/TLS and restoring a backup
 ```
 
 Keep `https://app.glowstr.local` in `GLOWSTR_ALLOWED_ORIGIN` — that is the origin the Android WebView sends.
@@ -37,10 +39,10 @@ curl -sS -D- -o /tmp/n.json 'https://glowstr.net/.well-known/nostr.json?name=__g
 # expect: HTTP 200, Access-Control-Allow-Origin: *, no Location header, body {"names":{}}
 
 curl -sS 'https://notafbihoneypotrelay.com/xmr-commerce/v1/features'
-# expect: features.nip05_lifetime = {"domain":"glowstr.net","usd_cents":400,...}
+# with sales off: features.nip05_lifetime is absent
 ```
 
-Then buy one throwaway name end to end with a test identity before announcing it.
+Before opening sales publicly, verify an off-host registry backup can be restored. In a controlled test, enable checkout, confirm `features.nip05_lifetime` advertises `glowstr.net` at `400` cents, and buy one throwaway name. Wait for two confirmations, then verify the name resolves to the test pubkey in another Nostr client. Turn sales back off if the purchase fails; do not pay the failed invoice again.
 
 ## Domain boundary
 

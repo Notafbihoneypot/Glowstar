@@ -2,7 +2,9 @@
 
 From 0.3.20 the Android client sells names on **glowstr.net only**. The domain is a constant in the client (`GLOWSTR_NIP05_DOMAIN`); the commerce server has to advertise the same domain or checkout stays off.
 
-**Customer promise:** Pay once in XMR. No renewal fees. Your Nostr name stays assigned for as long as Glowstr operates the `glowstr.net` registry. You are buying a NIP-05 alias, not a domain registration, email address, or ownership of a Nostr key.
+**Customer promise:** Pay once in XMR, $4 USD equivalent at launch. No renewal fees. Your Nostr name stays assigned for as long as Glowstr operates the `glowstr.net` registry. You are buying a NIP-05 alias, not a domain registration, email address, or ownership of a Nostr key.
+
+**Key policy at launch:** The alias is tied to the purchasing Nostr key. No transfers or support overrides. If the buyer loses access to that key, Glowstr cannot recover their alias. Disclose this before invoice creation. Revisit dual-signature transfers only if there is a need for planned key rotation.
 
 **Staging status (2026-11-24):** `glowstr.net` has nameservers but no public A or AAAA record. Live commerce does not advertise `nip05_lifetime`. DNS/TLS, registry restore, and a real purchase remain launch gates.
 

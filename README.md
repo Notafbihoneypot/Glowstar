@@ -6,6 +6,10 @@ Start with [`docs/SECURITY-AUDIT-2026-11-10.md`](docs/SECURITY-AUDIT-2026-11-10.
 
 [`GLOWSTR_NOSTR_LEARNING.md`](GLOWSTR_NOSTR_LEARNING.md) tracks verified Nostr behavior, Glowstr decisions, and open interoperability checks.
 
+## Android 0.3.23
+
+- NIP-05 checkout discloses the $4 one-time XMR price and explains that names cannot be transferred or recovered if the buyer loses their Nostr key. Public sales are not enabled.
+
 ## Android 0.3.22
 
 - New posts appear in Following as soon as a relay accepts them, without waiting for a relay echo or the new-posts buffer. The composer shows when FROSTR is signing and preserves edits made during approval.

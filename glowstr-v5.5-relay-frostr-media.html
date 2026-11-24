@@ -3733,7 +3733,7 @@ https://another-server.example"></textarea>
           <div class="wallet-section-title">★ NIP-05 NAME — ONE-TIME XMR PURCHASE</div>
           <div class="wallet-section-body">
             <div style="font-family:var(--font-retro);font-size:0.9rem;color:var(--xmr-text-dim);line-height:1.5;margin-bottom:12px;">
-              Buy a NIP-05 identifier such as <b style="color:var(--xmr-orange);">you@glowstr.net</b> for a one-time $4 USD-equivalent payment in Monero. NIP-05 is a portable Nostr identifier, not proof of personhood. Checkout opens only while the glowstr.net name service is online and its public lookup passes a live check.
+              Buy a Nostr name such as <b style="color:var(--xmr-orange);">you@glowstr.net</b> for a one-time $4 USD-equivalent payment in Monero. No renewal fees for as long as Glowstr operates the name registry. A NIP-05 name identifies a Nostr public key; it is not a domain registration or proof of identity.
             </div>
             <div id="username-service-status" class="info-box" style="margin-bottom:10px;">Checking name service…</div>
             <div class="profile-edit-row">
@@ -3753,7 +3753,8 @@ https://another-server.example"></textarea>
                 </div>
                 <div id="username-full-identifier" style="font-family:var(--font-mono);font-size:.9rem;margin-top:8px;word-break:break-all;"></div>
               </div>
-              <button class="btn" data-glow-click="h0141" id="username-buy-button" style="width:100%;background:linear-gradient(180deg,var(--xmr-green),#00aa44);color:#000;font-weight:bold;">CREATE XMR INVOICE</button>
+              <p id="username-key-terms" style="font-size:.9rem;line-height:1.5;margin:10px 0;">This name is tied to your current Nostr key. It cannot be transferred. If you lose access to that key, Glowstr cannot recover the name for you.</p>
+              <button class="btn" data-glow-click="h0141" id="username-buy-button" aria-describedby="username-key-terms" style="width:100%;background:linear-gradient(180deg,var(--xmr-green),#00aa44);color:#000;font-weight:bold;">CREATE XMR INVOICE</button>
             </div>
             <div style="border-top:1px dashed var(--xmr-win-border-dark);margin-top:14px;padding-top:10px;">
               <div style="font-family:var(--font-retro);font-size:0.85rem;color:var(--xmr-text-dim);">After payment is confirmed, verify the well-known mapping and publish the NIP-05 value to your profile:</div>
